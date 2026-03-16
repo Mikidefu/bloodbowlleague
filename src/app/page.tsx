@@ -1,65 +1,73 @@
-import Image from "next/image";
+'use client';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function Home() {
+  const { t } = useLanguage();
+  const [stats, setStats] = useState({ teams: 0, matches: 0, casualties: 0 });
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => {
+        const teamsCount = data.standings?.length || 0;
+        const matchesCount = data.standings?.reduce((sum: number, t: any) => sum + (t.played || 0), 0) / 2 || 0;
+        const casualtiesCount = data.playerStats?.killers?.reduce((sum: number, p: any) => sum + p.total_cas, 0) || 0;
+        setStats({ teams: teamsCount, matches: Math.floor(matchesCount), casualties: casualtiesCount });
+      })
+      .catch(console.error);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="dashboard-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '3rem', marginTop: '2rem' }}>
+      
+      <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '5rem 3rem', backgroundImage: 'linear-gradient(to bottom, rgba(8, 8, 8, 0.3), rgba(8, 8, 8, 0.9)), url("https://images.unsplash.com/photo-1566579090262-51cde5abe813?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--color-blood-red)', boxShadow: '0 0 30px rgba(229, 9, 20, 0.2)' }}>
+        <h1 className="hero-title" style={{ marginBottom: '1.5rem', color: 'var(--color-blood-bright)', textShadow: '0 0 20px rgba(229, 9, 20, 0.8)' }}>
+          {t.home.title}
+        </h1>
+        <p style={{ fontSize: '1.4rem', marginBottom: '3rem', maxWidth: '800px', margin: '0 auto 3rem', color: '#e0e0e0', lineHeight: 1.6, textShadow: '1px 1px 5px #000' }}>
+          {t.home.subtitle}
+        </p>
+        <Link href="/teams" className="btn btn-primary" style={{ fontSize: '1.6rem', padding: '1.2rem 4rem' }}>
+          {t.home.manageTeamsBtn}
+        </Link>
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h2 style={{ borderBottom: '1px solid var(--color-glass-border)', paddingBottom: '1rem', marginBottom: '1.5rem', color: 'var(--color-steel-light)' }}>
+          {t.home.leagueStatus}
+        </h2>
+        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1.5rem', fontSize: '1.2rem' }}>
+          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--color-steel-light)' }}>{t.home.registeredTeams}</span>
+            <span style={{ fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--color-bone)' }}>{stats.teams}</span>
+          </li>
+          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--color-steel-light)' }}>{t.home.matchesPlayed}</span>
+            <span style={{ fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--color-bone)' }}>{stats.matches}</span>
+          </li>
+          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--color-steel-light)' }}>{t.home.totalCasualties}</span>
+            <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: 'var(--color-blood-bright)', textShadow: '0 0 10px rgba(229, 9, 20, 0.5)' }}>{stats.casualties}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h2 style={{ borderBottom: '1px solid var(--color-glass-border)', paddingBottom: '1rem', marginBottom: '1.5rem', color: 'var(--color-steel-light)' }}>
+          {t.home.quickActions}
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <Link href="/teams/new" className="btn btn-primary" style={{ justifyContent: 'center' }}>
+            {t.home.draftNewTeam}
+          </Link>
+          <Link href="/schedule" className="btn" style={{ justifyContent: 'center', background: 'var(--color-steel)', borderColor: 'var(--color-steel-light)' }}>
+            {t.home.generateSchedule}
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
     </div>
   );
 }
