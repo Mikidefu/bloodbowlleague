@@ -91,7 +91,6 @@ export default function SkillsPage() {
                                         lineHeight: '1.6',
                                         color: 'var(--color-steel-light)'
                                     }}>
-                                        // Trova questa riga dentro il blocco del toggle:
                                         <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
                                             {language === 'it' && skill.description_it ? skill.description_it : skill.description}
                                         </p>
