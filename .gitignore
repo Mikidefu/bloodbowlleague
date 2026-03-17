@@ -30,8 +30,26 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# local env files
+# Non caricare mai le chiavi di Turso o segreti su GitHub
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# local database
+# Escludiamo il file sqlite locale e la cartella data
+/data/*.db
+/data/*.sqlite
+/data/*.sqlite3
+*.db
+*.sqlite
+
+# uploads (local test only)
+# Escludiamo i caricamenti locali, visto che useremo Vercel Blob
+/public/uploads/
 
 # vercel
 .vercel
