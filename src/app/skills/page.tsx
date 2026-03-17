@@ -4,7 +4,7 @@ import { Book, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function SkillsPage() {
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const [skills, setSkills] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -91,7 +91,10 @@ export default function SkillsPage() {
                                         lineHeight: '1.6',
                                         color: 'var(--color-steel-light)'
                                     }}>
-                                        <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{skill.description}</p>
+                                        // Trova questa riga dentro il blocco del toggle:
+                                        <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                                            {language === 'it' && skill.description_it ? skill.description_it : skill.description}
+                                        </p>
                                     </div>
                                 )}
                             </div>

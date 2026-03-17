@@ -5,6 +5,7 @@ export const translations = {
       schedule: 'SCHEDULE',
       standings: 'STANDINGS',
       stats: 'STATS',
+      skills: 'SKILLS'
     },
     home: {
       title: 'WELCOME TO THE PITCH',
@@ -131,10 +132,11 @@ export const translations = {
       schedule: 'CALENDARIO',
       standings: 'CLASSIFICA',
       stats: 'STATISTICHE',
+      skills: 'ABILITA\''
     },
     home: {
       title: 'BENVENUTI SUL CAMPO',
-      subtitle: 'Gestisci le tue squadre, organizza la stagione, traccia ogni touchdown e conta ogni vittima. Il pubblico ruggisce. Scorerà sangue.',
+      subtitle: 'Gestisci le tue squadre, organizza la stagione, traccia ogni touchdown e conta ogni vittima. Il pubblico ruggisce. Scorrerà sangue.',
       manageTeamsBtn: 'GESTISCI SQUADRE',
       leagueStatus: 'Stato della Lega',
       registeredTeams: 'Squadre Iscritte:',
@@ -198,7 +200,7 @@ export const translations = {
       cheerleaders: 'Cheerleader (10,000 MO)',
       assistantCoaches: 'Brilliant Coach (10,000 MO)',
       fanFactor: 'Fan Factor (10,000 MO)',
-      apothecary: 'Apothecario? (+50,000 MO)',
+      apothecary: 'Medico? (+50,000 MO)',
       treasury: 'Tesoreria (MO)',
       bank: 'Banca (MO)',
     },
