@@ -4,23 +4,23 @@ import crypto from 'crypto';
 
 export async function POST() {
   try {
-    // 1. Check if regular season is done
-    const unplayedRegular = db.prepare("SELECT count(*) as count FROM matches WHERE is_played = 0 AND match_type = 'Regular Season'").get() as any;
-    if (unplayedRegular.count > 0) {
+    // 1. Controllo se la regular season è finita
+    const { rows: unplayedRegularRows } = await db.execute("SELECT count(*) as count FROM matches WHERE is_played = 0 AND match_type = 'Regular Season'");
+    if (Number(unplayedRegularRows[0].count) > 0) {
       return NextResponse.json({ error: 'Cannot start playoffs until regular season is fully played.' }, { status: 400 });
     }
 
-    // 2. Ensure playoffs haven't already been generated
-    const playoffExists = db.prepare("SELECT count(*) as count FROM matches WHERE match_type LIKE '%Semifinal%'").get() as any;
-    if (playoffExists.count > 0) {
+    // 2. Controllo che i playoff non siano già stati generati
+    const { rows: playoffExistsRows } = await db.execute("SELECT count(*) as count FROM matches WHERE match_type LIKE '%Semifinal%'");
+    if (Number(playoffExistsRows[0].count) > 0) {
       return NextResponse.json({ error: 'Playoffs are already generated.' }, { status: 400 });
     }
 
-    // 3. Get Top 4 Teams (Same logic as standings)
-    const teamStandings = db.prepare(`
-      SELECT 
+    // 3. Calcolo della classifica per estrarre la Top 4
+    const { rows: rawStandings } = await db.execute(`
+      SELECT
         t.id, t.name,
-        SUM(CASE WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1 
+        SUM(CASE WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1
                  WHEN m.away_team_id = t.id AND m.away_score > m.home_score THEN 1 ELSE 0 END) as wins,
         SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END) as draws,
         SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score ELSE m.away_score END) as td_for,
@@ -28,13 +28,18 @@ export async function POST() {
         SUM(CASE WHEN m.home_team_id = t.id THEN m.home_casualties ELSE m.away_casualties END) as cas_for,
         SUM(CASE WHEN m.home_team_id = t.id THEN m.away_casualties ELSE m.home_casualties END) as cas_against
       FROM teams t
-      LEFT JOIN matches m ON (t.id = m.home_team_id OR t.id = m.away_team_id) AND m.is_played = 1 AND m.match_type = 'Regular Season'
+             LEFT JOIN matches m ON (t.id = m.home_team_id OR t.id = m.away_team_id) AND m.is_played = 1 AND m.match_type = 'Regular Season'
       GROUP BY t.id
-    `).all().map((t: any) => ({
+    `);
+
+    // Mappiamo e calcoliamo i punti forzando i tipi numerici per sicurezza
+    const teamStandings = rawStandings.map((t: any) => ({
       ...t,
-      points: (t.wins * 3) + (t.draws * 1),
-      td_diff: t.td_for - t.td_against,
-      cas_diff: t.cas_for - t.cas_against,
+      wins: Number(t.wins || 0),
+      draws: Number(t.draws || 0),
+      points: (Number(t.wins || 0) * 3) + (Number(t.draws || 0) * 1),
+      td_diff: Number(t.td_for || 0) - Number(t.td_against || 0),
+      cas_diff: Number(t.cas_for || 0) - Number(t.cas_against || 0),
     })).sort((a: any, b: any) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.td_diff !== a.td_diff) return b.td_diff - a.td_diff;
@@ -47,21 +52,20 @@ export async function POST() {
 
     const top4 = teamStandings.slice(0, 4);
 
-    // Get max round to append playoffs
-    const maxRoundRecord = db.prepare('SELECT MAX(round) as maxRound FROM matches').get() as any;
-    const nextRound = (maxRoundRecord.maxRound || 0) + 1;
+    const { rows: maxRoundRows } = await db.execute('SELECT MAX(round) as maxRound FROM matches');
+    const nextRound = (Number(maxRoundRows[0].maxRound) || 0) + 1;
 
-    // Create Semifinal 1: 1st vs 4th
-    // Create Semifinal 2: 2nd vs 3rd
-    const insertMatch = db.prepare(`
-      INSERT INTO matches (id, round, home_team_id, away_team_id, match_type)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-
-    db.transaction(() => {
-      insertMatch.run(crypto.randomUUID(), nextRound, top4[0].id, top4[3].id, 'Semifinal 1 (1st vs 4th)');
-      insertMatch.run(crypto.randomUUID(), nextRound, top4[1].id, top4[2].id, 'Semifinal 2 (2nd vs 3rd)');
-    })();
+    // Batch transaction per creare le Semifinali contemporaneamente
+    await db.batch([
+      {
+        sql: 'INSERT INTO matches (id, round, home_team_id, away_team_id, match_type) VALUES (?, ?, ?, ?, ?)',
+        args: [crypto.randomUUID(), nextRound, top4[0].id, top4[3].id, 'Semifinal 1 (1st vs 4th)']
+      },
+      {
+        sql: 'INSERT INTO matches (id, round, home_team_id, away_team_id, match_type) VALUES (?, ?, ?, ?, ?)',
+        args: [crypto.randomUUID(), nextRound, top4[1].id, top4[2].id, 'Semifinal 2 (2nd vs 3rd)']
+      }
+    ], 'write');
 
     return NextResponse.json({ success: true, message: 'Semifinals generated!' });
 

@@ -1,34 +1,31 @@
-import Database from 'better-sqlite3';
+import { createClient } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
 
-// This path works in both dev (from project root) and during build/runtime
-const dbDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(dbDir, 'bloodbowl.db');
+// 1. Connessione al database Turso tramite le variabili d'ambiente
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL as string,
+  authToken: process.env.TURSO_AUTH_TOKEN as string,
+});
 
-// Ensure db directory exists
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+// 2. Inizializzazione dello schema (ora deve essere asincrona)
+export const initDb = async () => {
+  try {
+    const schemaPath = path.join(process.cwd(), 'src/lib/schema.sql');
 
-// Connect to SQLite DB
-const db = new Database(dbPath, { verbose: process.env.NODE_ENV === 'development' ? console.log : undefined });
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
 
-// Initialize schema on first run
-export const initDb = () => {
-  const schemaPath = path.join(process.cwd(), 'src/lib/schema.sql');
-  if (fs.existsSync(schemaPath)) {
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    db.exec(schema);
-    console.log('Database initialized successfully.');
+      // executeMultiple permette di eseguire un intero blocco di query SQL separate da punto e virgola
+      await db.executeMultiple(schema);
+      console.log('Database inizializzato con successo su Turso.');
+    }
+  } catch (e) {
+    console.error("Errore durante l'inizializzazione del database su Turso:", e);
   }
 };
 
-// Automatically initialize schema when this module is imported
-try {
-  initDb();
-} catch (e) {
-  console.error("Failed to initialize database", e);
-}
+// Eseguiamo l'inizializzazione in background
+initDb();
 
 export default db;
