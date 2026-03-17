@@ -1,0 +1,355 @@
+/* src/app/teams/[id]/TeamDetails.module.css */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&family=Special+Elite&display=swap');
+
+/* Variabile texture stropicciata */
+:root {
+    --paper-wrinkle: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch"/%3E%3CfeColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" /%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'), linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.08) 100%);
+}
+
+/* ========================================= */
+/* IDENTITÀ SQUADRA (Banner Principale)      */
+/* ========================================= */
+.teamIdentityBanner {
+    display: flex;
+    align-items: stretch;
+    background: #111;
+    border: 5px solid var(--color-ink);
+    box-shadow: 12px 12px 0 var(--color-ink);
+    margin-bottom: 3rem;
+    position: relative;
+    overflow: visible; /* Importante per far sbordare i pulsanti */
+    min-height: 220px;
+}
+
+/* 🟢 MIGLIORAMENTO: LOGO COME TOPPA DI STOFFA CUCITA */
+.logoSection {
+    width: 280px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+    background-color: var(--color-paper);
+    /* Applica filtro bordi strappati */
+    filter: url(#rough-edges) drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
+    transform: rotate(-4deg) translateX(-10px);
+    border: 2px solid #ddd !important;
+    border-right: none !important;
+}
+
+/* Texture tessuto cucito sopra il logo */
+.logoSection::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.1"/%3E%3C/svg%3E');
+    mix-blend-mode: multiply;
+    pointer-events: none;
+}
+
+.teamLogo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.6));
+    transform: rotate(2deg);
+    transition: transform 0.3s;
+}
+
+.teamIdentityBanner:hover .teamLogo {
+    transform: rotate(0deg) scale(1.05);
+}
+
+/* Dati della Squadra */
+.infoSection {
+    flex: 1;
+    padding: 2rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.teamName {
+    font-family: 'Anton', sans-serif;
+    font-size: 4.5rem;
+    line-height: 0.9;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    color: #fff;
+    letter-spacing: 2px;
+}
+
+.teamRace {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.5rem;
+    color: #888;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    transform: rotate(-2deg);
+    display: inline-block;
+}
+
+/* Statistiche del Management */
+.managementBadges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.badge {
+    font-family: 'Anton', sans-serif;
+    background: #222;
+    color: #fff;
+    border: 2px solid #444;
+    padding: 0.3rem 0.8rem;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.badgeGold {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
+/* 🟢 AGGIUNTA: PULSANTI COME ETICHETTE DI CARTA (Riquadrini) */
+.actionGroup {
+    position: absolute;
+    top: -15px;
+    right: 15px;
+    display: flex;
+    gap: 1rem;
+    z-index: 10;
+}
+
+.actionBtn {
+    position: relative;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    padding: 0.6rem 1.2rem;
+    border: 3px solid var(--color-ink) !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+/* Corpo dell'etichetta (sfondo grinzoso) */
+.actionBtn::before {
+    content: '';
+    position: absolute;
+    inset: -3px; /* Copre il bordo originale */
+    z-index: -1;
+    background-image: var(--paper-wrinkle);
+    border: inherit;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+}
+
+.editBtn {
+    color: var(--color-ink) !important;
+    transform: rotate(3deg);
+}
+.editBtn::before { background-color: var(--color-paper); }
+
+.editBtn:hover {
+    transform: rotate(0deg) translateY(-3px);
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
+}
+
+.disbandBtn {
+    color: #fff !important;
+    transform: rotate(-2deg);
+}
+.disbandBtn::before {
+    background-color: var(--color-blood-bright);
+    border-color: var(--color-ink) !important;
+}
+
+.disbandBtn:hover {
+    transform: rotate(0deg) translateY(-3px);
+}
+
+/* ========================================= */
+/* MODULI EDIT E AGGIUNGI (Stile Cartaceo)   */
+/* ========================================= */
+.formCard {
+    background: var(--color-paper);
+    border: 4px dashed var(--color-ink);
+    padding: 2.5rem;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.formTitle {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 2.5rem;
+    color: var(--color-blood-bright);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--color-ink);
+    display: inline-block;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-family: 'Special Elite', cursive;
+    font-weight: bold;
+    font-size: 1rem;
+    color: #333;
+    text-transform: uppercase;
+}
+
+.inputField {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.4rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid var(--color-ink);
+    color: var(--color-blood-bright);
+    padding: 0.5rem 0;
+    width: 100%;
+}
+
+.inputField:focus {
+    outline: none;
+    border-bottom-color: var(--color-blood-bright);
+}
+
+/* Griglie interne ai Form */
+.grid3Col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 2rem; }
+.grid4Col { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 2rem; margin-bottom: 2rem; align-items: end; }
+.gridStats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    background: rgba(255,255,255,0.5);
+    border: 2px solid var(--color-ink);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Input Quadri per le Statistiche */
+.statInput {
+    font-family: 'Anton', sans-serif;
+    font-size: 2rem;
+    text-align: center;
+    border: 3px solid var(--color-ink);
+    background: #fff;
+    color: var(--color-ink);
+    width: 100%;
+    padding: 0.5rem;
+}
+.statInput:focus { border-color: var(--color-blood-bright); outline: none; }
+
+/* ========================================= */
+/* ROSTER DELLA SQUADRA (Foglio Presenze)    */
+/* ========================================= */
+.rosterHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 4px solid var(--color-ink);
+    padding-bottom: 0.5rem;
+}
+
+.rosterTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: 3rem;
+    color: var(--color-ink);
+    margin: 0;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+    border: 4px solid var(--color-ink);
+    background: #fff;
+    box-shadow: 10px 10px 0 rgba(0,0,0,0.2);
+}
+
+.dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+}
+
+.dataTable th {
+    background: var(--color-ink);
+    color: #fff;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid #333;
+}
+.dataTable th.leftAlign { text-align: left; }
+
+.dataTable td {
+    padding: 1rem;
+    border-bottom: 2px solid #ddd;
+    border-right: 1px solid #ddd;
+    text-align: center;
+    font-family: 'Special Elite', cursive;
+    font-weight: bold;
+    color: var(--color-ink);
+}
+
+.dataTable td.leftAlign { text-align: left; }
+
+/* Dati del Giocatore in riga */
+.playerName { font-family: 'Anton', sans-serif; font-size: 1.5rem; color: var(--color-ink); }
+.playerRole { color: #666; font-size: 1rem; }
+.playerSkill {
+    background: var(--color-ink);
+    color: #fff;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin: 2px;
+}
+
+.statusActive { color: #4ade80; }
+.statusInjured { color: #f59e0b; }
+.statusDead { color: var(--color-blood-bright); text-decoration: line-through; }
+
+/* Modalità Modifica in Riga */
+.editRow { background: rgba(229, 9, 20, 0.05); }
+.editInput {
+    width: 100%;
+    padding: 0.5rem;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+    border: 2px solid var(--color-ink);
+}
+.editInputTxt { text-align: left; font-family: 'Special Elite', cursive; font-size: 1rem; }
+
+/* ========================================= */
+/* MOBILE RESPONSIVE                         */
+/* ========================================= */
+@media (max-width: 992px) {
+    .teamIdentityBanner { flex-direction: column; }
+    .logoSection { width: 100%; padding: 2rem; border-right: none !important; border-bottom: 4px solid var(--color-ink); }
+    .teamLogo { height: 150px; }
+    .infoSection { padding: 3rem 1.5rem 2rem 1.5rem; text-align: center; }
+    .managementBadges { justify-content: center; }
+    .actionGroup { position: relative; top: 0; right: 0; justify-content: center; margin-bottom: 1.5rem; width: 100%; }
+
+    .grid3Col { grid-template-columns: 1fr; gap: 1rem; }
+    .grid4Col { grid-template-columns: 1fr; gap: 1rem; }
+    .gridStats { grid-template-columns: repeat(3, 1fr); }
+
+    .rosterHeader { flex-direction: column; gap: 1rem; align-items: stretch; text-align: center; }
+}

@@ -1,0 +1,190 @@
+/* src/app/teams/new/NewTeam.module.css */
+
+.headerArea {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+    border-bottom: 4px solid var(--color-ink);
+    padding-bottom: 1rem;
+}
+
+.pageTitle {
+    font-family: var(--font-impact);
+    font-size: 4.5rem;
+    color: var(--color-ink);
+    text-transform: uppercase;
+    margin: 0;
+    line-height: 1;
+    text-shadow: 3px 3px 0 #fff;
+    letter-spacing: 2px;
+}
+
+/* ========================================= */
+/* FORM CARD (Il Modulo di Iscrizione)       */
+/* ========================================= */
+.registrationForm {
+    background: var(--color-paper);
+    border: 4px dashed var(--color-ink);
+    padding: 3rem;
+    box-shadow: 10px 10px 0 rgba(0,0,0,0.4);
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    transform: rotate(-0.5deg);
+}
+
+/* Timbro falso sullo sfondo */
+.registrationForm::after {
+    content: 'OFFICIAL DOCUMENT';
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-family: var(--font-impact);
+    font-size: 6rem;
+    color: rgba(0, 0, 0, 0.03);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.formGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+    text-transform: uppercase;
+}
+
+.inputField {
+    font-family: var(--font-note);
+    font-size: 1.6rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid var(--color-ink);
+    color: var(--color-blood-bright);
+    padding: 0.5rem 0;
+    width: 100%;
+}
+
+.inputField:focus {
+    outline: none;
+    border-bottom-color: var(--color-blood-bright);
+}
+
+.selectField {
+    font-family: var(--font-impact);
+    font-size: 1.4rem;
+    background: rgba(255,255,255,0.5);
+    border: 3px solid var(--color-ink);
+    color: var(--color-ink);
+    padding: 0.8rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Colori e Logo */
+.colorGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.colorPicker {
+    width: 100%;
+    height: 60px;
+    border: 3px solid var(--color-ink);
+    cursor: pointer;
+    padding: 2px;
+    background: #fff;
+}
+
+/* Sezione Statistiche (Griglia stretta) */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    background: rgba(255,255,255,0.4);
+    border: 3px solid var(--color-ink);
+    padding: 1.5rem;
+}
+
+.statInputGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.statLabel {
+    font-family: var(--font-typewriter);
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #555;
+    text-align: center;
+}
+
+.statInput {
+    font-family: var(--font-impact);
+    font-size: 2rem;
+    text-align: center;
+    border: 3px solid var(--color-ink);
+    background: #fff;
+    color: var(--color-ink);
+    width: 100%;
+    padding: 0.5rem;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+.statInput:focus {
+    outline: none;
+    border-color: var(--color-blood-bright);
+}
+
+/* Checkbox Medico */
+.apothecaryCheck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-family: var(--font-impact);
+    font-size: 1.4rem;
+    color: var(--color-ink);
+}
+
+/* Azioni */
+.actionButtons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* ========================================= */
+/* MOBILE RESPONSIVE                         */
+/* ========================================= */
+@media (max-width: 768px) {
+    .pageTitle { font-size: 3.5rem; text-align: center; }
+    .registrationForm { padding: 1.5rem; transform: rotate(0deg); }
+    .colorGrid { grid-template-columns: 1fr; gap: 1rem; }
+    .statsGrid { grid-template-columns: 1fr 1fr; }
+    .actionButtons { flex-direction: column; }
+    .actionButtons button { width: 100%; }
+}

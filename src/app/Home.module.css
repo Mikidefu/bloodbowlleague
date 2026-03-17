@@ -1,0 +1,147 @@
+/* src/app/Home.module.css */
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 3rem;
+    margin-top: 2rem;
+    padding-bottom: 5rem;
+}
+
+/* ========================================= */
+/* HERO BANNER (Poster Strappato)            */
+/* ========================================= */
+.heroPoster {
+    grid-column: 1 / -1;
+    position: relative;
+    background: #111;
+    min-height: 450px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    border: 4px solid var(--color-ink);
+    box-shadow: 15px 15px 0 var(--color-ink);
+    overflow: hidden;
+    filter: url(#rough-edges); /* Bordo strappato */
+}
+
+/* Texture di fondo tipo campo da gioco sporco */
+.heroBg {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1566579090262-51cde5abe813?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.6;
+    z-index: 0;
+}
+
+.heroContent {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+}
+
+.heroTitle {
+    font-family: var(--font-impact);
+    font-size: 6rem;
+    line-height: 0.9;
+    color: #fff;
+    text-shadow: 5px 5px 0 var(--color-blood-bright);
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+}
+
+.heroSubtitle {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.5rem;
+    color: var(--color-paper);
+    margin-bottom: 3rem;
+}
+
+/* ========================================= */
+/* NOTE TATTICHE (Stats & Actions)           */
+/* ========================================= */
+.noteCard {
+    background-color: var(--color-paper);
+    background-image:
+            linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 20px 20px; /* Carta millimetrata */
+    border: 2px solid var(--color-ink);
+    padding: 2.5rem;
+    box-shadow: 10px 10px 0 rgba(0,0,0,0.2);
+    transform: rotate(1deg);
+    transition: transform 0.3s;
+}
+
+.noteCard:nth-child(3) {
+    transform: rotate(-1.5deg);
+}
+
+.noteCard:hover {
+    transform: rotate(0deg) scale(1.02);
+}
+
+.cardTitle {
+    font-family: var(--font-impact);
+    font-size: 2.2rem;
+    color: var(--color-ink);
+    border-bottom: 3px solid var(--color-blood-bright);
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+    display: table;
+}
+
+.statList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.statItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px dashed rgba(0,0,0,0.2);
+    padding-bottom: 0.5rem;
+}
+
+.statLabel {
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #444;
+}
+
+.statValue {
+    font-family: var(--font-impact);
+    font-size: 2.5rem;
+    color: var(--color-ink);
+    line-height: 1;
+}
+
+.statValueBlood {
+    color: var(--color-blood-bright);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+}
+
+.actionGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ========================================= */
+/* MOBILE                                    */
+/* ========================================= */
+@media (max-width: 768px) {
+    .heroTitle { font-size: 3.5rem; }
+    .heroSubtitle { font-size: 1.8rem; }
+    .heroPoster { min-height: 350px; }
+    .noteCard { transform: none !important; padding: 1.5rem; }
+}

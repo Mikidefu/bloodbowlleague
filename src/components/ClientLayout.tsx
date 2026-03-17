@@ -1,97 +1,110 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Skull, Trophy, Users, Calendar, Menu, X, Book } from 'lucide-react'; // Aggiunta icona Book
+import { Trophy, Users, Calendar, Menu, X, Book } from 'lucide-react'; // Rimossa l'icona Skull
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
+import styles from './NavBar.module.css';
 
 function NavBar() {
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Blocca lo scroll del body quando il menu mobile è aperto
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset';
+  }
+
   return (
       <>
-        <nav className="nav-bar">
-          <Link href="/" className="logo">
-            <Skull size={32} color="var(--color-blood-bright)" />
-            <span>BLOODBOWL MANAGER</span>
+        <nav className={styles.navBar}>
+          {/* NUOVA STRUTTURA LOGO CON IMMAGINE GRAFICA UFFICIALE */}
+          <Link href="/" className={styles.logoLink}>
+            <img
+                src="/logo-blood-bowl.png" // Percorso del file che hai salvato in public/
+                alt="Blood Bowl Official Logo"
+                className={styles.logoImage}
+            />
           </Link>
 
           {/* Desktop Links */}
-          <div className="nav-links desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <Link href="/teams"><Users size={20} className="inline mr-1 mb-1" />{t.nav.teams}</Link>
-            <Link href="/schedule"><Calendar size={20} className="inline mr-1 mb-1" />{t.nav.schedule}</Link>
-            <Link href="/standings"><Trophy size={20} className="inline mr-1 mb-1" />{t.nav.standings}</Link>
-            <Link href="/stats"><Trophy size={20} className="inline mr-1 mb-1" />{t.nav.stats}</Link>
-
-            {/* NUOVO LINK SKILLS DESKTOP */}
-            <Link href="/skills"><Book size={20} className="inline mr-1 mb-1" />{t.nav.skills}</Link>
+          <div className={styles.navLinks}>
+            <Link href="/teams" className={styles.navItem}><Users size={20} />{t.nav.teams}</Link>
+            <Link href="/schedule" className={styles.navItem}><Calendar size={20} />{t.nav.schedule}</Link>
+            <Link href="/standings" className={styles.navItem}><Trophy size={20} />{t.nav.standings}</Link>
+            <Link href="/stats" className={styles.navItem}><Trophy size={20} />{t.nav.stats}</Link>
+            <Link href="/skills" className={styles.navItem}><Book size={20} />{t.nav.skills}</Link>
 
             {/* Language Switcher */}
-            <div style={{ display: 'flex', gap: '1rem', borderLeft: '1px solid var(--color-glass-border)', paddingLeft: '2rem', height: '30px', alignItems: 'center' }}>
+            <div className={styles.langContainer}>
               <button
                   onClick={() => setLanguage('en')}
-                  className="lang-btn"
-                  style={{ opacity: language === 'en' ? 1 : 0.4, transform: language === 'en' ? 'scale(1.1)' : 'scale(1)' }}
-              >🇬🇧</button>
+                  className={`${styles.langBtn} ${language === 'en' ? styles.active : ''}`}
+              >EN</button>
               <button
                   onClick={() => setLanguage('it')}
-                  className="lang-btn"
-                  style={{ opacity: language === 'it' ? 1 : 0.4, transform: language === 'it' ? 'scale(1.1)' : 'scale(1)' }}
-              >🇮🇹</button>
+                  className={`${styles.langBtn} ${language === 'it' ? styles.active : ''}`}
+              >IT</button>
             </div>
           </div>
 
-          {/* Hamburger Button */}
+          {/* Hamburger Button (Mobile) */}
           <button
-              className="mobile-only hamburger-btn"
+              className={styles.hamburgerBtn}
               onClick={() => setIsMobileMenuOpen(true)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-bone)' }}
+              aria-label="Open menu"
           >
-            <Menu size={32} />
+            <Menu size={36} />
           </button>
         </nav>
 
         {/* Mobile Sidebar */}
-        <div className={`mobile-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
-          <div style={{ padding: '1rem 2.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <div className={`${styles.mobileSidebar} ${isMobileMenuOpen ? styles.open : ''}`}>
+          <div className={styles.closeHeader}>
             <button
+                className={styles.closeBtn}
                 onClick={() => setIsMobileMenuOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-bone)' }}
+                aria-label="Close menu"
             >
-              <X size={32} />
+              <X size={36} />
             </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '2rem', gap: '2rem' }}>
-            <Link href="/teams" onClick={() => setIsMobileMenuOpen(false)}><Users size={24} className="inline mr-2 mb-1" />{t.nav.teams}</Link>
-            <Link href="/schedule" onClick={() => setIsMobileMenuOpen(false)}><Calendar size={24} className="inline mr-2 mb-1" />{t.nav.schedule}</Link>
-            <Link href="/standings" onClick={() => setIsMobileMenuOpen(false)}><Trophy size={24} className="inline mr-2 mb-1" />{t.nav.standings}</Link>
-            <Link href="/stats" onClick={() => setIsMobileMenuOpen(false)}><Trophy size={24} className="inline mr-2 mb-1" />{t.nav.stats}</Link>
 
-            {/* NUOVO LINK SKILLS MOBILE */}
-            <Link href="/skills" onClick={() => setIsMobileMenuOpen(false)}><Book size={24} className="inline mr-2 mb-1" />{t.nav.skills}</Link>
+          <div className={styles.mobileMenuContent}>
+            <Link href="/teams" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <Users size={28} />{t.nav.teams}
+            </Link>
+            <Link href="/schedule" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <Calendar size={28} />{t.nav.schedule}
+            </Link>
+            <Link href="/standings" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <Trophy size={28} />{t.nav.standings}
+            </Link>
+            <Link href="/stats" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <Trophy size={28} />{t.nav.stats}
+            </Link>
+            <Link href="/skills" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <Book size={28} />{t.nav.skills}
+            </Link>
 
-            <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem', borderTop: '1px solid var(--color-glass-border)', paddingTop: '2rem' }}>
+            {/* Mobile Language Switcher */}
+            <div className={styles.mobileLangContainer}>
               <button
                   onClick={() => { setLanguage('en'); setIsMobileMenuOpen(false); }}
-                  className="lang-btn"
-                  style={{ opacity: language === 'en' ? 1 : 0.4, transform: language === 'en' ? 'scale(1.1)' : 'scale(1)' }}
-              >🇬🇧 English</button>
+                  className={`${styles.mobileLangBtn} ${language === 'en' ? styles.active : ''}`}
+              >EN (English)</button>
               <button
                   onClick={() => { setLanguage('it'); setIsMobileMenuOpen(false); }}
-                  className="lang-btn"
-                  style={{ opacity: language === 'it' ? 1 : 0.4, transform: language === 'it' ? 'scale(1.1)' : 'scale(1)' }}
-              >🇮🇹 Italiano</button>
+                  className={`${styles.mobileLangBtn} ${language === 'it' ? styles.active : ''}`}
+              >IT (Italiano)</button>
             </div>
           </div>
         </div>
 
         {/* Mobile Overlay */}
-        {isMobileMenuOpen && (
-            <div
-                className="mobile-overlay"
-                onClick={() => setIsMobileMenuOpen(false)}
-            />
-        )}
+        <div
+            className={`${styles.mobileOverlay} ${isMobileMenuOpen ? styles.open : ''}`}
+            onClick={() => setIsMobileMenuOpen(false)}
+        />
       </>
   );
 }

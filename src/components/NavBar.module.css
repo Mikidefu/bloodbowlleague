@@ -1,0 +1,272 @@
+/* src/app/NavBar.module.css */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&display=swap');
+
+/* Variabile per la texture della carta stropicciata */
+:root {
+    --paper-wrinkle: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch"/%3E%3CfeColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" /%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'), linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.08) 100%);
+}
+
+.reportHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+    padding-bottom: 1rem;
+}
+
+/* NAVBAR PRINCIPALE */
+.navBar {
+    background: #111;
+    border-bottom: 5px solid var(--color-blood-bright);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 2000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+/* CONTENITORE DEL LOGO IMMAGINE */
+.logoLink {
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+
+.logoLink:hover {
+    transform: scale(1.05);
+}
+
+.logoImage {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 5px rgba(229, 9, 20, 0.4));
+}
+
+/* ========================================= */
+/* DESKTOP LINKS CON PEZZI DI CARTA          */
+/* ========================================= */
+.navLinks {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.navItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    color: var(--color-ink); /* Testo scuro sulla carta */
+    letter-spacing: 1px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    z-index: 1; /* Il testo sta sopra */
+}
+
+/* I Foglietti di Carta Stropicciati dietro i Link */
+.navItem::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-paper);
+    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
+    border: 2px solid var(--color-ink);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+    z-index: -1;
+    transition: all 0.2s ease;
+}
+
+/* Rotazioni caotiche e diverse per ogni bottone */
+.navItem:nth-child(1)::before { transform: rotate(-2deg); }
+.navItem:nth-child(2)::before { transform: rotate(1.5deg); }
+.navItem:nth-child(3)::before { transform: rotate(-1deg); }
+.navItem:nth-child(4)::before { transform: rotate(2.5deg); }
+.navItem:nth-child(5)::before { transform: rotate(-3deg); }
+
+/* Hover: il foglio si colora di rosso, si raddrizza e il testo diventa bianco */
+.navItem:hover {
+    color: #fff;
+    transform: translateY(-3px);
+}
+
+.navItem:hover::before {
+    background-color: var(--color-blood-bright);
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
+    transform: rotate(0deg) scale(1.05);
+}
+
+/* Switcher Lingua Stile "Badge Tattico" in Carta */
+.langContainer {
+    display: flex;
+    gap: 0.8rem;
+    border-left: 2px dashed #444;
+    padding-left: 2rem;
+    align-items: center;
+}
+
+.langBtn {
+    position: relative;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.1rem;
+    color: var(--color-ink);
+    background-color: var(--color-paper);
+    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
+    border: 2px solid var(--color-ink);
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+}
+
+.langBtn:nth-child(1) { transform: rotate(2deg); }
+.langBtn:nth-child(2) { transform: rotate(-2deg); }
+
+.langBtn.active {
+    background-color: var(--color-blood-bright);
+    color: #fff;
+    transform: scale(1.1) rotate(0deg);
+}
+
+.langBtn:hover:not(.active) {
+    background-color: #ccc;
+    transform: scale(1.05) rotate(0deg);
+}
+
+/* ========================================= */
+/* SIDEBAR MOBILE                            */
+/* ========================================= */
+.hamburgerBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    display: none;
+    padding: 0.5rem;
+}
+
+.hamburgerBtn:hover {
+    color: var(--color-blood-bright);
+}
+
+.mobileSidebar {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 85%;
+    max-width: 350px;
+    height: 100vh;
+    background: #111;
+    z-index: 3000;
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border-left: 6px solid var(--color-blood-bright);
+    box-shadow: -15px 0 40px rgba(0,0,0,0.9);
+}
+
+.mobileSidebar.open {
+    right: 0;
+}
+
+.closeHeader {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+}
+
+.mobileMenuContent {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    gap: 1.5rem;
+}
+
+/* Pezzi di Carta anche per i bottoni Mobile */
+.mobileNavItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-family: 'Anton', sans-serif;
+    font-size: 2.2rem;
+    color: var(--color-ink);
+    background-color: var(--color-paper);
+    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
+    border: 2px solid var(--color-ink);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+    text-decoration: none;
+    transition: all 0.2s;
+    padding: 0.8rem 1rem;
+    transform: rotate(-1deg);
+}
+
+.mobileNavItem:nth-child(even) {
+    transform: rotate(1deg);
+}
+
+.mobileNavItem:hover {
+    background-color: var(--color-blood-bright);
+    color: #fff;
+    transform: translateX(10px) rotate(0deg);
+}
+
+.mobileLangContainer {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    border-top: 2px dashed #444;
+    padding-top: 2rem;
+}
+
+.mobileLangBtn {
+    flex: 1;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.5rem;
+    color: var(--color-ink);
+    background-color: var(--color-paper);
+    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
+    border: 2px solid var(--color-ink);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobileLangBtn.active {
+    background-color: var(--color-blood-bright);
+    color: #fff;
+}
+
+/* OVERLAY MOBILE OSCURANTE */
+.mobileOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(5px);
+    z-index: 2500;
+}
+
+/* ========================================= */
+/* MEDIA QUERIES (Mobile First)              */
+/* ========================================= */
+@media (max-width: 992px) {
+    .navLinks { display: none; }
+    .hamburgerBtn { display: block; }
+    .mobileOverlay.open { display: block; }
+    .logoImage { height: 40px; }
+}
