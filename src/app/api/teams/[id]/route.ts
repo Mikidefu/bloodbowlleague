@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import path from 'path';
-import { writeFile, mkdir } from 'fs/promises';
+import { put } from '@vercel/blob';
 
 export async function GET(
     request: Request,
@@ -10,19 +9,14 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Eseguiamo in parallelo il recupero del team e dei suoi giocatori
     const [teamRes, playersRes] = await Promise.all([
       db.execute({ sql: 'SELECT * FROM teams WHERE id = ?', args: [id] }),
       db.execute({ sql: 'SELECT * FROM players WHERE team_id = ? ORDER BY created_at ASC', args: [id] })
     ]);
 
     const team = teamRes.rows[0];
+    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
 
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 });
-    }
-
-    // Parse skills
     const mappedPlayers = playersRes.rows.map((p: any) => ({
       ...p,
       skills: p.skills ? JSON.parse(p.skills as string) : []
@@ -59,30 +53,17 @@ export async function PUT(
 
     const logoFile = formData.get('logo_file') as File | null;
 
-    // NOTA: Questo blocco funzionerà in locale, ma andrà sostituito prima del deploy su Vercel
+    // Integrazione Vercel Blob per la modifica del logo
     if (logoFile && logoFile.size > 0) {
-      const bytes = await logoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const originalName = logoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const filename = `${Date.now()}-${originalName}`;
-      const uploadDir = path.join(process.cwd(), 'public/uploads/logos');
-
-      try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (e) {
-        // Ignore if exists
-      }
-
-      const filepath = path.join(uploadDir, filename);
-      await writeFile(filepath, buffer);
-
-      logo_url = `/uploads/logos/${filename}`;
+      const blob = await put(`logos/${Date.now()}-${logoFile.name}`, logoFile, {
+        access: 'public',
+      });
+      logo_url = blob.url;
     }
 
     await db.execute({
       sql: `
-        UPDATE teams 
+        UPDATE teams
         SET name = COALESCE(?, name),
             logo_url = COALESCE(?, logo_url),
             primary_color = COALESCE(?, primary_color),
@@ -122,12 +103,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-
-    await db.execute({
-      sql: 'DELETE FROM teams WHERE id = ?',
-      args: [id]
-    });
-
+    await db.execute({ sql: 'DELETE FROM teams WHERE id = ?', args: [id] });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting team:', error);

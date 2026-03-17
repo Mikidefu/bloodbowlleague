@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import path from 'path';
-import { writeFile, mkdir } from 'fs/promises';
+import { put } from '@vercel/blob';
 import crypto from 'crypto';
 
 export async function GET() {
@@ -27,26 +26,14 @@ export async function POST(request: Request) {
     const primary_color = formData.get('primary_color')?.toString() || null;
     const secondary_color = formData.get('secondary_color')?.toString() || null;
 
-    // Gestione File Logo (temporanea per sviluppo locale)
     const logoFile = formData.get('logo_file') as File | null;
+
+    // Integrazione Vercel Blob per la creazione del logo
     if (logoFile && logoFile.size > 0) {
-      const bytes = await logoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const originalName = logoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const filename = `${Date.now()}-${originalName}`;
-      const uploadDir = path.join(process.cwd(), 'public/uploads/logos');
-
-      try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (e) {
-        // Ignore if exists
-      }
-
-      const filepath = path.join(uploadDir, filename);
-      await writeFile(filepath, buffer);
-
-      logo_url = `/uploads/logos/${filename}`;
+      const blob = await put(`logos/${Date.now()}-${logoFile.name}`, logoFile, {
+        access: 'public',
+      });
+      logo_url = blob.url;
     }
 
     const newTeamId = crypto.randomUUID();
@@ -56,13 +43,7 @@ export async function POST(request: Request) {
         INSERT INTO teams (id, name, logo_url, primary_color, secondary_color, rerolls, reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank)
         VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 1000000, 0)
       `,
-      args: [
-        newTeamId,
-        name,
-        logo_url,
-        primary_color,
-        secondary_color
-      ]
+      args: [newTeamId, name, logo_url, primary_color, secondary_color]
     });
 
     const { rows: newTeamRows } = await db.execute({
