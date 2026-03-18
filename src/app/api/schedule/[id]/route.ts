@@ -12,12 +12,12 @@ export async function GET(
     // Recupero info base del match
     const { rows: matchRows } = await db.execute({
       sql: `
-        SELECT m.*, 
-          th.name as home_name, th.logo_url as home_logo, th.primary_color as home_color,
-          ta.name as away_name, ta.logo_url as away_logo, ta.primary_color as away_color
+        SELECT m.*,
+               th.name as home_name, th.logo_url as home_logo, th.primary_color as home_color,
+               ta.name as away_name, ta.logo_url as away_logo, ta.primary_color as away_color
         FROM matches m
-        JOIN teams th ON m.home_team_id = th.id
-        JOIN teams ta ON m.away_team_id = ta.id
+               JOIN teams th ON m.home_team_id = th.id
+               JOIN teams ta ON m.away_team_id = ta.id
         WHERE m.id = ?
       `,
       args: [id]
@@ -27,9 +27,10 @@ export async function GET(
     if (!match) return NextResponse.json({ error: 'Match not found' }, { status: 404 });
 
     // Recupero parallelo per maggiore velocità
+    // AGGIUNTA: jersey_number nel SELECT
     const [homePlayersRes, awayPlayersRes, statsRes] = await Promise.all([
-      db.execute({ sql: 'SELECT id, name, role, status, team_id FROM players WHERE team_id = ?', args: [match.home_team_id] }),
-      db.execute({ sql: 'SELECT id, name, role, status, team_id FROM players WHERE team_id = ?', args: [match.away_team_id] }),
+      db.execute({ sql: 'SELECT id, jersey_number, name, role, status, team_id, mng, dead FROM players WHERE team_id = ?', args: [match.home_team_id] }),
+      db.execute({ sql: 'SELECT id, jersey_number, name, role, status, team_id, mng, dead FROM players WHERE team_id = ?', args: [match.away_team_id] }),
       db.execute({ sql: 'SELECT * FROM player_stats WHERE match_id = ?', args: [id] })
     ]);
 
@@ -59,7 +60,7 @@ export async function PUT(
     // 1. Update match scores and status
     statements.push({
       sql: `
-        UPDATE matches 
+        UPDATE matches
         SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, is_played = 1, played_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
@@ -87,14 +88,17 @@ export async function PUT(
       }
 
       // 4. Update status and recalculate SPP
+      const isDead = stat.status === 'Dead' ? 1 : 0;
+      const isMng = stat.status === 'Injured' ? 1 : 0;
+
       statements.push({
-        sql: 'UPDATE players SET status = ? WHERE id = ?',
-        args: [stat.status || 'Active', stat.player_id]
+        sql: 'UPDATE players SET status = ?, mng = ?, dead = ? WHERE id = ?',
+        args: [stat.status || 'Active', isMng, isDead, stat.player_id]
       });
 
       statements.push({
         sql: `
-          UPDATE players 
+          UPDATE players
           SET spp = (SELECT COALESCE(SUM(spp_earned), 0) FROM player_stats WHERE player_id = ?)
           WHERE id = ?
         `,

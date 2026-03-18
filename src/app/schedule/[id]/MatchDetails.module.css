@@ -6,7 +6,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    border-bottom: 2px solid rgba(255,255,255,0.1);
+    border-bottom: 4px solid var(--color-ink);
     padding-bottom: 1rem;
 }
 
@@ -14,15 +14,15 @@
 .matchdayGraphic {
     position: relative;
     width: 100%;
-    background-color: #e5e0d8; /* Colore base un po' più sporco */
+    background-color: #e5e0d8;
     overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 4px var(--color-ink);
     margin-bottom: 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 4rem 2rem;
-    border-radius: 4px;
+    border-radius: 2px;
 }
 
 /* Texture "Vissuto/Sporco" sopra a tutto */
@@ -41,11 +41,9 @@
 .shard {
     position: absolute;
     z-index: 1;
-    /* Applica il filtro SVG per i bordi rovinati */
     filter: url(#rough-edges) drop-shadow(5px 5px 10px rgba(0,0,0,0.4));
 }
 
-/* Schegge Sinistre (Home) */
 .shardHomeDark {
     top: 40%;
     left: -5%;
@@ -63,7 +61,6 @@
     opacity: 0.9;
 }
 
-/* Schegge Destre (Away) */
 .shardAwayDark {
     top: -15%;
     right: -5%;
@@ -89,7 +86,7 @@
     z-index: 10;
     text-align: center;
     margin-bottom: 2rem;
-    transform: rotate(-2deg); /* Leggermente storto per spezzare la perfezione */
+    transform: rotate(-2deg);
 }
 .leagueTitle {
     background: var(--color-blood-bright);
@@ -137,7 +134,6 @@
     width: 40%;
 }
 
-/* Il nome della squadra in corsivo (Ora è solo una filigrana leggerissima) */
 .cursiveName {
     position: absolute;
     top: 50%;
@@ -145,26 +141,13 @@
     font-family: 'Dancing Script', cursive;
     font-size: 8rem;
     white-space: nowrap;
-    opacity: 0.08; /* Quasi invisibile, fa solo texture */
+    opacity: 0.08;
     z-index: -1;
     pointer-events: none;
 }
 .cursiveHome { right: -20%; }
 .cursiveAway { left: -20%; }
 
-/* Nome Leggibile sotto il box */
-.readableTeamName {
-    font-family: 'Anton', sans-serif;
-    font-size: 2rem;
-    color: #111;
-    text-transform: uppercase;
-    text-align: center;
-    margin-top: 1rem;
-    text-shadow: 2px 2px 0 rgba(255,255,255,0.8);
-    line-height: 1.1;
-}
-
-/* I Box quadrati per i loghi (ora leggermente imperfetti) */
 .logoBox {
     width: 150px;
     height: 150px;
@@ -174,7 +157,9 @@
     padding: 1rem;
     box-shadow: 5px 5px 0 #111, 10px 10px 20px rgba(0,0,0,0.4);
     transition: transform 0.3s ease;
-    border: 2px solid #111;
+    border: 3px solid #111;
+    position: relative;
+    z-index: 15;
 }
 .logoBoxHome { transform: rotate(-3deg); }
 .logoBoxAway { transform: rotate(2deg); }
@@ -189,6 +174,26 @@
     filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
 }
 
+.readableTeamName {
+    font-family: 'Anton', sans-serif;
+    font-size: 2.2rem;
+    color: var(--color-ink);
+    background: var(--color-paper);
+    padding: 0.3rem 1.5rem;
+    border: 3px solid var(--color-ink);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.6);
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: -1.5rem;
+    z-index: 20;
+    line-height: 1.1;
+    transform: rotate(-2deg);
+}
+
+.teamSide:nth-child(3) .readableTeamName {
+    transform: rotate(3deg);
+}
+
 .vsBadge {
     font-family: 'Anton', sans-serif;
     font-size: 2.5rem;
@@ -201,6 +206,7 @@
     border-radius: 50%;
     box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 3px 3px 0 #111;
     transform: rotate(-10deg);
+    z-index: 20;
 }
 
 /* ========================================= */
@@ -270,69 +276,84 @@
 }
 
 /* ========================================= */
-/* TABELLE ROSTER - FIX COLORI E NOMI        */
+/* TABELLE ROSTER - COMPLETAMENTE RIVISITATE */
 /* ========================================= */
 .folderTab {
-    background: #111;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-    border: 2px solid #333;
+    background: var(--color-ink);
+    margin-bottom: 3rem;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
+    border: 3px solid var(--color-ink);
+    border-radius: 2px;
 }
 
 .tableWrapper {
     max-height: 600px;
     overflow-y: auto;
-    background: #1a1a1a;
+    overflow-x: auto; /* IMPORTANTE: Permette di scorrere la tabella orizzontalmente se sborda */
+    background: var(--color-paper);
+    border-top: 4px solid var(--color-ink);
 }
 
 .stickyHeader {
     position: sticky;
     top: 0;
     z-index: 20;
-    background: #000 !important;
-    box-shadow: 0 5px 10px rgba(0,0,0,0.8);
+    background: var(--color-ink) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
 }
 
 .stickyHeader th {
-    color: #fff;
-    border-bottom: 3px solid var(--color-blood-bright);
+    color: var(--color-paper) !important;
+    border-bottom: 4px solid var(--color-blood-bright);
     font-family: 'Anton', sans-serif;
     letter-spacing: 1px;
     font-size: 1.2rem;
+    text-transform: uppercase;
 }
 
-/* Forziamo i colori delle righe ignorando global.css */
+/* Righe Leggibili con Effetto Hover */
 .playerRow {
-    background-color: #1a1a1a !important;
-    border-bottom: 1px solid #333 !important;
+    background-color: transparent !important;
+    border-bottom: 2px dashed #ccc !important;
+    transition: background 0.2s;
 }
 .playerRow:nth-child(even) {
-    background-color: #222 !important;
+    background-color: rgba(0,0,0,0.03) !important;
 }
-.playerName {
-    color: #fff !important; /* Forza il bianco */
-    font-family: var(--font-varsity);
-    font-size: 1.4rem;
-    letter-spacing: 1px;
+.playerRow:hover {
+    background-color: rgba(229, 9, 20, 0.1) !important;
 }
 
+.playerName {
+    color: var(--color-ink) !important;
+    font-family: var(--font-varsity);
+    font-size: 1.6rem;
+    letter-spacing: 1px;
+    font-weight: bold;
+    word-wrap: break-word; /* Fa andare a capo i nomi lunghi */
+}
+
+/* Input vivaci e chiari - Allargati per essere comodi */
 .statsInput {
     width: 100%;
-    max-width: 70px;
+    min-width: 50px;
+    max-width: 80px;
     padding: 0.5rem;
     font-family: 'Anton', sans-serif;
     font-size: 1.4rem;
     text-align: center;
-    background: #000;
-    border: 2px solid #444;
-    color: var(--color-gold);
-    border-radius: 4px;
+    background: #fff;
+    border: 2px solid var(--color-ink);
+    color: var(--color-blood-bright);
+    border-radius: 2px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.05);
 }
 
 .statsInput:focus {
     outline: none;
-    background: #222;
+    background: #fff;
     border-color: var(--color-blood-bright);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.3);
 }
 
 .statusSelect {
@@ -341,10 +362,10 @@
     padding: 0.5rem;
     font-family: var(--font-typewriter);
     font-weight: bold;
-    background: #000;
-    border: 2px solid #444;
-    color: #fff;
-    border-radius: 4px;
+    background: #fff;
+    border: 2px solid var(--color-ink);
+    color: var(--color-ink);
+    border-radius: 2px;
 }
 
 /* ========================================= */
@@ -352,8 +373,9 @@
 /* ========================================= */
 @media (max-width: 768px) {
     .matchdayText { font-size: 4rem; }
-    .showcaseArea { gap: 1rem; }
-    .logoBox { width: 100px; height: 100px; }
+    .showcaseArea { flex-direction: column; gap: 2rem; }
+    .teamSide { width: 100%; }
+    .logoBox { width: 120px; height: 120px; }
     .readableTeamName { font-size: 1.5rem; }
     .scoresPanel { flex-direction: column; gap: 2rem; padding: 1.5rem; }
 }

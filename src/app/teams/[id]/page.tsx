@@ -801,7 +801,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                         <td style={{ fontFamily: 'var(--font-impact)', fontSize: '1.4rem' }}>{player.av ?? '8+'}</td>
                         <td style={{ fontFamily: 'var(--font-impact)', fontSize: '1.5rem', color: isDead ? '#666' : 'var(--color-gold)' }}>{player.spp ?? 0}</td>
 
-                        {/* VISUALIZZAZIONE SKILLS CON COLORAZIONE ORO REINTEGRATA */}
+                        {/* VISUALIZZAZIONE SKILLS CON LINK ALLA PAGINA REGOLAMENTO */}
                         <td className={styles.leftAlign}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                             {player.skills && Array.isArray(player.skills) && player.skills.map((s: any, i: number) => {
@@ -810,7 +810,13 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                               const color = isEarned ? '#111' : '#fff';
 
                               return (
-                                  <span key={s.id} className={styles.playerSkill} style={{ background: bg, color: color, fontWeight: isEarned ? 'bold' : 'normal' }}>
+                                  <span
+                                      key={s.id}
+                                      onClick={() => router.push(`/skills?expandedId=${s.id}`)}
+                                      className={styles.playerSkill}
+                                      style={{ background: bg, color: color, fontWeight: isEarned ? 'bold' : 'normal', cursor: 'pointer' }}
+                                      title="Vedi dettagli abilità"
+                                  >
                                     {formatSkillName(s.name)}
                                   </span>
                               );

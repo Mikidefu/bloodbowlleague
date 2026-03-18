@@ -162,6 +162,101 @@
     white-space: pre-wrap;
 }
 
+/* src/app/skills/Skills.module.css */
+/* ... (lascia intatto tutto il codice precedente) ... */
+
+/* ========================================= */
+/* BARRA DI RICERCA AUTOCOMPLETE             */
+/* ========================================= */
+.searchContainer {
+    position: relative;
+    margin-bottom: 4rem;
+    background: var(--color-paper);
+    padding: 1.5rem;
+    border: 4px dashed var(--color-ink);
+    transform: rotate(0.5deg);
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
+    z-index: 50; /* Sopra le categorie */
+}
+
+.searchLabel {
+    font-family: var(--font-typewriter);
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--color-ink);
+    display: block;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.searchInput {
+    width: 100%;
+    font-family: var(--font-impact);
+    font-size: 2rem;
+    padding: 0.8rem 1rem;
+    border: 3px solid var(--color-ink);
+    background: #fff;
+    color: var(--color-blood-bright);
+    box-shadow: inset 3px 3px 5px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--color-blood-bright);
+    background: rgba(255,255,255,1);
+}
+
+.searchInput::placeholder {
+    color: #aaa;
+}
+
+/* Tendina Suggerimenti */
+.suggestionsList {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 3px solid var(--color-ink);
+    border-top: none;
+    z-index: 100;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 350px;
+    overflow-y: auto;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.4);
+}
+
+.suggestionItem {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.suggestionItem:hover {
+    background: rgba(229, 9, 20, 0.1);
+}
+
+.suggestionName {
+    font-family: var(--font-impact);
+    font-size: 1.4rem;
+    color: var(--color-ink);
+    letter-spacing: 1px;
+}
+
+.suggestionType {
+    font-family: var(--font-typewriter);
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: bold;
+}
+
 /* ========================================= */
 /* MOBILE RESPONSIVE                         */
 /* ========================================= */
