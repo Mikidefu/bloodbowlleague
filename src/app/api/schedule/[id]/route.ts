@@ -53,7 +53,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { home_score, away_score, home_casualties, away_casualties, playerStats } = body;
+    const { home_score, away_score, home_casualties, away_casualties, playerStats, match_date } = body;
 
     const statements = [];
 
@@ -61,10 +61,10 @@ export async function PUT(
     statements.push({
       sql: `
         UPDATE matches
-        SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, is_played = 1, played_at = CURRENT_TIMESTAMP
+        SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, is_played = 1, played_at = CURRENT_TIMESTAMP, match_date = ?
         WHERE id = ?
       `,
-      args: [home_score ?? 0, away_score ?? 0, home_casualties ?? 0, away_casualties ?? 0, id]
+      args: [home_score ?? 0, away_score ?? 0, home_casualties ?? 0, away_casualties ?? 0, match_date || null, id]
     });
 
     // 2. Delete existing stats for this match
@@ -113,5 +113,55 @@ export async function PUT(
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to save match results' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // 1. Troviamo i giocatori coinvolti prima di cancellare
+    const { rows: playersToRecalc } = await db.execute({
+      sql: 'SELECT DISTINCT player_id FROM player_stats WHERE match_id = ?',
+      args: [id]
+    });
+
+    // 2. Prepariamo l'array delle transazioni
+    const statements = [];
+
+    // ELIMINAZIONE ESPLICITA DELLE STATS (più sicuro del CASCADE)
+    statements.push({
+      sql: 'DELETE FROM player_stats WHERE match_id = ?',
+      args: [id]
+    });
+
+    // Eliminazione del match
+    statements.push({
+      sql: 'DELETE FROM matches WHERE id = ?',
+      args: [id]
+    });
+
+    // Ricalcolo SPP per ogni giocatore coinvolto (ora le stat della partita non esistono più)
+    for (const p of playersToRecalc) {
+      statements.push({
+        sql: `
+          UPDATE players 
+          SET spp = (SELECT COALESCE(SUM(spp_earned), 0) FROM player_stats WHERE player_id = ?)
+          WHERE id = ?
+        `,
+        args: [p.player_id, p.player_id]
+      });
+    }
+
+    // Eseguiamo tutto insieme
+    await db.batch(statements, 'write');
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting match:', error);
+    return NextResponse.json({ error: 'Failed to delete match' }, { status: 500 });
   }
 }

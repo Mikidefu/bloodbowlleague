@@ -21,6 +21,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const [homeCas, setHomeCas] = useState<any>(0);
   const [awayCas, setAwayCas] = useState<any>(0);
 
+  // STATO PER LA DATA
+  const [matchDate, setMatchDate] = useState('');
+
   const [playerStats, setPlayerStats] = useState<any[]>([]);
 
   useEffect(() => {
@@ -32,6 +35,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           setAwayScore(data.away_score || 0);
           setHomeCas(data.home_casualties || 0);
           setAwayCas(data.away_casualties || 0);
+          setMatchDate(data.match_date || ''); // IMPOSTA LA DATA
 
           const initialStats = [...data.homePlayers, ...data.awayPlayers].map((p: any) => {
             const existing = data.stats.find((s: any) => s.player_id === p.id);
@@ -116,6 +120,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           away_score: Number(awayScore) || 0,
           home_casualties: Number(homeCas) || 0,
           away_casualties: Number(awayCas) || 0,
+          match_date: matchDate, // SALVA LA DATA MODIFICATA
           playerStats: cleanPlayerStats
         })
       });
@@ -263,6 +268,26 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           <div className={styles.titleContainer}>
             <div className={styles.leagueTitle}>BLOODBOWL LEAGUE</div>
             <h1 className={styles.matchdayText}>MATCHDAY</h1>
+
+            {/* NUOVO CAMPO DATA/ORA MODIFICABILE */}
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontFamily: 'var(--font-typewriter)', fontWeight: 'bold', color: '#111' }}>KICK-OFF:</label>
+              <input
+                  type="datetime-local"
+                  value={matchDate}
+                  onChange={(e) => setMatchDate(e.target.value)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontFamily: 'var(--font-typewriter)',
+                    fontSize: '1rem',
+                    border: '3px solid var(--color-ink)',
+                    background: '#fff',
+                    color: 'var(--color-ink)',
+                    fontWeight: 'bold',
+                    boxShadow: '4px 4px 0 var(--color-ink)'
+                  }}
+              />
+            </div>
           </div>
 
           <div className={styles.showcaseArea}>

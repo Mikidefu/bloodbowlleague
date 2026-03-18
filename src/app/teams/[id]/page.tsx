@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle } from 'lucide-react';
+import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import styles from './TeamDetails.module.css';
 
@@ -53,6 +53,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [levelUpPlayer, setLevelUpPlayer] = useState<any>(null);
   const [levelUpChoice, setLevelUpChoice] = useState<string>('');
   const [selectedAdvancement, setSelectedAdvancement] = useState<any>(null);
+
+  // NUOVO STATO: Modale Celebrazione Skill Random
+  const [celebrationSkill, setCelebrationSkill] = useState<any>(null);
 
   // Autocomplete State (Solo per la Creazione)
   const [skillInput, setSkillInput] = useState('');
@@ -142,7 +145,72 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   };
   // -----------------------------------
 
-  // --- LOGICA LEVEL UP ---
+  // --- FUNZIONE PER FILTRARE LE SKILL DEL LEVEL UP ---
+  const getFilteredSkillsForLevelUp = (type: 'primary' | 'secondary') => {
+    if (!levelUpPlayer) return [];
+
+    const allowedLettersString = type === 'primary' ? levelUpPlayer.primary_skills : levelUpPlayer.secondary_skills;
+    if (!allowedLettersString || allowedLettersString.trim() === '') return []; // Ritorna vuoto se NULL
+
+    const allowedLetters = allowedLettersString.split(',').map((s: string) => s.trim().toUpperCase());
+    const allowedCategories = allowedLetters.map((l: string) => SKILL_CATEGORIES_MAP[l] || l);
+
+    return availableSkills.filter(skill => {
+      const alreadyHas = levelUpPlayer.skills.some((ps: any) => ps.id === skill.id);
+      const isAllowedCategory = allowedCategories.some((cat: string) => skill.type?.toLowerCase().includes(cat.toLowerCase()));
+
+      return !alreadyHas && isAllowedCategory;
+    });
+  };
+
+  // --- NUOVA LOGICA: TENTATIVO CASUALE (Salva e Mostra Animazione Immediata) ---
+  const handleRandomRoll = async () => {
+    const currentTier = Math.min(levelUpPlayer.advancements || 0, 5);
+    const costs = ADVANCEMENT_TIERS[currentTier];
+
+    if (levelUpPlayer.spp < costs.randomPrimary) return alert('SPP Insufficienti!');
+
+    const validSkills = getFilteredSkillsForLevelUp('primary');
+    if (validSkills.length === 0) return alert("Nessuna skill primaria disponibile!");
+
+    // Genera la skill randomicamente
+    const randomSkill = validSkills[Math.floor(Math.random() * validSkills.length)];
+    const sppCost = costs.randomPrimary;
+    const valueIncrease = 20000;
+    const newSkillIds = [...levelUpPlayer.skills.map((s:any) => s.id), randomSkill.id];
+
+    try {
+      // Effettua il salvataggio immediatamente al DB
+      const res = await fetch(`/api/players/${levelUpPlayer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          value: levelUpPlayer.value + valueIncrease,
+          spp: levelUpPlayer.spp - sppCost,
+          advancements: (levelUpPlayer.advancements || 0) + 1,
+          skills: newSkillIds,
+          ma: levelUpPlayer.ma, st: levelUpPlayer.st, ag: levelUpPlayer.ag, pa: levelUpPlayer.pa, av: levelUpPlayer.av,
+          mng: levelUpPlayer.mng, dead: levelUpPlayer.dead
+        })
+      });
+
+      if (res.ok) {
+        // Chiudi la modale di Level Up e apri quella di Celebrazione!
+        setLevelUpPlayer(null);
+        setLevelUpChoice('');
+        setSelectedAdvancement(null);
+
+        setCelebrationSkill(randomSkill);
+        fetchTeamAndSkills();
+      } else {
+        alert('Errore durante l\'avanzamento');
+      }
+    } catch (e) {
+      alert('Errore di connessione');
+    }
+  };
+
+  // --- LOGICA LEVEL UP STANDARD (Scelta Manuale) ---
   const handleLevelUpSave = async () => {
     if (!levelUpChoice) return alert('Seleziona un potenziamento!');
 
@@ -154,11 +222,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     let newSkillIds = levelUpPlayer.skills.map((s:any) => s.id);
     let updatedStats = { ma: levelUpPlayer.ma, st: levelUpPlayer.st, ag: levelUpPlayer.ag, pa: levelUpPlayer.pa, av: levelUpPlayer.av };
 
-    if (levelUpChoice === 'randomPrimary') {
-      sppCost = costs.randomPrimary; valueIncrease = 20000;
-      if(!selectedAdvancement) return alert('Errore: Generazione random non completata.');
-      newSkillIds.push(selectedAdvancement.id);
-    } else if (levelUpChoice === 'choosePrimary') {
+    if (levelUpChoice === 'choosePrimary') {
       sppCost = costs.choosePrimary; valueIncrease = 20000;
       if(!selectedAdvancement) return alert('Seleziona una skill!');
       newSkillIds.push(selectedAdvancement.id);
@@ -196,40 +260,6 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         fetchTeamAndSkills();
       }
     } catch (e) { alert('Errore durante l\'avanzamento'); }
-  };
-
-  // --- FUNZIONE PER FILTRARE LE SKILL DEL LEVEL UP ---
-  const getFilteredSkillsForLevelUp = (type: 'primary' | 'secondary') => {
-    if (!levelUpPlayer) return [];
-
-    // Prende le lettere es: "G, A" e le trasforma in array ["G", "A"]
-    const allowedLettersString = type === 'primary' ? levelUpPlayer.primary_skills : levelUpPlayer.secondary_skills;
-    if (!allowedLettersString) return availableSkills; // Fallback se il campo è vuoto
-
-    const allowedLetters = allowedLettersString.split(',').map((s: string) => s.trim().toUpperCase());
-    const allowedCategories = allowedLetters.map((l: string) => SKILL_CATEGORIES_MAP[l] || l);
-
-    // Filtra le skill del DB: deve corrispondere la categoria E il giocatore non deve averla già
-    return availableSkills.filter(skill => {
-      const alreadyHas = levelUpPlayer.skills.some((ps: any) => ps.id === skill.id);
-      // skill.type deve contenere "General", "Agility", ecc.
-      const isAllowedCategory = allowedCategories.some((cat: string) => skill.type?.toLowerCase().includes(cat.toLowerCase()));
-
-      return !alreadyHas && isAllowedCategory;
-    });
-  };
-
-  const rollRandomPrimary = () => {
-    const validSkills = getFilteredSkillsForLevelUp('primary');
-
-    if (validSkills.length > 0) {
-      const random = validSkills[Math.floor(Math.random() * validSkills.length)];
-      setSelectedAdvancement(random);
-      alert(`Il giocatore ha appreso: ${random.name}! Clicca Conferma per salvare.`);
-    } else {
-      alert("Nessuna skill primaria disponibile o il giocatore le ha già imparate tutte!");
-      setLevelUpChoice('');
-    }
   };
   // -----------------------
 
@@ -370,6 +400,37 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           </filter>
         </svg>
 
+        {/* MODALE DI CELEBRAZIONE SKILL CASUALE */}
+        {celebrationSkill && (
+            <div style={{
+              position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.92)',
+              zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+              flexDirection: 'column'
+            }}>
+              <Dices size={80} color="var(--color-blood-bright)" style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontFamily: 'var(--font-impact)', fontSize: '4rem', color: 'var(--color-gold)', margin: 0, textShadow: '4px 4px 0px #000', textAlign: 'center', lineHeight: 1 }}>
+                NUFFLE HAS SPOKEN!
+              </h2>
+              <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', color: '#fff', marginBottom: '2rem', textAlign: 'center' }}>
+                The dice rolled in your favor...
+              </p>
+
+              <div style={{ background: 'var(--color-ink)', padding: '2rem 4rem', border: '6px solid var(--color-blood-bright)', transform: 'rotate(-2deg)', boxShadow: '10px 10px 0px rgba(0,0,0,0.5)', marginBottom: '3rem', textAlign: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-impact)', fontSize: '3rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '3px' }}>
+                  {formatSkillName(celebrationSkill.name)}
+                </span>
+                <br/>
+                <span style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1rem', color: '#888', fontWeight: 'bold' }}>
+                  ({celebrationSkill.type})
+                </span>
+              </div>
+
+              <button className="btn btn-primary" style={{ fontSize: '1.5rem', padding: '1rem 3rem' }} onClick={() => setCelebrationSkill(null)}>
+                ACCEPT GLORY
+              </button>
+            </div>
+        )}
+
         {/* TEAM IDENTITY BANNER */}
         <div className={styles.teamIdentityBanner}>
           <div className={styles.logoSection} style={{ borderLeftColor: team.primary_color }}>
@@ -399,7 +460,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* MODALITÀ LEVEL UP (ORA COME POPUP CENTRALE) */}
+        {/* MODALITÀ LEVEL UP (POPUP CENTRALE CON BOTTONI DISABILITABILI) */}
         {levelUpPlayer && (
             <div style={{
               position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)',
@@ -419,16 +480,45 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-                  <button className="btn" style={{ borderColor: levelUpChoice === 'randomPrimary' ? 'var(--color-blood-bright)' : '#ccc' }} onClick={() => { setLevelUpChoice('randomPrimary'); rollRandomPrimary(); }}>
+                  {/* Calcolo disponibilità pulsanti in base al database */}
+                  <button
+                      className="btn"
+                      disabled={!levelUpPlayer.primary_skills}
+                      style={{
+                        borderColor: levelUpChoice === 'randomPrimary' ? 'var(--color-blood-bright)' : '#ccc',
+                        opacity: levelUpPlayer.primary_skills ? 1 : 0.4
+                      }}
+                      onClick={handleRandomRoll}
+                  >
                     Random Primary ({ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)].randomPrimary} SPP)
                   </button>
-                  <button className="btn" style={{ borderColor: levelUpChoice === 'choosePrimary' ? 'var(--color-blood-bright)' : '#ccc' }} onClick={() => setLevelUpChoice('choosePrimary')}>
+                  <button
+                      className="btn"
+                      disabled={!levelUpPlayer.primary_skills}
+                      style={{
+                        borderColor: levelUpChoice === 'choosePrimary' ? 'var(--color-blood-bright)' : '#ccc',
+                        opacity: levelUpPlayer.primary_skills ? 1 : 0.4
+                      }}
+                      onClick={() => setLevelUpChoice('choosePrimary')}
+                  >
                     Choose Primary ({ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)].choosePrimary} SPP)
                   </button>
-                  <button className="btn" style={{ borderColor: levelUpChoice === 'chooseSecondary' ? 'var(--color-blood-bright)' : '#ccc' }} onClick={() => setLevelUpChoice('chooseSecondary')}>
+                  <button
+                      className="btn"
+                      disabled={!levelUpPlayer.secondary_skills}
+                      style={{
+                        borderColor: levelUpChoice === 'chooseSecondary' ? 'var(--color-blood-bright)' : '#ccc',
+                        opacity: levelUpPlayer.secondary_skills ? 1 : 0.4
+                      }}
+                      onClick={() => setLevelUpChoice('chooseSecondary')}
+                  >
                     Choose Secondary ({ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)].chooseSecondary} SPP)
                   </button>
-                  <button className="btn" style={{ borderColor: levelUpChoice.startsWith('stat_') ? 'var(--color-blood-bright)' : '#ccc' }} onClick={() => setLevelUpChoice('stat_ma')}>
+                  <button
+                      className="btn"
+                      style={{ borderColor: levelUpChoice.startsWith('stat_') ? 'var(--color-blood-bright)' : '#ccc' }}
+                      onClick={() => setLevelUpChoice('stat_ma')}
+                  >
                     Characteristic ({ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)].stat} SPP)
                   </button>
                 </div>
@@ -452,7 +542,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
                 )}
 
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleLevelUpSave}>CONFIRM ADVANCEMENT</button>
+                <button
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                    onClick={handleLevelUpSave}
+                    disabled={levelUpChoice === '' || levelUpChoice === 'randomPrimary'} // Non usare per il random
+                >
+                  CONFIRM MANUAL ADVANCEMENT
+                </button>
               </div>
             </div>
         )}
