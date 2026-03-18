@@ -1,3 +1,4 @@
+// src/app/api/teams/[id]/route.ts
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { put } from '@vercel/blob';
@@ -9,6 +10,7 @@ export async function GET(
   try {
     const { id } = await params;
 
+    // 1. Recuperiamo la squadra e i giocatori in parallelo
     const [teamRes, playersRes] = await Promise.all([
       db.execute({ sql: 'SELECT * FROM teams WHERE id = ?', args: [id] }),
       db.execute({ sql: 'SELECT * FROM players WHERE team_id = ? ORDER BY created_at ASC', args: [id] })
@@ -17,10 +19,31 @@ export async function GET(
     const team = teamRes.rows[0];
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
 
-    const mappedPlayers = playersRes.rows.map((p: any) => ({
-      ...p,
-      skills: p.skills ? JSON.parse(p.skills as string) : []
-    }));
+    // 2. Recuperiamo tutte le skill associate ai giocatori di QUESTA squadra
+    // Facciamo una JOIN tra skills, la tabella ponte, e i players di questo team
+    const skillsRes = await db.execute({
+      sql: `
+        SELECT sp.player_id, s.*
+        FROM skills s
+        JOIN skills_players sp ON s.id = sp.skill_id
+        JOIN players p ON p.id = sp.player_id
+        WHERE p.team_id = ?
+      `,
+      args: [id]
+    });
+
+    // 3. Mappiamo i giocatori assegnando a ciascuno le proprie skill REALI (come oggetti)
+    const mappedPlayers = playersRes.rows.map((p: any) => {
+      // Filtriamo l'array globale delle skill per prendere solo quelle di questo giocatore
+      const playerSkills = skillsRes.rows.filter((s: any) => s.player_id === p.id);
+
+      return {
+        ...p,
+        skills: playerSkills, // Ora è un array di oggetti {id, name, type, description...}
+        mng: !!p.mng,         // Convertiamo 1/0 di SQLite in true/false per React
+        dead: !!p.dead        // Convertiamo 1/0 di SQLite in true/false per React
+      };
+    });
 
     return NextResponse.json({ ...team, players: mappedPlayers });
   } catch (error) {

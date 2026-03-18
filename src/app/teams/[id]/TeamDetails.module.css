@@ -325,16 +325,41 @@
 .statusDead { color: var(--color-blood-bright); text-decoration: line-through; }
 
 /* Modalità Modifica in Riga */
-.editRow { background: rgba(229, 9, 20, 0.05); }
+.editRow {
+    background: rgba(229, 9, 20, 0.1);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+.editRow td {
+    padding: 0.5rem; /* Riduciamo un po' il padding della cella per far spazio all'input */
+}
+
 .editInput {
     width: 100%;
-    padding: 0.5rem;
+    min-width: 55px; /* Forza una larghezza minima per evitare schiacciamenti */
+    padding: 0.4rem;
     font-family: 'Anton', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     text-align: center;
     border: 2px solid var(--color-ink);
+    background: #fff; /* Sfondo bianco per massima leggibilità */
+    color: var(--color-ink); /* Testo scuro */
+    border-radius: 2px;
 }
-.editInputTxt { text-align: left; font-family: 'Special Elite', cursive; font-size: 1rem; }
+
+
+.editInput:focus {
+    outline: none;
+    border-color: var(--color-blood-bright);
+    box-shadow: 0 0 5px rgba(229, 9, 20, 0.5);
+}
+
+.editInputTxt {
+    text-align: left;
+    font-family: 'Special Elite', cursive;
+    font-size: 1.1rem;
+    min-width: 120px; /* Spazio per i nomi lunghi */
+}
 
 /* ========================================= */
 /* MOBILE RESPONSIVE                         */
