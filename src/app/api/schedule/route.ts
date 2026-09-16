@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { MATCH_TYPES } from '@/lib/matchTypes';
 
 export async function GET() {
     try {
@@ -28,6 +29,12 @@ export async function POST(request: Request) {
 
         if (!home_team_id || !away_team_id || !round || !match_type) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // Semifinali e finali si creano solo dai pulsanti dei playoff, così restano coerenti con la classifica
+        const allowedTypes: string[] = [MATCH_TYPES.league, MATCH_TYPES.playoff, MATCH_TYPES.friendly];
+        if (!allowedTypes.includes(match_type)) {
+            return NextResponse.json({ error: `Invalid match type: ${match_type}` }, { status: 400 });
         }
 
         if (home_team_id === away_team_id) {

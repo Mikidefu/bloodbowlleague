@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { displayMatchType } from '@/lib/matchTypes';
 import styles from './MatchDetails.module.css';
 
 export default function MatchDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -260,7 +261,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       <div style={{ width: '100%', overflowX: 'hidden', padding: '1rem' }}>
         <div className={styles.reportHeader}>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '2.5rem', color: 'var(--color-ink)', textShadow: '2px 2px 0 var(--color-paper), -1px -1px 0 var(--color-paper), 1px -1px 0 var(--color-paper), -1px 1px 0 var(--color-paper), 1px 1px 0 var(--color-paper)', fontFamily: 'var(--font-impact)', letterSpacing: '2px', textTransform: 'uppercase' }}>
-            {match.match_type} - ROUND {match.round}
+            {displayMatchType(match.match_type)} - ROUND {match.round}
           </h1>
           {isAdmin && (
               <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>

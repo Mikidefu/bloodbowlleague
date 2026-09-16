@@ -1,28 +1,13 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { computeStandings } from '@/lib/standings';
 
 export async function GET() {
   try {
     // Eseguiamo tutte le query simultaneamente per abbattere i tempi di caricamento
-    const [standingsRes, scorersRes, killersRes, mvpsRes, sppRes] = await Promise.all([
-      // 1. Team Standings
-      db.execute(`
-        SELECT 
-          t.id, t.name, t.logo_url, t.primary_color, t.secondary_color,
-          COUNT(m.id) as played,
-          SUM(CASE WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1 
-                   WHEN m.away_team_id = t.id AND m.away_score > m.home_score THEN 1 ELSE 0 END) as wins,
-          SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END) as draws,
-          SUM(CASE WHEN m.home_team_id = t.id AND m.home_score < m.away_score THEN 1 
-                   WHEN m.away_team_id = t.id AND m.away_score < m.home_score THEN 1 ELSE 0 END) as losses,
-          SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score ELSE m.away_score END) as td_for,
-          SUM(CASE WHEN m.home_team_id = t.id THEN m.away_score ELSE m.home_score END) as td_against,
-          SUM(CASE WHEN m.home_team_id = t.id THEN m.home_casualties ELSE m.away_casualties END) as cas_for,
-          SUM(CASE WHEN m.home_team_id = t.id THEN m.away_casualties ELSE m.home_casualties END) as cas_against
-        FROM teams t
-        LEFT JOIN matches m ON (t.id = m.home_team_id OR t.id = m.away_team_id) AND m.is_played = 1
-        GROUP BY t.id
-      `),
+    const [teamStandings, scorersRes, killersRes, mvpsRes, sppRes, totalsRes] = await Promise.all([
+      // 1. Team Standings (solo partite di campionato)
+      computeStandings(),
 
       // 2. Top Scorers (TDs)
       db.execute(`
@@ -70,41 +55,24 @@ export async function GET() {
         HAVING total_spp > 0
         ORDER BY total_spp DESC
         LIMIT 10
+      `),
+
+      // 6. Totali di lega (tutte le partite giocate, di qualsiasi tipo)
+      db.execute(`
+        SELECT COUNT(*) AS matches_played,
+               COALESCE(SUM(home_casualties + away_casualties), 0) AS casualties
+        FROM matches
+        WHERE is_played = 1
       `)
     ]);
 
-    // Processiamo e calcoliamo i punti in memoria, forzando i tipi numerici per sicurezza
-    const teamStandings = standingsRes.rows.map((t: any) => {
-      const wins = Number(t.wins || 0);
-      const draws = Number(t.draws || 0);
-      const losses = Number(t.losses || 0);
-      const td_for = Number(t.td_for || 0);
-      const td_against = Number(t.td_against || 0);
-      const cas_for = Number(t.cas_for || 0);
-      const cas_against = Number(t.cas_against || 0);
-
-      return {
-        ...t,
-        played: Number(t.played || 0),
-        wins,
-        draws,
-        losses,
-        td_for,
-        td_against,
-        cas_for,
-        cas_against,
-        points: (wins * 3) + (draws * 1),
-        td_diff: td_for - td_against, // Errore di battitura corretto qui
-        cas_diff: cas_for - cas_against,
-      };
-    }).sort((a: any, b: any) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.td_diff !== a.td_diff) return b.td_diff - a.td_diff;
-      return b.cas_diff - a.cas_diff;
-    });
-
     return NextResponse.json({
       standings: teamStandings,
+      totals: {
+        teams: teamStandings.length,
+        matches_played: Number(totalsRes.rows[0].matches_played),
+        casualties: Number(totalsRes.rows[0].casualties)
+      },
       playerStats: {
         scorers: scorersRes.rows,
         killers: killersRes.rows,

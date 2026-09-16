@@ -1,9 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Plus, ShieldAlert, Clock, Settings, ArrowRightLeft, AlertTriangle, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Calendar, Plus, ShieldAlert, Clock, Settings, ArrowRightLeft, AlertTriangle, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
+
+// Messaggio d'errore restituito dall'API, se presente
+const errorMessage = async (res: Response, fallback: string) => {
+  const data = await res.json().catch(() => null);
+  return data?.error || fallback;
+};
 
 export default function SchedulePage() {
   const router = useRouter();
@@ -23,7 +30,7 @@ export default function SchedulePage() {
     home_team_id: '',
     away_team_id: '',
     round: 1,
-    match_type: 'League',
+    match_type: MATCH_TYPES.league as string,
     match_date: ''
   });
 
@@ -66,10 +73,11 @@ export default function SchedulePage() {
   }, []);
 
   // --- RIVALRY CHECKER LOGIC ---
-  const h2hMatches = matches.filter(m =>
+  // Andata e ritorno riguardano solo il campionato: amichevoli e playoff non contano
+  const h2hMatches = matches.filter(m => isLeagueMatch(m.match_type) && (
       (m.home_team_id === form.home_team_id && m.away_team_id === form.away_team_id) ||
       (m.home_team_id === form.away_team_id && m.away_team_id === form.home_team_id)
-  );
+  ));
 
   const playedHomeVsAway = h2hMatches.some(m => m.home_team_id === form.home_team_id && m.away_team_id === form.away_team_id);
   const playedAwayVsHome = h2hMatches.some(m => m.home_team_id === form.away_team_id && m.away_team_id === form.home_team_id);
@@ -78,8 +86,8 @@ export default function SchedulePage() {
   const needsSwap = playedHomeVsAway && !playedAwayVsHome && form.home_team_id && form.away_team_id;
 
   useEffect(() => {
-    if (bothLegsPlayed && form.match_type !== 'Friendly') {
-      setForm(prev => ({ ...prev, match_type: 'Friendly' }));
+    if (bothLegsPlayed && form.match_type === MATCH_TYPES.league) {
+      setForm(prev => ({ ...prev, match_type: MATCH_TYPES.friendly }));
     }
   }, [bothLegsPlayed, form.match_type]);
 
@@ -106,10 +114,10 @@ export default function SchedulePage() {
       });
       if (res.ok) {
         setShowAddMatch(false);
-        setForm({ home_team_id: '', away_team_id: '', round: 1, match_type: 'League', match_date: '' });
+        setForm({ home_team_id: '', away_team_id: '', round: 1, match_type: MATCH_TYPES.league, match_date: '' });
         fetchData();
       } else {
-        alert("Failed to add match");
+        alert(await errorMessage(res, "Failed to add match"));
       }
     } catch (err) {
       alert("Error adding match");
@@ -131,10 +139,50 @@ export default function SchedulePage() {
         setShowGenerateModal(false);
         fetchData();
       } else {
-        alert("Failed to generate schedule");
+        alert(await errorMessage(res, "Failed to generate schedule"));
       }
     } catch (err) {
       alert("Error generating schedule");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // --- PLAYOFF (Final Four) ---
+  const leagueMatches = matches.filter(m => isLeagueMatch(m.match_type));
+  const semifinals = matches.filter(m => isSemifinal(m.match_type));
+  const finals = matches.filter(m => isFinal(m.match_type));
+  const canStartPlayoffs = leagueMatches.length > 0 && leagueMatches.every(m => m.is_played)
+      && semifinals.length === 0 && teams.length >= 4;
+  const canGenerateFinals = semifinals.length === 2 && semifinals.every(m => m.is_played) && finals.length === 0;
+
+  const handlePlayoffs = async (stage: 'semifinals' | 'finals') => {
+    if (!confirm(stage === 'semifinals' ? t.schedule.confirmPlayoffs : t.schedule.confirmFinals)) return;
+    setIsGenerating(true);
+    try {
+      const url = stage === 'semifinals' ? '/api/playoffs' : '/api/playoffs/finals';
+      const post = (force = false) => fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force })
+      });
+
+      let res = await post();
+      if (res.status === 409) {
+        // Girone incompleto: il server chiede una conferma esplicita
+        const data = await res.json().catch(() => null);
+        if (!data?.incomplete || !confirm(`${data.error}\n\n${t.schedule.confirmIncompletePlayoffs}`)) return;
+        res = await post(true);
+      }
+
+      if (res.ok) {
+        setCurrentRound(null); // torna alla prima giornata da giocare, cioè quella appena creata
+        fetchData();
+      } else {
+        alert(await errorMessage(res, 'Failed to generate playoffs'));
+      }
+    } catch {
+      alert('Error generating playoffs');
     } finally {
       setIsGenerating(false);
     }
@@ -223,7 +271,17 @@ export default function SchedulePage() {
             </h1>
           </div>
           {isAdmin && (
-          <div style={{ display: 'flex', gap: '0.5rem', width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+            {(canStartPlayoffs || canGenerateFinals) && (
+                <button
+                    className="btn btn-primary"
+                    disabled={isGenerating}
+                    onClick={() => handlePlayoffs(canStartPlayoffs ? 'semifinals' : 'finals')}
+                    style={{ boxShadow: '4px 4px 0 var(--color-ink)', flex: isMobile ? '1 1 100%' : 1, padding: '0.5rem 1rem', fontSize: isMobile ? '0.9rem' : '1.1rem', background: 'var(--color-gold)', color: '#111' }}
+                >
+                  <Trophy size={isMobile ? 16 : 20} /> {isGenerating ? t.schedule.generating : canStartPlayoffs ? t.schedule.startFinalFour : t.schedule.generateFinals}
+                </button>
+            )}
             <button
                 style={{
                   background: '#fff',
@@ -376,9 +434,9 @@ export default function SchedulePage() {
                         style={{ width: '100%', padding: '0.6rem', border: '2px solid var(--color-ink)' }}
                         disabled={bothLegsPlayed}
                     >
-                      <option value="League">League Match</option>
-                      <option value="Playoff">Playoff / Tournament</option>
-                      <option value="Friendly">Friendly Match</option>
+                      <option value={MATCH_TYPES.league}>League Match</option>
+                      <option value={MATCH_TYPES.playoff}>Playoff / Tournament</option>
+                      <option value={MATCH_TYPES.friendly}>Friendly Match</option>
                     </select>
                   </div>
 
@@ -469,7 +527,7 @@ export default function SchedulePage() {
                         <span style={{ color: match.is_played ? 'var(--color-grass)' : '#f59e0b' }}>
                           {match.is_played ? 'COMPLETED' : 'UPCOMING'}
                         </span>
-                        <span style={{ color: 'var(--color-gold)' }}>{match.match_type}</span>
+                        <span style={{ color: 'var(--color-gold)' }}>{displayMatchType(match.match_type)}</span>
                       </div>
 
                       {match.match_date && (

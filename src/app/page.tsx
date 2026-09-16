@@ -15,10 +15,11 @@ export default function Home() {
         fetch('/api/stats')
             .then(res => res.json())
             .then(data => {
-                const teamsCount = data.standings?.length || 0;
-                const matchesCount = data.standings?.reduce((sum: number, t: any) => sum + (t.played || 0), 0) / 2 || 0;
-                const casualtiesCount = data.playerStats?.killers?.reduce((sum: number, p: any) => sum + p.total_cas, 0) || 0;
-                setStats({ teams: teamsCount, matches: Math.floor(matchesCount), casualties: casualtiesCount });
+                setStats({
+                    teams: data.totals?.teams || 0,
+                    matches: data.totals?.matches_played || 0,
+                    casualties: data.totals?.casualties || 0,
+                });
             })
             .catch(console.error);
     }, []);
@@ -59,7 +60,7 @@ export default function Home() {
                     </li>
                     <li className={styles.statItem}>
                         <span className={styles.statLabel}>{t.home.totalCasualties}</span>
-                        <span className={`${styles.statValue} styles.statValueBlood`}>{stats.casualties}</span>
+                        <span className={`${styles.statValue} ${styles.statValueBlood}`}>{stats.casualties}</span>
                     </li>
                 </ul>
             </div>

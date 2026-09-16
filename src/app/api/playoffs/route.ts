@@ -1,74 +1,71 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { computeStandings } from '@/lib/standings';
+import { LEAGUE_MATCH_TYPES, MATCH_TYPES, SEMIFINAL_TYPES, sqlIn } from '@/lib/matchTypes';
 
-export async function POST() {
+// Genera le semifinali della Final Four: 1ª vs 4ª e 2ª vs 3ª della classifica di campionato
+export async function POST(request: Request) {
   try {
-    // 1. Controllo se la regular season è finita
-    const { rows: unplayedRegularRows } = await db.execute("SELECT count(*) as count FROM matches WHERE is_played = 0 AND match_type = 'Regular Season'");
-    if (Number(unplayedRegularRows[0].count) > 0) {
-      return NextResponse.json({ error: 'Cannot start playoffs until regular season is fully played.' }, { status: 400 });
+    const body = await request.json().catch(() => ({}));
+    const force = body.force === true;
+
+    const { rows: [league] } = await db.execute(`
+      SELECT COUNT(*) AS total, SUM(CASE WHEN is_played = 0 THEN 1 ELSE 0 END) AS unplayed
+      FROM matches WHERE match_type IN ${sqlIn(LEAGUE_MATCH_TYPES)}
+    `);
+
+    // 1. Serve un campionato giocato per intero
+    if (Number(league.total) === 0) {
+      return NextResponse.json({ error: 'There are no league matches: generate and play the season first.' }, { status: 400 });
+    }
+    if (Number(league.unplayed) > 0) {
+      return NextResponse.json({ error: `Cannot start playoffs: ${league.unplayed} league match(es) still to be played.` }, { status: 400 });
     }
 
-    // 2. Controllo che i playoff non siano già stati generati
-    const { rows: playoffExistsRows } = await db.execute("SELECT count(*) as count FROM matches WHERE match_type LIKE '%Semifinal%'");
-    if (Number(playoffExistsRows[0].count) > 0) {
+    // 2. Le semifinali non devono esistere già
+    const { rows: [semis] } = await db.execute(`SELECT COUNT(*) AS count FROM matches WHERE match_type IN ${sqlIn(SEMIFINAL_TYPES)}`);
+    if (Number(semis.count) > 0) {
       return NextResponse.json({ error: 'Playoffs are already generated.' }, { status: 400 });
     }
 
-    // 3. Calcolo della classifica per estrarre la Top 4
-    const { rows: rawStandings } = await db.execute(`
-      SELECT
-        t.id, t.name,
-        SUM(CASE WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1
-                 WHEN m.away_team_id = t.id AND m.away_score > m.home_score THEN 1 ELSE 0 END) as wins,
-        SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END) as draws,
-        SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score ELSE m.away_score END) as td_for,
-        SUM(CASE WHEN m.home_team_id = t.id THEN m.away_score ELSE m.home_score END) as td_against,
-        SUM(CASE WHEN m.home_team_id = t.id THEN m.home_casualties ELSE m.away_casualties END) as cas_for,
-        SUM(CASE WHEN m.home_team_id = t.id THEN m.away_casualties ELSE m.home_casualties END) as cas_against
-      FROM teams t
-             LEFT JOIN matches m ON (t.id = m.home_team_id OR t.id = m.away_team_id) AND m.is_played = 1 AND m.match_type = 'Regular Season'
-      GROUP BY t.id
-    `);
-
-    // Mappiamo e calcoliamo i punti forzando i tipi numerici per sicurezza
-    const teamStandings = rawStandings.map((t: any) => ({
-      ...t,
-      wins: Number(t.wins || 0),
-      draws: Number(t.draws || 0),
-      points: (Number(t.wins || 0) * 3) + (Number(t.draws || 0) * 1),
-      td_diff: Number(t.td_for || 0) - Number(t.td_against || 0),
-      cas_diff: Number(t.cas_for || 0) - Number(t.cas_against || 0),
-    })).sort((a: any, b: any) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.td_diff !== a.td_diff) return b.td_diff - a.td_diff;
-      return b.cas_diff - a.cas_diff;
-    });
-
-    if (teamStandings.length < 4) {
+    // 3. Top 4 dalla stessa classifica mostrata nella pagina Standings
+    const standings = await computeStandings();
+    if (standings.length < 4) {
       return NextResponse.json({ error: 'Not enough teams for a Final Four.' }, { status: 400 });
     }
 
-    const top4 = teamStandings.slice(0, 4);
+    // 4. Girone incompleto (qualche coppia di squadre non si è mai affrontata):
+    //    si procede solo con conferma esplicita, per non avviare i playoff a stagione in corso
+    const { rows: leaguePairs } = await db.execute(`
+      SELECT DISTINCT MIN(home_team_id, away_team_id) AS a, MAX(home_team_id, away_team_id) AS b
+      FROM matches WHERE match_type IN ${sqlIn(LEAGUE_MATCH_TYPES)}
+    `);
+    const teamIds = new Set(standings.map(t => t.id));
+    const metPairs = leaguePairs.filter(p => teamIds.has(String(p.a)) && teamIds.has(String(p.b))).length;
+    const totalPairs = (standings.length * (standings.length - 1)) / 2;
+    if (metPairs < totalPairs && !force) {
+      const neverPlayed = standings.filter(t => standings[0].played > 0 && t.played === 0).map(t => t.name);
+      return NextResponse.json({
+        error: `The round robin is not complete: ${metPairs} of ${totalPairs} fixtures played.`
+            + (neverPlayed.length ? ` Never played: ${neverPlayed.join(', ')}.` : ''),
+        incomplete: true,
+        fixtures_played: metPairs,
+        fixtures_total: totalPairs,
+      }, { status: 409 });
+    }
+    const top4 = standings.slice(0, 4);
 
-    const { rows: maxRoundRows } = await db.execute('SELECT MAX(round) as maxRound FROM matches');
-    const nextRound = (Number(maxRoundRows[0].maxRound) || 0) + 1;
+    const { rows: [maxRound] } = await db.execute('SELECT MAX(round) AS maxRound FROM matches');
+    const nextRound = (Number(maxRound.maxRound) || 0) + 1;
 
-    // Batch transaction per creare le Semifinali contemporaneamente
+    const insert = 'INSERT INTO matches (id, round, home_team_id, away_team_id, match_type, is_played) VALUES (?, ?, ?, ?, ?, 0)';
     await db.batch([
-      {
-        sql: 'INSERT INTO matches (id, round, home_team_id, away_team_id, match_type) VALUES (?, ?, ?, ?, ?)',
-        args: [crypto.randomUUID(), nextRound, top4[0].id, top4[3].id, 'Semifinal 1 (1st vs 4th)']
-      },
-      {
-        sql: 'INSERT INTO matches (id, round, home_team_id, away_team_id, match_type) VALUES (?, ?, ?, ?, ?)',
-        args: [crypto.randomUUID(), nextRound, top4[1].id, top4[2].id, 'Semifinal 2 (2nd vs 3rd)']
-      }
+      { sql: insert, args: [crypto.randomUUID(), nextRound, top4[0].id, top4[3].id, MATCH_TYPES.semifinal1] },
+      { sql: insert, args: [crypto.randomUUID(), nextRound, top4[1].id, top4[2].id, MATCH_TYPES.semifinal2] },
     ], 'write');
 
-    return NextResponse.json({ success: true, message: 'Semifinals generated!' });
-
+    return NextResponse.json({ success: true, round: nextRound, qualified: top4.map(t => t.name) });
   } catch (error) {
     console.error('Error generating playoffs:', error);
     return NextResponse.json({ error: 'Failed to generate playoffs' }, { status: 500 });
