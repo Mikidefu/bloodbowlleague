@@ -5,23 +5,7 @@ import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices 
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import styles from './TeamDetails.module.css';
-
-const ADVANCEMENT_TIERS = [
-  { name: 'Experienced (1st)', randomPrimary: 3, choosePrimary: 6, chooseSecondary: 10, stat: 14 },
-  { name: 'Veteran (2nd)', randomPrimary: 4, choosePrimary: 8, chooseSecondary: 12, stat: 16 },
-  { name: 'Emerging Star (3rd)', randomPrimary: 6, choosePrimary: 12, chooseSecondary: 16, stat: 20 },
-  { name: 'Star (4th)', randomPrimary: 8, choosePrimary: 16, chooseSecondary: 20, stat: 24 },
-  { name: 'Superstar (5th)', randomPrimary: 10, choosePrimary: 20, chooseSecondary: 24, stat: 28 },
-  { name: 'Legend (6th)', randomPrimary: 15, choosePrimary: 30, chooseSecondary: 34, stat: 38 },
-];
-
-const SKILL_CATEGORIES_MAP: Record<string, string> = {
-  'G': 'General',
-  'A': 'Agility',
-  'S': 'Strength',
-  'P': 'Passing',
-  'M': 'Mutation'
-};
+import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, skillsForCategories } from '@/lib/advancement';
 
 export default function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -151,117 +135,51 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const getFilteredSkillsForLevelUp = (type: 'primary' | 'secondary') => {
     if (!levelUpPlayer) return [];
 
-    const allowedLettersString = type === 'primary' ? levelUpPlayer.primary_skills : levelUpPlayer.secondary_skills;
-    if (!allowedLettersString || allowedLettersString.trim() === '') return []; // Ritorna vuoto se NULL
-
-    const allowedLetters = allowedLettersString.split(',').map((s: string) => s.trim().toUpperCase());
-    const allowedCategories = allowedLetters.map((l: string) => SKILL_CATEGORIES_MAP[l] || l);
-
-    return availableSkills.filter(skill => {
-      const alreadyHas = levelUpPlayer.skills.some((ps: any) => ps.id === skill.id);
-      const isAllowedCategory = allowedCategories.some((cat: string) => skill.type?.toLowerCase().includes(cat.toLowerCase()));
-
-      return !alreadyHas && isAllowedCategory;
-    });
+    return skillsForCategories(
+        availableSkills,
+        type === 'primary' ? levelUpPlayer.primary_skills : levelUpPlayer.secondary_skills,
+        levelUpPlayer.skills.map((ps: any) => ps.id)
+    );
   };
 
-  // --- NUOVA LOGICA: TENTATIVO CASUALE (Salva e Mostra Animazione Immediata) ---
-  const handleRandomRoll = async () => {
-    const currentTier = Math.min(levelUpPlayer.advancements || 0, 5);
-    const costs = ADVANCEMENT_TIERS[currentTier];
-
-    if (levelUpPlayer.spp < costs.randomPrimary) return alert('SPP Insufficienti!');
-
-    const validSkills = getFilteredSkillsForLevelUp('primary');
-    if (validSkills.length === 0) return alert("Nessuna skill primaria disponibile!");
-
-    // Genera la skill randomicamente
-    const randomSkill = validSkills[Math.floor(Math.random() * validSkills.length)];
-    const sppCost = costs.randomPrimary;
-    const valueIncrease = 20000;
-    const newSkillIds = [...levelUpPlayer.skills.map((s:any) => s.id), randomSkill.id];
-
+  // Costi, limiti e valori sono calcolati dal server (/api/players/[id]/advance)
+  const requestAdvancement = async (payload: Record<string, string>) => {
     try {
-      // Effettua il salvataggio immediatamente al DB
-      const res = await fetch(`/api/players/${levelUpPlayer.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/players/${levelUpPlayer.id}/advance`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          value: levelUpPlayer.value + valueIncrease,
-          spp: levelUpPlayer.spp - sppCost,
-          advancements: (levelUpPlayer.advancements || 0) + 1,
-          skills: newSkillIds,
-          ma: levelUpPlayer.ma, st: levelUpPlayer.st, ag: levelUpPlayer.ag, pa: levelUpPlayer.pa, av: levelUpPlayer.av,
-          mng: levelUpPlayer.mng, dead: levelUpPlayer.dead
-        })
+        body: JSON.stringify(payload)
       });
-
-      if (res.ok) {
-        // Chiudi la modale di Level Up e apri quella di Celebrazione!
-        setLevelUpPlayer(null);
-        setLevelUpChoice('');
-        setSelectedAdvancement(null);
-
-        setCelebrationSkill(randomSkill);
-        fetchTeamAndSkills();
-      } else {
-        alert('Errore durante l\'avanzamento');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Errore durante l\'avanzamento');
+        return null;
       }
-    } catch (e) {
+      setLevelUpPlayer(null); setSelectedAdvancement(null); setLevelUpChoice('');
+      fetchTeamAndSkills();
+      return data;
+    } catch {
       alert('Errore di connessione');
+      return null;
     }
+  };
+
+  // --- TENTATIVO CASUALE: il server estrae la skill, qui mostriamo la celebrazione ---
+  const handleRandomRoll = async () => {
+    const data = await requestAdvancement({ kind: 'randomPrimary' });
+    if (data?.skill) setCelebrationSkill(data.skill);
   };
 
   // --- LOGICA LEVEL UP STANDARD (Scelta Manuale) ---
   const handleLevelUpSave = async () => {
     if (!levelUpChoice) return alert('Seleziona un potenziamento!');
 
-    const currentTier = Math.min(levelUpPlayer.advancements || 0, 5);
-    const costs = ADVANCEMENT_TIERS[currentTier];
-
-    let sppCost = 0;
-    let valueIncrease = 0;
-    let newSkillIds = levelUpPlayer.skills.map((s:any) => s.id);
-    let updatedStats = { ma: levelUpPlayer.ma, st: levelUpPlayer.st, ag: levelUpPlayer.ag, pa: levelUpPlayer.pa, av: levelUpPlayer.av };
-
-    if (levelUpChoice === 'choosePrimary') {
-      sppCost = costs.choosePrimary; valueIncrease = 20000;
-      if(!selectedAdvancement) return alert('Seleziona una skill!');
-      newSkillIds.push(selectedAdvancement.id);
-    } else if (levelUpChoice === 'chooseSecondary') {
-      sppCost = costs.chooseSecondary; valueIncrease = 40000;
-      if(!selectedAdvancement) return alert('Seleziona una skill!');
-      newSkillIds.push(selectedAdvancement.id);
+    if (levelUpChoice === 'choosePrimary' || levelUpChoice === 'chooseSecondary') {
+      if (!selectedAdvancement) return alert('Seleziona una skill!');
+      await requestAdvancement({ kind: levelUpChoice, skill_id: selectedAdvancement.id });
     } else if (levelUpChoice.startsWith('stat_')) {
-      sppCost = costs.stat;
-      const stat = levelUpChoice.split('_')[1];
-      if (stat === 'ma') { valueIncrease = 20000; updatedStats.ma += 1; }
-      if (stat === 'pa') { valueIncrease = 20000; }
-      if (stat === 'ag') { valueIncrease = 30000; }
-      if (stat === 'av') { valueIncrease = 10000; }
-      if (stat === 'st') { valueIncrease = 60000; updatedStats.st += 1; }
+      await requestAdvancement({ kind: 'stat', stat: levelUpChoice.split('_')[1] });
     }
-
-    if (levelUpPlayer.spp < sppCost) return alert('SPP Insufficienti!');
-
-    try {
-      const res = await fetch(`/api/players/${levelUpPlayer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          value: levelUpPlayer.value + valueIncrease,
-          spp: levelUpPlayer.spp - sppCost,
-          advancements: (levelUpPlayer.advancements || 0) + 1,
-          skills: newSkillIds,
-          ...updatedStats
-        })
-      });
-
-      if (res.ok) {
-        setLevelUpPlayer(null); setSelectedAdvancement(null); setLevelUpChoice('');
-        fetchTeamAndSkills();
-      }
-    } catch (e) { alert('Errore durante l\'avanzamento'); }
   };
   // -----------------------
 
@@ -858,7 +776,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
                   const currentAdvancements = Math.min(player.advancements || 0, 5);
                   const costOfNextLevel = ADVANCEMENT_TIERS[currentAdvancements].randomPrimary;
-                  const canLevelUp = !isDead && (player.spp >= costOfNextLevel);
+                  const canLevelUp = !isDead && (player.advancements || 0) < MAX_ADVANCEMENTS && (player.spp >= costOfNextLevel);
 
                   const totalSkills = player.skills?.length || 0;
                   const earnedCount = player.advancements || 0;

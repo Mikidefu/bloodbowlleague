@@ -23,7 +23,7 @@ export default function NewTeamPage() {
     assistant_coaches: 0,
     fan_factor: 0,
     apothecary: false,
-    treasury: 0,
+    treasury: 1000000, // budget iniziale standard
     bank: 0
   });
 

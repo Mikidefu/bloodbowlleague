@@ -1,6 +1,7 @@
 // src/app/api/teams/[id]/route.ts
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { recalcSppStatement } from '@/lib/spp';
 import { uploadTeamLogo, UploadError } from '@/lib/upload';
 
 export async function GET(
@@ -126,7 +127,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await db.execute({ sql: 'DELETE FROM teams WHERE id = ?', args: [id] });
+
+    // Le foreign key sono attive e "matches" non ha ON DELETE CASCADE:
+    // prima vanno eliminate le partite della squadra (e le loro statistiche).
+    const { rows: opponentsToRecalc } = await db.execute({
+      sql: `
+        SELECT DISTINCT s.player_id
+        FROM player_stats s
+        JOIN matches m ON m.id = s.match_id
+        JOIN players p ON p.id = s.player_id
+        WHERE (m.home_team_id = ? OR m.away_team_id = ?) AND p.team_id <> ?
+      `,
+      args: [id, id, id]
+    });
+
+    const statements = [
+      {
+        sql: 'DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE home_team_id = ? OR away_team_id = ?)',
+        args: [id, id]
+      },
+      { sql: 'DELETE FROM matches WHERE home_team_id = ? OR away_team_id = ?', args: [id, id] },
+      // Giocatori, loro statistiche residue e skill vengono rimossi in cascata
+      { sql: 'DELETE FROM teams WHERE id = ?', args: [id] },
+      // Gli avversari perdono gli SPP guadagnati contro questa squadra
+      ...opponentsToRecalc.map(p => recalcSppStatement(String(p.player_id))),
+    ];
+
+    await db.batch(statements, 'write');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting team:', error);

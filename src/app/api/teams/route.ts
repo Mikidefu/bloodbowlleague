@@ -22,9 +22,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Team name is required' }, { status: 400 });
     }
 
+    const race = formData.get('race')?.toString();
+    if (!race) {
+      return NextResponse.json({ error: 'Team race is required' }, { status: 400 });
+    }
+
     let logo_url = formData.get('logo_url')?.toString() || null;
     const primary_color = formData.get('primary_color')?.toString() || null;
     const secondary_color = formData.get('secondary_color')?.toString() || null;
+
+    // Numeri interi non negativi; se il campo manca o non è valido si usa il default
+    const intField = (key: string, fallback: number) => {
+      const parsed = parseInt(formData.get(key)?.toString() ?? '', 10);
+      return Number.isNaN(parsed) || parsed < 0 ? fallback : parsed;
+    };
 
     const logoFile = formData.get('logo_file') as File | null;
 
@@ -37,10 +48,16 @@ export async function POST(request: Request) {
 
     await db.execute({
       sql: `
-        INSERT INTO teams (id, name, logo_url, primary_color, secondary_color, rerolls, reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank)
-        VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 1000000, 0)
+        INSERT INTO teams (id, name, race, logo_url, primary_color, secondary_color, rerolls, reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      args: [newTeamId, name, logo_url, primary_color, secondary_color]
+      args: [
+        newTeamId, name, race, logo_url, primary_color, secondary_color,
+        intField('rerolls', 0), intField('reroll_cost', 50000), intField('cheerleaders', 0),
+        intField('assistant_coaches', 0), intField('fan_factor', 0),
+        formData.get('apothecary') === 'true' ? 1 : 0,
+        intField('treasury', 1000000), intField('bank', 0)
+      ]
     });
 
     const { rows: newTeamRows } = await db.execute({

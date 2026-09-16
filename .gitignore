@@ -51,6 +51,9 @@ yarn-error.log*
 # Escludiamo i caricamenti locali, visto che useremo Vercel Blob
 /public/uploads/
 
+# backup generati dagli script di migrazione
+/backups/
+
 # vercel
 .vercel
 

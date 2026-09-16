@@ -28,7 +28,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await request.json();
-    const { jersey_number, name, role, value, primary_skills, secondary_skills, advancements, status, skills, ma, st, ag, pa, av, spp, mng, dead } = body;
+    // Gli SPP non si modificano da qui: sono calcolati (vedi lib/spp.ts) e spesi tramite /advance
+    const { jersey_number, name, role, value, primary_skills, secondary_skills, advancements, status, skills, ma, st, ag, pa, av, mng, dead } = body;
 
     await db.execute({
       sql: `
@@ -36,13 +37,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         SET jersey_number = COALESCE(?, jersey_number), name = COALESCE(?, name), role = COALESCE(?, role), value = COALESCE(?, value),
             primary_skills = COALESCE(?, primary_skills), secondary_skills = COALESCE(?, secondary_skills), advancements = COALESCE(?, advancements),
             status = COALESCE(?, status), ma = COALESCE(?, ma), st = COALESCE(?, st), ag = COALESCE(?, ag), pa = COALESCE(?, pa), av = COALESCE(?, av),
-            spp = COALESCE(?, spp), mng = COALESCE(?, mng), dead = COALESCE(?, dead)
+            mng = COALESCE(?, mng), dead = COALESCE(?, dead)
         WHERE id = ?
       `,
       args: [
         jersey_number ?? null, name ?? null, role ?? null, value ?? null,
         primary_skills ?? null, secondary_skills ?? null, advancements ?? null,
-        status ?? null, ma ?? null, st ?? null, ag ?? null, pa ?? null, av ?? null, spp ?? null,
+        status ?? null, ma ?? null, st ?? null, ag ?? null, pa ?? null, av ?? null,
         mng !== undefined ? (mng ? 1 : 0) : null, dead !== undefined ? (dead ? 1 : 0) : null, id
       ]
     });

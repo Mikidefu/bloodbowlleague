@@ -15,13 +15,14 @@ export async function POST(request: Request) {
 
     await db.execute({
       sql: `
-        INSERT INTO players (id, team_id, jersey_number, name, role, value, primary_skills, secondary_skills, advancements, ma, st, ag, pa, av, spp, status, mng, dead)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
+        INSERT INTO players (id, team_id, jersey_number, name, role, value, primary_skills, secondary_skills, advancements, ma, st, ag, pa, av, spp, spp_base, status, mng, dead)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
       `,
       args: [
         id, team_id, jersey_number ?? null, name, role, value,
         primary_skills ?? null, secondary_skills ?? null,
-        ma ?? 6, st ?? 3, ag ?? '3+', pa ?? '4+', av ?? '8+', spp ?? 0,
+        // Gli SPP inseriti alla creazione sono SPP iniziali: restano anche dopo i ricalcoli
+        ma ?? 6, st ?? 3, ag ?? '3+', pa ?? '4+', av ?? '8+', spp ?? 0, spp ?? 0,
         mng ? 1 : 0, dead ? 1 : 0
       ]
     });

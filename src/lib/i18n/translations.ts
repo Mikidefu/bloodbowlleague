@@ -108,6 +108,7 @@ export const translations = {
     },
     match: {
       saveResults: 'SAVE RESULTS & STATS',
+      saveDateOnly: 'SAVE DATE ONLY',
       saving: 'SAVING...',
       touchdowns: 'TOUCHDOWNS',
       casualties: 'CASUALTIES',
@@ -246,6 +247,7 @@ export const translations = {
     },
     match: {
       saveResults: 'SALVA RISULTATI E STATISTICHE',
+      saveDateOnly: 'SALVA SOLO LA DATA',
       saving: 'SALVATAGGIO...',
       touchdowns: 'TOUCHDOWNS',
       casualties: 'VITTIME',

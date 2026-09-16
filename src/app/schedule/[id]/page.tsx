@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, ChevronDown, ChevronRight, ShieldAlert } from 'lucide-react';
+import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import styles from './MatchDetails.module.css';
@@ -99,6 +99,24 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleStatusChange = (playerId: string, status: string) => {
     setPlayerStats(prev => prev.map(p => p.player_id === playerId ? { ...p, status } : p));
+  };
+
+  // Cambia solo la data: la partita non viene segnata come giocata
+  const handleSaveDate = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/schedule/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date_only: true, match_date: matchDate })
+      });
+      if (res.ok) router.push('/schedule');
+      else alert('Failed to save match date');
+    } catch {
+      alert('Error saving match date');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -245,9 +263,14 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
             {match.match_type} - ROUND {match.round}
           </h1>
           {isAdmin && (
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)' }}>
-                <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
-              </button>
+              <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <button className="btn" onClick={handleSaveDate} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)', background: '#fff' }}>
+                  <Clock size={20} /> {t.match.saveDateOnly}
+                </button>
+                <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)' }}>
+                  <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
+                </button>
+              </div>
           )}
         </div>
 

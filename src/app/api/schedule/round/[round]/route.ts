@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { recalcSppStatement } from '@/lib/spp';
 
 export async function DELETE(
     request: Request,
@@ -43,14 +44,7 @@ export async function DELETE(
 
         // 5. Ricalcoliamo gli SPP per tutti i giocatori coinvolti
         for (const p of playersToRecalc) {
-            statements.push({
-                sql: `
-          UPDATE players 
-          SET spp = (SELECT COALESCE(SUM(spp_earned), 0) FROM player_stats WHERE player_id = ?)
-          WHERE id = ?
-        `,
-                args: [p.player_id, p.player_id]
-            });
+            statements.push(recalcSppStatement(String(p.player_id)));
         }
 
         // Eseguiamo in blocco

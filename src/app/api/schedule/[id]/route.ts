@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { recalcSppStatement } from '@/lib/spp';
 
 export async function GET(
     request: Request,
@@ -53,7 +54,14 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { home_score, away_score, home_casualties, away_casualties, playerStats, match_date } = body;
+    const { home_score, away_score, home_casualties, away_casualties, match_date, date_only } = body;
+    const playerStats = Array.isArray(body.playerStats) ? body.playerStats : [];
+
+    // Cambio della sola data: non tocca risultato, statistiche né stato "giocata"
+    if (date_only) {
+      await db.execute({ sql: 'UPDATE matches SET match_date = ? WHERE id = ?', args: [match_date || null, id] });
+      return NextResponse.json({ success: true });
+    }
 
     const statements = [];
 
@@ -96,14 +104,7 @@ export async function PUT(
         args: [stat.status || 'Active', isMng, isDead, stat.player_id]
       });
 
-      statements.push({
-        sql: `
-          UPDATE players
-          SET spp = (SELECT COALESCE(SUM(spp_earned), 0) FROM player_stats WHERE player_id = ?)
-          WHERE id = ?
-        `,
-        args: [stat.player_id, stat.player_id]
-      });
+      statements.push(recalcSppStatement(stat.player_id));
     }
 
     // Esegue tutta l'operazione in modo atomico e sicuro
@@ -146,14 +147,7 @@ export async function DELETE(
 
     // Ricalcolo SPP per ogni giocatore coinvolto (ora le stat della partita non esistono più)
     for (const p of playersToRecalc) {
-      statements.push({
-        sql: `
-          UPDATE players 
-          SET spp = (SELECT COALESCE(SUM(spp_earned), 0) FROM player_stats WHERE player_id = ?)
-          WHERE id = ?
-        `,
-        args: [p.player_id, p.player_id]
-      });
+      statements.push(recalcSppStatement(String(p.player_id)));
     }
 
     // Eseguiamo tutto insieme
