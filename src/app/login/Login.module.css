@@ -1,0 +1,58 @@
+/* src/app/login/Login.module.css */
+
+.loginCard {
+    background: var(--color-paper);
+    border: 4px dashed var(--color-ink);
+    padding: 2.5rem;
+    box-shadow: 10px 10px 0 rgba(0,0,0,0.4);
+    max-width: 460px;
+    margin: 4rem auto;
+    transform: rotate(-0.5deg);
+}
+
+.title {
+    font-family: var(--font-impact);
+    font-size: 3rem;
+    color: var(--color-ink);
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.subtitle {
+    font-family: var(--font-typewriter);
+    color: #444;
+    margin: 0 0 2rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.label {
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.input {
+    font-family: var(--font-typewriter);
+    font-size: 1.2rem;
+    padding: 0.8rem;
+    border: 3px solid var(--color-ink);
+    background: #fff;
+    color: var(--color-ink);
+}
+
+.error {
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    color: var(--color-blood-bright);
+    margin: 0;
+}

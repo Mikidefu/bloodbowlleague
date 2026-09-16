@@ -3,12 +3,14 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, ChevronDown, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import styles from './MatchDetails.module.css';
 
 export default function MatchDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
 
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -242,11 +244,15 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '2.5rem', color: 'var(--color-ink)', textShadow: '2px 2px 0 var(--color-paper), -1px -1px 0 var(--color-paper), 1px -1px 0 var(--color-paper), -1px 1px 0 var(--color-paper), 1px 1px 0 var(--color-paper)', fontFamily: 'var(--font-impact)', letterSpacing: '2px', textTransform: 'uppercase' }}>
             {match.match_type} - ROUND {match.round}
           </h1>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)' }}>
-            <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
-          </button>
+          {isAdmin && (
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)' }}>
+                <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
+              </button>
+          )}
         </div>
 
+        {/* Per i non-admin tutti i campi sono in sola lettura */}
+        <fieldset disabled={!isAdmin} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         {/* GRAFICA MODERNA MATCHDAY CON EFFETTO GRUNGE */}
         <div className={styles.matchdayGraphic}>
 
@@ -361,6 +367,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           {renderTeamStats(match.home_name, match.homePlayers, match.home_team_id, match.home_color)}
           {renderTeamStats(match.away_name, match.awayPlayers, match.away_team_id, match.away_color)}
         </div>
+        </fieldset>
 
       </div>
   );

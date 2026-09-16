@@ -5,7 +5,18 @@ export const translations = {
       schedule: 'SCHEDULE',
       standings: 'STANDINGS',
       stats: 'STATS',
-      skills: 'SKILLS'
+      skills: 'SKILLS',
+      login: 'ADMIN',
+      logout: 'LOGOUT'
+    },
+    auth: {
+      title: 'Admin Login',
+      subtitle: 'Only the league commissioner can change teams, matches and results.',
+      password: 'PASSWORD',
+      loginBtn: 'ENTER THE LOCKER ROOM',
+      wrongPassword: 'Wrong password.',
+      loginError: 'Login failed. Try again later.',
+      adminOnly: 'ONLY THE LEAGUE ADMIN CAN DO THIS',
     },
     home: {
       title: 'WELCOME TO THE PITCH',
@@ -132,7 +143,18 @@ export const translations = {
       schedule: 'CALENDARIO',
       standings: 'CLASSIFICA',
       stats: 'STATISTICHE',
-      skills: 'ABILITA\''
+      skills: 'ABILITA\'',
+      login: 'ADMIN',
+      logout: 'ESCI'
+    },
+    auth: {
+      title: 'Accesso Admin',
+      subtitle: 'Solo il commissario di lega può modificare squadre, partite e risultati.',
+      password: 'PASSWORD',
+      loginBtn: 'ENTRA NEGLI SPOGLIATOI',
+      wrongPassword: 'Password errata.',
+      loginError: 'Accesso non riuscito. Riprova più tardi.',
+      adminOnly: 'SOLO L\'ADMIN DI LEGA PUÒ FARLO',
     },
     home: {
       title: 'BENVENUTI SUL CAMPO',

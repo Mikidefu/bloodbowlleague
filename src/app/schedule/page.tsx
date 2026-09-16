@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Plus, ShieldAlert, Clock, Settings, ArrowRightLeft, AlertTriangle, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function SchedulePage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   const [matches, setMatches] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,6 +222,7 @@ export default function SchedulePage() {
               SEASON SCHEDULE
             </h1>
           </div>
+          {isAdmin && (
           <div style={{ display: 'flex', gap: '0.5rem', width: isMobile ? '100%' : 'auto' }}>
             <button
                 style={{
@@ -246,6 +249,7 @@ export default function SchedulePage() {
               <Plus size={isMobile ? 16 : 20} /> {isMobile ? 'MATCH' : 'ADD MATCH'}
             </button>
           </div>
+          )}
         </div>
 
         {/* BARRA FILTRO SQUADRE - RESPONSIVE */}
@@ -421,6 +425,7 @@ export default function SchedulePage() {
                     DAY <span style={{ color: 'var(--color-blood-bright)', fontSize: isMobile ? '2.4rem' : '3.5rem' }}>{currentRound}</span>
                   </h2>
 
+                  {isAdmin && (
                   <button
                       onClick={() => handleDeleteRound(currentRound)}
                       style={{
@@ -432,6 +437,7 @@ export default function SchedulePage() {
                   >
                     <Trash2 size={isMobile ? 18 : 24} />
                   </button>
+                  )}
                 </div>
 
                 <button
@@ -504,12 +510,16 @@ export default function SchedulePage() {
                       </div>
 
                       <div style={{ display: 'flex', borderTop: '2px solid var(--color-ink)' }}>
-                        <button onClick={() => router.push(`/schedule/${match.id}`)} style={{ flex: 1, padding: isMobile ? '0.8rem 0.4rem' : '1rem', background: 'transparent', border: 'none', borderRight: '2px solid var(--color-ink)', fontFamily: 'var(--font-impact)', fontSize: isMobile ? '0.9rem' : '1.1rem', color: 'var(--color-ink)', cursor: 'pointer' }}>
-                          {match.is_played ? (isMobile ? 'REPORT' : 'MATCH REPORT') : (isMobile ? 'PLAY' : 'PLAY MATCH')}
+                        <button onClick={() => router.push(`/schedule/${match.id}`)} style={{ flex: 1, padding: isMobile ? '0.8rem 0.4rem' : '1rem', background: 'transparent', border: 'none', borderRight: isAdmin ? '2px solid var(--color-ink)' : 'none', fontFamily: 'var(--font-impact)', fontSize: isMobile ? '0.9rem' : '1.1rem', color: 'var(--color-ink)', cursor: 'pointer' }}>
+                          {match.is_played
+                              ? (isMobile ? 'REPORT' : 'MATCH REPORT')
+                              : isAdmin ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
                         </button>
-                        <button onClick={() => deleteMatch(match.id)} style={{ padding: '0.8rem', background: 'transparent', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer' }}>
-                          <Trash2 size={isMobile ? 20 : 24} />
-                        </button>
+                        {isAdmin && (
+                            <button onClick={() => deleteMatch(match.id)} style={{ padding: '0.8rem', background: 'transparent', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer' }}>
+                              <Trash2 size={isMobile ? 20 : 24} />
+                            </button>
+                        )}
                       </div>
                     </div>
                 ))}

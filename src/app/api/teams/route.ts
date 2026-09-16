@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { put } from '@vercel/blob';
+import { uploadTeamLogo, UploadError } from '@/lib/upload';
 import crypto from 'crypto';
 
 export async function GET() {
@@ -30,10 +30,7 @@ export async function POST(request: Request) {
 
     // Integrazione Vercel Blob per la creazione del logo
     if (logoFile && logoFile.size > 0) {
-      const blob = await put(`logos/${Date.now()}-${logoFile.name}`, logoFile, {
-        access: 'public',
-      });
-      logo_url = blob.url;
+      logo_url = await uploadTeamLogo(logoFile);
     }
 
     const newTeamId = crypto.randomUUID();
@@ -53,6 +50,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newTeamRows[0], { status: 201 });
   } catch (error) {
+    if (error instanceof UploadError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error creating team:', error);
     return NextResponse.json({ error: 'Failed to create team' }, { status: 500 });
   }

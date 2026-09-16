@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import styles from './Home.module.css';
 import { Users, Calendar, ShieldAlert } from 'lucide-react';
 
 export default function Home() {
     const { t } = useLanguage();
+    const { isAdmin } = useAuth();
     const [stats, setStats] = useState({ teams: 0, matches: 0, casualties: 0 });
 
     useEffect(() => {
@@ -66,9 +68,11 @@ export default function Home() {
             <div className={styles.noteCard}>
                 <h2 className={styles.cardTitle}>{t.home.quickActions}</h2>
                 <div className={styles.actionGrid}>
-                    <Link href="/teams/new" className="btn btn-primary" style={{ width: '100%' }}>
-                        <Users size={20} style={{marginRight: '10px'}} /> {t.home.draftNewTeam}
-                    </Link>
+                    {isAdmin && (
+                        <Link href="/teams/new" className="btn btn-primary" style={{ width: '100%' }}>
+                            <Users size={20} style={{marginRight: '10px'}} /> {t.home.draftNewTeam}
+                        </Link>
+                    )}
                     <Link href="/schedule" className="btn" style={{ width: '100%', backgroundColor: '#fff' }}>
                         <Calendar size={20} style={{marginRight: '10px'}} /> {t.home.generateSchedule}
                     </Link>

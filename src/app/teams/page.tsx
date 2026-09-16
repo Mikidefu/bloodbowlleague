@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, Plus, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import styles from './Teams.module.css';
 
 export default function TeamsPage() {
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +40,12 @@ export default function TeamsPage() {
             <Users size={48} color="var(--color-ink)" />
             {t.teams.title}
           </h1>
-          <Link href="/teams/new" className="btn btn-primary">
-            <Plus size={24} />
-            {t.teams.draftBtn}
-          </Link>
+          {isAdmin && (
+              <Link href="/teams/new" className="btn btn-primary">
+                <Plus size={24} />
+                {t.teams.draftBtn}
+              </Link>
+          )}
         </div>
 
         {loading ? (
@@ -52,9 +56,11 @@ export default function TeamsPage() {
             <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
               <h2 className={styles.emptyTitle}>{t.teams.noTeamsTitle}</h2>
               <p>{t.teams.noTeamsDesc}</p>
-              <Link href="/teams/new" className="btn btn-primary" style={{ marginTop: '2rem' }}>
-                {t.teams.createFirstBtn}
-              </Link>
+              {isAdmin && (
+                  <Link href="/teams/new" className="btn btn-primary" style={{ marginTop: '2rem' }}>
+                    {t.teams.createFirstBtn}
+                  </Link>
+              )}
             </div>
         ) : (
             <div className={styles.teamsGrid}>

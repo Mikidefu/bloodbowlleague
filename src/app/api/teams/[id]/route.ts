@@ -1,7 +1,7 @@
 // src/app/api/teams/[id]/route.ts
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { put } from '@vercel/blob';
+import { uploadTeamLogo, UploadError } from '@/lib/upload';
 
 export async function GET(
     request: Request,
@@ -78,10 +78,7 @@ export async function PUT(
 
     // Integrazione Vercel Blob per la modifica del logo
     if (logoFile && logoFile.size > 0) {
-      const blob = await put(`logos/${Date.now()}-${logoFile.name}`, logoFile, {
-        access: 'public',
-      });
-      logo_url = blob.url;
+      logo_url = await uploadTeamLogo(logoFile);
     }
 
     await db.execute({
@@ -115,6 +112,9 @@ export async function PUT(
 
     return NextResponse.json(updatedTeamRows[0]);
   } catch (error) {
+    if (error instanceof UploadError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error updating team:', error);
     return NextResponse.json({ error: 'Failed to update team' }, { status: 500 });
   }

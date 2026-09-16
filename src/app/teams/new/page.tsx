@@ -1,12 +1,15 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import styles from './NewTeam.module.css';
 
 export default function NewTeamPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { isAdmin, authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -88,6 +91,17 @@ export default function NewTeamPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading) return null;
+
+  if (!isAdmin) {
+    return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <p style={{ fontFamily: 'var(--font-impact)', fontSize: '2rem', color: 'var(--color-ink)' }}>{t.auth.adminOnly}</p>
+          <Link href="/login" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>{t.nav.login}</Link>
+        </div>
+    );
+  }
 
   return (
       <div>

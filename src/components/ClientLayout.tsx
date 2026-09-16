@@ -1,18 +1,35 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, Users, Calendar, Menu, X, Book } from 'lucide-react'; // Rimossa l'icona Skull
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut } from 'lucide-react'; // Rimossa l'icona Skull
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import styles from './NavBar.module.css';
 
 function NavBar() {
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAdmin } = useAuth();
 
   // Blocca lo scroll del body quando il menu mobile è aperto
-  if (typeof window !== 'undefined') {
+  useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset';
-  }
+  }, [isMobileMenuOpen]);
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    // Ricarica completa per azzerare lo stato admin in tutta l'app
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = '/';
+  };
+
+  const authLink = isAdmin ? (
+      <button onClick={handleLogout} className={styles.navItem} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+        <LogOut size={20} />{t.nav.logout}
+      </button>
+  ) : (
+      <Link href="/login" className={styles.navItem}><Lock size={20} />{t.nav.login}</Link>
+  );
 
   return (
       <>
@@ -33,6 +50,7 @@ function NavBar() {
             <Link href="/standings" className={styles.navItem}><Trophy size={20} />{t.nav.standings}</Link>
             <Link href="/stats" className={styles.navItem}><Trophy size={20} />{t.nav.stats}</Link>
             <Link href="/skills" className={styles.navItem}><Book size={20} />{t.nav.skills}</Link>
+            {authLink}
 
             {/* Language Switcher */}
             <div className={styles.langContainer}>
@@ -85,6 +103,15 @@ function NavBar() {
             <Link href="/skills" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
               <Book size={28} />{t.nav.skills}
             </Link>
+            {isAdmin ? (
+                <button onClick={handleLogout} className={styles.mobileNavItem} style={{ cursor: 'pointer', width: '100%' }}>
+                  <LogOut size={28} />{t.nav.logout}
+                </button>
+            ) : (
+                <Link href="/login" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Lock size={28} />{t.nav.login}
+                </Link>
+            )}
 
             {/* Mobile Language Switcher */}
             <div className={styles.mobileLangContainer}>
@@ -112,10 +139,12 @@ function NavBar() {
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
       <LanguageProvider>
-        <NavBar />
-        <main className="container">
-          {children}
-        </main>
+        <AuthProvider>
+          <NavBar />
+          <main className="container">
+            {children}
+          </main>
+        </AuthProvider>
       </LanguageProvider>
   );
 }

@@ -3,6 +3,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useAuth } from '@/lib/AuthContext';
 import styles from './TeamDetails.module.css';
 
 const ADVANCEMENT_TIERS = [
@@ -26,6 +27,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const { id } = use(params);
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
 
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -442,10 +444,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className={styles.infoSection}>
-            <div className={styles.actionGroup}>
-              <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={openEditTeam}><Edit2 size={18}/> EDIT</button>
-              <button className={`${styles.actionBtn} ${styles.disbandBtn}`} onClick={handleDeleteTeam}><Trash2 size={18}/> DISBAND</button>
-            </div>
+            {isAdmin && (
+                <div className={styles.actionGroup}>
+                  <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={openEditTeam}><Edit2 size={18}/> EDIT</button>
+                  <button className={`${styles.actionBtn} ${styles.disbandBtn}`} onClick={handleDeleteTeam}><Trash2 size={18}/> DISBAND</button>
+                </div>
+            )}
             <h1 className={styles.teamName} style={{ textShadow: `4px 4px 0 ${team.secondary_color}` }}>{team.name}</h1>
             <div className={styles.teamRace}>{team.race} &bull; TV: {totalValue.toLocaleString()}</div>
             <div className={styles.managementBadges}>
@@ -642,7 +646,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         {/* 3. ROSTER DELLA SQUADRA */}
         <div className={styles.rosterHeader}>
           <h2 className={styles.rosterTitle}>ROSTER ({activePlayers.length} / 16)</h2>
-          {!showPlayerForm && activePlayers.length < 16 && (
+          {isAdmin && !showPlayerForm && activePlayers.length < 16 && (
               <button className="btn btn-primary" onClick={() => setShowPlayerForm(true)}>
                 <Plus size={20} style={{ marginRight: '0.5rem' }}/> {t.teamDetail.hirePlayer}
               </button>
@@ -783,7 +787,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <th className={styles.leftAlign} style={{ minWidth: '200px' }}>{t.teamDetail.thSkills}</th>
                   <th style={{ width: '120px' }}>{t.teamDetail.thValue}</th>
                   <th style={{ width: '90px' }}>STATUS</th>
-                  <th>ACT</th>
+                  {isAdmin && <th>ACT</th>}
                 </tr>
                 </thead>
                 <tbody>
@@ -934,6 +938,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                           )}
                         </td>
 
+                        {isAdmin && (
                         <td>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                             {canLevelUp && (
@@ -943,6 +948,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                             <button onClick={() => handleDeletePlayer(player.id, player.name)} style={{ background: 'none', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer' }} title="Fire (Permanent Delete)"><Trash2 size={20} /></button>
                           </div>
                         </td>
+                        )}
                       </tr>
                   );
                 })}
