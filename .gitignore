@@ -64,3 +64,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# illustrazioni grezze di Midjourney (le versioni ottimizzate vanno in public/art)
+/art-src/

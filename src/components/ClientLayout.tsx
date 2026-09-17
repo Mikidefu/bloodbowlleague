@@ -7,6 +7,7 @@ import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
 import Emblem from '@/components/brand/Emblem';
+import Wordmark from '@/components/brand/Wordmark';
 import SeasonBar from './SeasonBar';
 import styles from './NavBar.module.css';
 
@@ -45,10 +46,7 @@ function NavBar() {
         <nav className={styles.navBar}>
           <Link href="/" className={styles.logoLink} aria-label="Blood Bowl League – Home">
             <Emblem size={68} className={styles.logoEmblem} />
-            <span className={styles.wordmark}>
-              <span className={styles.wordmarkTop}>Blood Bowl</span>
-              <span className={styles.wordmarkBottom}>League · New Season</span>
-            </span>
+            <Wordmark className={styles.wordmark} />
           </Link>
 
           {/* Desktop Links */}

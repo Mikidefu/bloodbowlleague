@@ -1,40 +1,116 @@
 .header {
+  --tone-a: var(--bb-blood-600);
+  --tone-b: var(--bb-blood-800);
+  --tone-c: var(--bb-blood-950);
+  --tone-photo: rgba(170, 36, 40, 0.92);
   position: relative;
-  margin: 0 0 3rem;
-  padding: 2.25rem 2.5rem 3.25rem;
+  margin: 0 0 3.25rem;
+  padding: 2.5rem 2.75rem 3.75rem;
   color: var(--bb-parchment);
-  background-color: var(--bb-blood-700);
-  background-image: url('/brand/grunge.svg'), linear-gradient(160deg, var(--bb-blood-600) 0%, var(--bb-blood-800) 100%);
-  background-size: 700px, cover;
-  clip-path: ellipse(120% 100% at 50% 0%);
   isolation: isolate;
-}
-
-.header::after {
-  content: '';
-  position: absolute;
-  right: 1.5rem;
-  top: 50%;
-  width: 180px;
-  height: 180px;
-  transform: translateY(-58%) rotate(-12deg);
-  background: url('/brand/badge-ring.svg') center / contain no-repeat;
-  opacity: 0.12;
-  z-index: -1;
-  filter: grayscale(1) brightness(2);
+  overflow-x: clip;
 }
 
 .slate {
-  background-color: var(--bb-slate-800);
-  background-image: url('/brand/grunge.svg'), linear-gradient(160deg, var(--bb-slate-700) 0%, var(--bb-slate-900) 100%);
+  --tone-a: var(--bb-slate-700);
+  --tone-b: var(--bb-slate-900);
+  --tone-c: var(--bb-slate-950);
+  --tone-photo: rgba(60, 70, 86, 0.92);
 }
 
 .navy {
-  background-color: var(--bb-navy);
-  background-image: url('/brand/grunge.svg'), linear-gradient(160deg, #2e4686 0%, var(--bb-navy-deep) 100%);
+  --tone-a: #34509a;
+  --tone-b: var(--bb-navy-deep);
+  --tone-c: #0d1530;
+  --tone-photo: rgba(37, 56, 111, 0.92);
+}
+
+/* Filetto d'ottone che segue la curva */
+.trim,
+.bg {
+  position: absolute;
+  inset: 0;
+  clip-path: ellipse(118% 100% at 50% 0%);
+}
+
+.trim {
+  z-index: -2;
+  inset: 0 0 -6px;
+  background: var(--bb-brass);
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.6));
+}
+
+.bg {
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--tone-b);
+  background-image:
+    radial-gradient(ellipse 55% 90% at 18% 0%, rgba(255, 220, 160, 0.22), transparent 70%),
+    radial-gradient(ellipse 45% 80% at 85% 0%, rgba(255, 220, 160, 0.14), transparent 70%),
+    var(--tex-grunge),
+    linear-gradient(165deg, var(--tone-a) 0%, var(--tone-b) 60%, var(--tone-c) 100%);
+  background-size: cover, cover, 700px, cover;
+  box-shadow: inset 0 -30px 60px -30px rgba(0, 0, 0, 0.6);
+}
+
+/* Con la foto dello stadio: duotono nel colore della sezione */
+.bgPhoto {
+  background-image:
+    radial-gradient(ellipse 55% 90% at 18% 0%, rgba(255, 220, 160, 0.25), transparent 70%),
+    linear-gradient(90deg, var(--tone-c) 0%, transparent 70%),
+    linear-gradient(var(--tone-photo), var(--tone-photo)),
+    var(--stadium);
+  background-size: cover, cover, cover, cover;
+  background-position: center, center, center, center 35%;
+  background-blend-mode: normal, normal, multiply, normal;
+}
+
+.watermark {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-58%) rotate(-12deg);
+  opacity: 0.16;
+  filter: grayscale(1) brightness(1.8);
+  mix-blend-mode: screen;
+}
+
+/* Personaggio che esce dalla cornice */
+.art {
+  position: absolute;
+  right: 2.5%;
+  bottom: 14px;
+  z-index: 1;
+  height: calc(100% + 70px);
+  max-height: 340px;
+  width: auto;
+  max-width: 42%;
+  object-fit: contain;
+  object-position: right bottom;
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.65));
+  animation: bb-art-in 0.9s var(--ease-out) backwards 0.1s;
+  pointer-events: none;
+}
+
+@keyframes bb-art-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.96);
+  }
+}
+
+.withArt {
+  margin-top: 4rem;
+  min-height: 230px;
+}
+
+.withArt .inner {
+  padding-right: min(38%, 360px);
 }
 
 .inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -52,49 +128,58 @@
   font-style: italic;
   font-weight: 800;
   font-size: 1.05rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--bb-ink);
-  background: var(--bb-mustard);
-  padding: 0.15rem 0.9rem 0.1rem;
-  margin-bottom: 0.6rem;
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+  padding: 0.18rem 0.95rem 0.12rem;
+  margin-bottom: 0.7rem;
   transform: skewX(-12deg);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.4);
 }
 
 .title {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1rem;
   margin: 0;
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.6rem);
-  line-height: 0.92;
-  letter-spacing: 0.01em;
+  font-weight: 900;
+  font-size: clamp(2.8rem, 6.4vw, 5.2rem);
+  line-height: 0.9;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: var(--bb-mustard);
-  text-shadow: 3px 4px 0 rgba(20, 8, 8, 0.55);
   transform: rotate(-2deg);
   transform-origin: left bottom;
-  overflow-wrap: anywhere;
+}
+
+.titleText {
+  padding-right: 0.1em;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(3px 4px 0 rgba(20, 6, 6, 0.6));
 }
 
 .icon {
   display: inline-flex;
   flex: none;
   color: var(--bb-parchment);
-  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.5));
 }
 
 .subtitle {
-  margin-top: 0.9rem;
+  margin-top: 1rem;
   max-width: 62ch;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 1.05rem;
-  color: rgba(239, 229, 210, 0.88);
+  color: rgba(245, 236, 220, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .actions {
@@ -103,12 +188,28 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 900px) {
+  .withArt .inner { padding-right: 0; }
+  .art {
+    top: -56px;
+    bottom: auto;
+    right: 0.5rem;
+    height: 170px;
+    max-width: 45%;
+  }
+  .withArt { padding-top: 7rem; }
+}
+
 @media (max-width: 768px) {
   .header {
-    margin: 0 -1rem 2rem;
-    padding: 1.75rem 1.25rem 2.75rem;
-    clip-path: ellipse(160% 100% at 50% 0%);
+    margin: 0 -1rem 2.25rem;
+    padding: 1.9rem 1.25rem 3rem;
   }
-  .header::after { width: 120px; height: 120px; }
+  .withArt { margin-top: 3.5rem; padding-top: 6.5rem; }
+  .trim,
+  .bg { clip-path: ellipse(160% 100% at 50% 0%); }
+  .watermark { width: 130px; height: 130px; right: 0.5rem; }
+  .title { font-size: clamp(2.1rem, 10vw, 2.9rem); }
+  .icon { display: none; }
   .actions { width: 100%; }
 }

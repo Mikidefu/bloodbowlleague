@@ -53,6 +53,14 @@
   --shadow-hard: 5px 5px 0 rgba(0, 0, 0, 0.45);
   --radius: 2px;
 
+  /* --- Materiali premium --- */
+  --bb-brass: linear-gradient(135deg, #f3d897 0%, #b8893f 26%, #f7e2ab 47%, #8d6831 70%, #d9b268 100%);
+  --bb-brass-v: linear-gradient(180deg, #f7e2ab 0%, #c99b4c 45%, #8d6831 100%);
+  --bb-gold-text: linear-gradient(180deg, #ffe08a 0%, #f2bd3a 48%, #c98d16 100%);
+  --rivet: radial-gradient(circle, #fbe7b4 0 1.5px, #a97d3c 2.5px 3.5px, rgba(60, 35, 10, 0.55) 4.5px, transparent 5.5px);
+  --shadow-deep: 0 30px 60px -28px rgba(0, 0, 0, 0.9), 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
   /* --- Alias legacy (vecchi nomi → nuovo sistema) --- */
   --color-bg-grunge: var(--bb-slate-800);
   --color-paper: var(--bb-parchment);
@@ -102,6 +110,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Vignettatura da stadio e grana di stampa sopra a tutto */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 214, 140, 0.07), transparent 70%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+body::after {
+  z-index: 9000;
+  background: var(--tex-grain);
+  background-size: 180px;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+}
+
 h1, h2, h3, h4 {
   font-family: var(--font-slab);
   font-weight: 800;
@@ -144,21 +181,29 @@ img {
 /*  PANNELLI                                                           */
 /* ================================================================== */
 
-/* Pergamena con cornice color cuoio (Spike! "Famous Teams") */
+/* Pergamena con cornice in ottone e rivetti agli angoli */
 .card,
 .panel-parchment {
   position: relative;
   color: var(--bb-ink);
   background-color: var(--bb-parchment);
-  background-image: var(--tex-grain), linear-gradient(180deg, #f3ebdb, var(--bb-parchment-2));
-  background-size: 240px, cover;
-  border: 10px solid var(--bb-tan);
-  outline: 2px solid var(--bb-tan-dark);
-  outline-offset: -14px;
-  border-radius: var(--radius);
-  padding: 2.25rem;
+  background-image:
+    var(--rivet), var(--rivet), var(--rivet), var(--rivet),
+    var(--tex-grain),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 255, 255, 0.6), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 110%, rgba(122, 82, 40, 0.28), transparent 70%),
+    linear-gradient(180deg, #f5eddd, var(--bb-parchment-2));
+  background-size: 12px 12px, 12px 12px, 12px 12px, 12px 12px, 240px, cover, cover, cover;
+  background-position: left 5px top 5px, right 5px top 5px, left 5px bottom 5px, right 5px bottom 5px, 0 0, center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat, no-repeat, no-repeat;
+  border: 7px solid transparent;
+  border-image: var(--bb-brass) 1;
+  outline: 1px solid rgba(95, 62, 25, 0.45);
+  outline-offset: -16px;
+  border-radius: 0;
+  padding: 2.4rem;
   margin-bottom: 2.5rem;
-  box-shadow: var(--shadow-print);
+  box-shadow: 0 0 0 1px rgba(40, 22, 6, 0.8), var(--shadow-deep);
 }
 
 /* Pannello rosso sangue (Spike! pagine squadra) */
@@ -166,11 +211,18 @@ img {
   position: relative;
   color: var(--bb-parchment);
   background-color: var(--bb-blood-700);
-  background-image: var(--tex-grunge), linear-gradient(170deg, var(--bb-blood-600), var(--bb-blood-800));
-  background-size: 700px, cover;
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse 70% 50% at 30% 0%, rgba(255, 170, 140, 0.18), transparent 70%),
+    linear-gradient(170deg, var(--bb-blood-600), var(--bb-blood-800) 70%, var(--bb-blood-950));
+  background-size: 700px, cover, cover;
   padding: 2rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-print);
+  border-style: solid;
+  border-color: transparent;
+  border-width: 3px 0 0;
+  border-image: var(--bb-brass) 1;
+  border-radius: 0;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.35), var(--shadow-deep);
 }
 
 /* Pannello ardesia (Spike! colonne laterali) */
@@ -178,11 +230,18 @@ img {
   position: relative;
   color: var(--bb-parchment);
   background-color: var(--bb-slate-700);
-  background-image: var(--tex-grunge);
-  background-size: 700px;
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse 70% 50% at 30% 0%, rgba(160, 190, 230, 0.12), transparent 70%),
+    linear-gradient(170deg, var(--bb-slate-700), var(--bb-slate-900));
+  background-size: 700px, cover, cover;
   padding: 2rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-print);
+  border-style: solid;
+  border-color: transparent;
+  border-width: 3px 0 0;
+  border-image: var(--bb-brass) 1;
+  border-radius: 0;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.3), var(--shadow-deep);
 }
 
 /* Box introduttivo con filetto giallo e capolettera */
@@ -233,7 +292,12 @@ img {
   line-height: 0.92;
   text-transform: uppercase;
   color: var(--bb-mustard);
-  text-shadow: 2px 3px 0 rgba(0, 0, 0, 0.45);
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 3px 0 rgba(20, 8, 4, 0.55));
+  padding-right: 0.08em;
 }
 
 /* Occhiello maiuscoletto con filetto (Rulebook "CARDINAL RULES") */
@@ -261,32 +325,54 @@ img {
 /* ================================================================== */
 
 .btn {
-  --btn-bg: var(--bb-parchment);
+  --btn-bg: linear-gradient(180deg, #fbf5e8 0%, #efe5d2 55%, #d9c8a6 100%);
   --btn-fg: var(--bb-ink);
   --btn-edge: var(--bb-tan-dark);
+  --btn-glow: rgba(0, 0, 0, 0);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 46px;
-  padding: 0.55rem 1.4rem;
+  min-height: 48px;
+  padding: 0.6rem 1.5rem;
   font-family: var(--font-display);
   font-style: normal;
   font-weight: 800;
   font-size: 1.3rem;
   line-height: 1;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--btn-fg) !important;
-  background: var(--btn-bg);
-  background-image: var(--tex-grain);
+  background: var(--tex-grain), var(--btn-bg);
   border: 0;
-  border-radius: var(--radius);
-  box-shadow: inset 0 -4px 0 var(--btn-edge), 0 6px 14px -8px rgba(0, 0, 0, 0.7);
+  border-radius: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -4px 0 var(--btn-edge),
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 10px 22px -10px rgba(0, 0, 0, 0.85),
+    0 0 26px -6px var(--btn-glow);
   cursor: pointer;
   transform: skewX(-8deg);
-  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.2s var(--ease-out), filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Riflesso che attraversa il pulsante */
+.btn::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 45%;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transition: transform 0.6s var(--ease-out);
+  pointer-events: none;
 }
 
 .btn > * {
@@ -294,13 +380,17 @@ img {
 }
 
 .btn:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06) saturate(1.05);
   transform: skewX(-8deg) translateY(-2px);
+}
+
+.btn:hover::after {
+  transform: translateX(420%);
 }
 
 .btn:active {
   transform: skewX(-8deg) translateY(1px);
-  box-shadow: inset 0 -1px 0 var(--btn-edge);
+  box-shadow: inset 0 -1px 0 var(--btn-edge), 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .btn:disabled {
@@ -310,27 +400,32 @@ img {
 }
 
 .btn-primary {
-  --btn-bg: var(--bb-red) !important;
-  --btn-fg: var(--bb-parchment);
+  --btn-bg: linear-gradient(180deg, #e8493f 0%, #c8252c 50%, #9a1c21 100%) !important;
+  --btn-fg: #fff4e0;
   --btn-edge: var(--bb-blood-950);
+  --btn-glow: rgba(224, 51, 47, 0.45);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .btn-gold {
-  --btn-bg: var(--bb-mustard);
-  --btn-fg: var(--bb-ink);
-  --btn-edge: var(--bb-mustard-deep);
+  --btn-bg: linear-gradient(180deg, #ffe189 0%, #f0b930 48%, #c48d14 100%);
+  --btn-fg: #2a1a05;
+  --btn-edge: #8a600c;
+  --btn-glow: rgba(234, 178, 42, 0.45);
 }
 
 .btn-navy {
-  --btn-bg: var(--bb-navy);
+  --btn-bg: linear-gradient(180deg, #3b54a0 0%, #25386f 55%, #1a2852 100%);
   --btn-fg: var(--bb-parchment);
-  --btn-edge: var(--bb-navy-deep);
+  --btn-edge: #0f1834;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .btn-slate {
-  --btn-bg: var(--bb-slate-700);
+  --btn-bg: linear-gradient(180deg, #535a66 0%, #3c424c 55%, #2a2e35 100%);
   --btn-fg: var(--bb-parchment);
   --btn-edge: var(--bb-slate-950);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 /* ================================================================== */
@@ -362,8 +457,14 @@ img {
   background: var(--bb-paper);
 }
 
+.table-container {
+  box-shadow: var(--shadow-deep);
+}
+
 .data-table th {
-  background: var(--bb-red);
+  background: linear-gradient(180deg, #d6343a 0%, #b8222a 100%);
+  border-bottom: 2px solid #e2b766;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   color: var(--bb-parchment);
   font-family: var(--font-data);
   font-stretch: 80%;
@@ -386,8 +487,12 @@ img {
   background: var(--bb-sky);
 }
 
+.data-table tbody tr td {
+  transition: background-color 0.15s ease;
+}
+
 .data-table tbody tr:hover td {
-  background: var(--bb-sky-2);
+  background: #f7e7bf;
 }
 
 .data-table tfoot td {
@@ -467,12 +572,58 @@ label {
   text-transform: uppercase;
   color: var(--bb-ink);
   background: var(--bb-mustard);
-  padding: 0.1rem 0.7rem;
+  padding: 0.12rem 0.75rem;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 60%);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
   transform: skewX(-10deg);
 }
 
-.tag-red { background: var(--bb-red); color: var(--bb-parchment); }
-.tag-navy { background: var(--bb-navy); color: var(--bb-parchment); }
+.tag-red { background-color: var(--bb-red); color: var(--bb-parchment); }
+.tag-navy { background-color: var(--bb-navy); color: var(--bb-parchment); }
+
+/* Placca in ottone con rivetti (numeri, badge, riquadri importanti) */
+.plate {
+  position: relative;
+  padding: 1rem 1.25rem;
+  color: #2a1a05;
+  background-image: var(--rivet), var(--rivet), var(--rivet), var(--rivet), var(--tex-grain), var(--bb-brass);
+  background-size: 12px 12px, 12px 12px, 12px 12px, 12px 12px, 200px, cover;
+  background-position: left 4px top 4px, right 4px top 4px, left 4px bottom 4px, right 4px bottom 4px, 0 0, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(80, 50, 10, 0.45), 0 0 0 1px rgba(40, 22, 6, 0.8), var(--shadow-deep);
+}
+
+/* Testo dorato in rilievo */
+.gold-text {
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 3px 0 rgba(20, 8, 4, 0.55));
+}
+
+/* Ingresso morbido dei blocchi di pagina */
+@keyframes bb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes bb-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+main.container > * {
+  animation: bb-rise 0.7s var(--ease-out) backwards;
+}
+
+main.container > *:nth-child(2) { animation-delay: 80ms; }
+main.container > *:nth-child(3) { animation-delay: 160ms; }
+main.container > *:nth-child(4) { animation-delay: 240ms; }
+main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
 
 /* Schizzo di sangue decorativo (posizionare con top/left/right) */
 .splatter {
@@ -542,9 +693,9 @@ label {
 
   .card,
   .panel-parchment {
-    padding: 1.5rem 1.25rem;
-    border-width: 7px;
-    outline-offset: -11px;
+    padding: 1.6rem 1.25rem;
+    border-width: 5px;
+    outline-offset: -12px;
   }
 
   .btn {

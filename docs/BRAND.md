@@ -73,3 +73,11 @@ Titoli sempre MAIUSCOLI. Un punto esclamativo è benvenuto ma non va aggiunto ai
 - Niente rotazioni casuali "carta appiccicata" e niente ombre nere piene 8px del vecchio stile: si usa `--shadow-print`. L'inclinazione è riservata a titoli, fasce, etichette e pulsanti.
 - Colori squadra (`primary_color`) solo come accento: filetto, bordo del logo o striscia. Mai come fondo di testo senza controllare il contrasto.
 - Mobile: margini laterali di 16px, niente scroll orizzontale della pagina (le tabelle scorrono nel proprio contenitore), bersagli touch da almeno 44px.
+
+## Livello premium
+
+- **Materiali**: `--bb-brass` (ottone), `--bb-gold-text` (testo dorato), `--rivet` (rivetto), `--shadow-deep`, `--ease-out`.
+- **Classi**: `.plate` (placca d'ottone con rivetti), `.gold-text` (titolo dorato in rilievo). `.card` ha la cornice in ottone con rivetti, `.panel-blood`/`.panel-slate` hanno il filetto d'ottone e profondità, i pulsanti sono metallici con riflesso al passaggio del mouse.
+- **Atmosfera globale**: vignettatura da stadio e grana di stampa sopra la pagina; i blocchi di `main` entrano con un'animazione morbida (disattivata con `prefers-reduced-motion`).
+- **Componenti**: `<Wordmark />` (lettere cesellate argento + nastro rosso), `<Emblem />` in ottone con cuore illustrabile, `<PageHeader />` con scena di stadio in duotono e personaggio scontornato automatico per sezione.
+- **Illustrazioni**: slot facoltativi definiti in `src/lib/art.ts`, caricati con `useArt()` (se il file manca resta la grafica vettoriale). Prompt e procedura in `docs/MIDJOURNEY.md`, preparazione file con `npm run art`.
