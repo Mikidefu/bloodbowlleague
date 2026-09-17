@@ -1,246 +1,573 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&family=Permanent+Marker&family=Special+Elite&family=Pirata+One&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&family=Rokkitt:wght@500..900&display=swap');
+
+/* ================================================================== */
+/*  BLOOD BOWL LEAGUE · NEW SEASON                                     */
+/*  Design system ispirato a Spike! Journal e al Rulebook 3ª stagione  */
+/* ================================================================== */
 
 :root {
-  /* Palette Blood Bowl 2025: eSports Grunge */
-  --color-bg-grunge: #e5e0d8; /* Grigio/crema sporco per il fondo globale */
-  --color-paper: #f4f4f4; /* Bianco sporco per le card */
-  --color-blood: #8b0000;
-  --color-blood-bright: #e50914; /* Rosso acceso eSports */
-  --color-ink: #111111; /* Nero assoluto per contrasti massimi */
-  --color-ink-light: #222222;
-  --color-wood: #1a1a1a; /* Legno/Nero scuro per navbar e menu */
-  --color-gold: #b8860b;
-  --color-tape: rgba(210, 190, 150, 0.6);
+  /* --- Palette --- */
+  --bb-blood-950: #3a0d0f;
+  --bb-blood-800: #7a1a1c;
+  --bb-blood-700: #9a2226;   /* fondo pagine Spike! */
+  --bb-blood-600: #b5242a;
+  --bb-red: #c8252c;         /* fascia Rulebook */
+  --bb-red-bright: #e0332f;
 
-  /* Typography */
-  --font-impact: 'Anton', sans-serif; /* Titoli enormi, loghi, numeri */
-  --font-cursive: 'Dancing Script', cursive; /* Filigrane di sfondo */
-  --font-varsity: 'Pirata One', cursive; /* Titoli secondari gotici */
-  --font-note: 'Permanent Marker', cursive; /* Appunti a penna */
-  --font-typewriter: 'Special Elite', system-ui; /* Dati tabellari */
-  --font-text: 'Lora', serif; /* Testi lunghi */
+  --bb-slate-950: #16191e;
+  --bb-slate-900: #22262d;
+  --bb-slate-800: #2d323a;   /* bande laterali Spike! */
+  --bb-slate-700: #3c424c;
+  --bb-slate-500: #6c7380;
+  --bb-slate-300: #a9aeb7;
+
+  --bb-mustard: #eab22a;     /* titoli Spike! */
+  --bb-mustard-deep: #c48d14;
+  --bb-tan: #b8926a;         /* linguette numero pagina */
+  --bb-tan-dark: #8a6843;
+
+  --bb-parchment: #efe5d2;   /* pagine "pergamena" */
+  --bb-parchment-2: #e4d6bb;
+  --bb-paper: #f6f2ea;       /* carta Rulebook */
+
+  --bb-navy: #25386f;        /* blu Rulebook */
+  --bb-navy-deep: #1a2852;
+  --bb-sky: #e3e8f2;         /* righe alternate tabelle roster */
+  --bb-sky-2: #cfd8ea;
+
+  --bb-ink: #1d1a18;
+  --bb-ink-soft: #544b45;
+  --bb-grass: #5d7a2c;
+  --bb-success: #3d7a34;
+
+  /* --- Tipografia --- */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif; /* titoli corsivi Spike! */
+  --font-slab: 'Rokkitt', 'Rockwell', Georgia, serif;             /* titoli slab Rulebook */
+  --font-body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;    /* testo corrente */
+  --font-data: 'Archivo', 'Arial Narrow', sans-serif;             /* tabelle (usare con font-stretch) */
+
+  /* --- Superfici e texture --- */
+  --tex-grain: url('/brand/grain.svg');
+  --tex-grunge: url('/brand/grunge.svg');
+  --shadow-print: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 10px 24px -12px rgba(0, 0, 0, 0.65);
+  --shadow-hard: 5px 5px 0 rgba(0, 0, 0, 0.45);
+  --radius: 2px;
+
+  /* --- Alias legacy (vecchi nomi → nuovo sistema) --- */
+  --color-bg-grunge: var(--bb-slate-800);
+  --color-paper: var(--bb-parchment);
+  --color-blood: var(--bb-blood-700);
+  --color-blood-bright: var(--bb-red);
+  --color-ink: var(--bb-ink);
+  --color-ink-light: var(--bb-ink-soft);
+  --color-wood: var(--bb-slate-900);
+  --color-gold: var(--bb-mustard);
+  --color-grass: var(--bb-grass);
+  --color-tape: rgba(184, 146, 106, 0.6);
+  --paper-wrinkle: var(--tex-grain);
+  --font-impact: var(--font-display);
+  --font-varsity: var(--font-slab);
+  --font-note: var(--font-display);
+  --font-typewriter: var(--font-data);
+  --font-text: var(--font-body);
+  --font-cursive: var(--font-display);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: var(--font-text);
-  background-color: var(--color-bg-grunge);
-  /* TEXTURE SPORCA GLOBALE APPLICATA A TUTTO IL SITO */
-  background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.12"/%3E%3C/svg%3E');
-  color: var(--color-ink); /* Il testo di base ora è scuro */
-  line-height: 1.6;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--bb-parchment);
+  background-color: var(--bb-slate-800);
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse at 50% -10%, rgba(154, 34, 38, 0.35), transparent 60%),
+    linear-gradient(180deg, var(--bb-slate-800), var(--bb-slate-900));
+  background-size: 900px, 100% 900px, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-impact);
+  font-family: var(--font-slab);
+  font-weight: 800;
+  line-height: 1.05;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-ink);
+  letter-spacing: 0.01em;
 }
 
 a {
-  color: var(--color-blood-bright);
+  color: var(--bb-mustard);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  color: var(--color-blood);
+  color: #f6cc5b;
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--bb-mustard);
+  color: var(--bb-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: 2.5rem 1.5rem 4rem;
 }
 
-/* ========================================= */
-/* 📜 CARDS BASE (Stile Brutalista)          */
-/* ========================================= */
-.card {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  border: 3px solid var(--color-ink);
-  border-radius: 4px;
-  padding: 2.5rem;
-  /* Ombra solida tipica della grafica vettoriale/eSports */
-  box-shadow: 8px 8px 0 var(--color-ink);
+/* ================================================================== */
+/*  PANNELLI                                                           */
+/* ================================================================== */
+
+/* Pergamena con cornice color cuoio (Spike! "Famous Teams") */
+.card,
+.panel-parchment {
   position: relative;
-  margin-bottom: 3rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: var(--bb-ink);
+  background-color: var(--bb-parchment);
+  background-image: var(--tex-grain), linear-gradient(180deg, #f3ebdb, var(--bb-parchment-2));
+  background-size: 240px, cover;
+  border: 10px solid var(--bb-tan);
+  outline: 2px solid var(--bb-tan-dark);
+  outline-offset: -14px;
+  border-radius: var(--radius);
+  padding: 2.25rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--shadow-print);
 }
 
-.card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 10px 10px 0 var(--color-ink);
+/* Pannello rosso sangue (Spike! pagine squadra) */
+.panel-blood {
+  position: relative;
+  color: var(--bb-parchment);
+  background-color: var(--bb-blood-700);
+  background-image: var(--tex-grunge), linear-gradient(170deg, var(--bb-blood-600), var(--bb-blood-800));
+  background-size: 700px, cover;
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-print);
 }
 
-/* ========================================= */
-/* 🔘 PULSANTI (High Impact)                 */
-/* ========================================= */
+/* Pannello ardesia (Spike! colonne laterali) */
+.panel-slate {
+  position: relative;
+  color: var(--bb-parchment);
+  background-color: var(--bb-slate-700);
+  background-image: var(--tex-grunge);
+  background-size: 700px;
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-print);
+}
+
+/* Box introduttivo con filetto giallo e capolettera */
+.intro-box {
+  border: 2px solid var(--bb-mustard);
+  padding: 1.25rem 1.5rem;
+  font-weight: 700;
+}
+
+.dropcap::first-letter {
+  float: left;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 3.6em;
+  line-height: 0.8;
+  margin: 0.08em 0.12em 0 0;
+  color: var(--bb-mustard);
+}
+
+.card .dropcap::first-letter,
+.panel-parchment .dropcap::first-letter {
+  color: var(--bb-blood-700);
+}
+
+/* ================================================================== */
+/*  TITOLI                                                             */
+/* ================================================================== */
+
+/* Slab rosso con filetto (Rulebook "CODE OF CONDUCT!") */
+.title-slab {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid currentColor;
+  margin-bottom: 1.25rem;
+}
+
+/* Corsivo giallo (Spike! "GREETINGS SPORTS FANS!") */
+.title-spike {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+  text-shadow: 2px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Occhiello maiuscoletto con filetto (Rulebook "CARDINAL RULES") */
+.subhead {
+  font-family: var(--font-slab);
+  font-weight: 800;
+  font-size: 1.35rem;
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.03em;
+  color: var(--bb-mustard);
+  border-bottom: 2px solid var(--bb-mustard);
+  padding-bottom: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.card .subhead,
+.panel-parchment .subhead {
+  color: var(--bb-blood-700);
+  border-color: var(--bb-blood-700);
+}
+
+/* ================================================================== */
+/*  PULSANTI                                                           */
+/* ================================================================== */
+
 .btn {
-  font-family: var(--font-impact);
-  font-size: 1.4rem;
-  letter-spacing: 1px;
-  padding: 0.8rem 2rem;
-  min-width: 150px;
-  border: 3px solid var(--color-ink);
-  background: var(--color-paper);
-  color: var(--color-ink) !important;
-  cursor: pointer;
-  box-shadow: 5px 5px 0px var(--color-ink);
-  transition: all 0.1s ease;
-  text-decoration: none;
+  --btn-bg: var(--bb-parchment);
+  --btn-fg: var(--bb-ink);
+  --btn-edge: var(--bb-tan-dark);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding: 0.55rem 1.4rem;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-decoration: none;
+  color: var(--btn-fg) !important;
+  background: var(--btn-bg);
+  background-image: var(--tex-grain);
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: inset 0 -4px 0 var(--btn-edge), 0 6px 14px -8px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  transform: skewX(-8deg);
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn > * {
+  transform: skewX(8deg);
 }
 
 .btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0px var(--color-ink);
+  filter: brightness(1.08);
+  transform: skewX(-8deg) translateY(-2px);
 }
 
 .btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px var(--color-ink);
+  transform: skewX(-8deg) translateY(1px);
+  box-shadow: inset 0 -1px 0 var(--btn-edge);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: skewX(-8deg);
 }
 
 .btn-primary {
-  background: var(--color-blood-bright) !important;
-  color: #fff !important;
+  --btn-bg: var(--bb-red) !important;
+  --btn-fg: var(--bb-parchment);
+  --btn-edge: var(--bb-blood-950);
 }
 
-/* ========================================= */
-/* 📊 TABELLE GLOBALI (Rigide e leggibili)   */
-/* ========================================= */
-.table-container {
-  overflow-x: auto;
-  margin: 1.5rem 0;
-  border: 3px solid var(--color-ink);
-  box-shadow: 6px 6px 0 var(--color-ink);
+.btn-gold {
+  --btn-bg: var(--bb-mustard);
+  --btn-fg: var(--bb-ink);
+  --btn-edge: var(--bb-mustard-deep);
 }
+
+.btn-navy {
+  --btn-bg: var(--bb-navy);
+  --btn-fg: var(--bb-parchment);
+  --btn-edge: var(--bb-navy-deep);
+}
+
+.btn-slate {
+  --btn-bg: var(--bb-slate-700);
+  --btn-fg: var(--bb-parchment);
+  --btn-edge: var(--bb-slate-950);
+}
+
+/* ================================================================== */
+/*  TABELLE (roster del Rulebook)                                      */
+/* ================================================================== */
+
+.table-container {
+  position: relative;
+  overflow-x: auto;
+  margin: 2.25rem 0 1.5rem;
+  padding-top: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stars-bar {
+  height: 34px;
+  background: url('/brand/stars-bar.svg') center bottom / auto 100% no-repeat;
+  position: relative;
+}
+
+.stars-bar::before,
+.stars-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  height: 12px;
+  width: calc(50% - 300px);
+  background: var(--bb-navy);
+}
+
+.stars-bar::before { left: 0; }
+.stars-bar::after { right: 0; }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 0.98rem;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
 }
 
 .data-table th {
-  background: var(--color-ink);
-  color: #fff;
-  font-family: var(--font-impact);
-  font-size: 1.2rem;
-  padding: 1rem;
-  letter-spacing: 1px;
-  border-bottom: 3px solid var(--color-blood-bright);
+  background: var(--bb-red);
+  color: var(--bb-parchment);
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  white-space: nowrap;
 }
 
 .data-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #ddd;
-  color: var(--color-ink);
-  font-family: var(--font-typewriter);
-  font-weight: bold;
+  padding: 0.55rem 0.75rem;
+  font-weight: 500;
+  vertical-align: top;
 }
 
-/* ========================================= */
-/* 🧭 NAVBAR & SIDEBAR                       */
-/* ========================================= */
-.nav-bar {
-  background: var(--color-wood);
-  border-bottom: 5px solid var(--color-blood-bright);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
+.data-table tbody tr:nth-child(even) td {
+  background: var(--bb-sky);
+}
+
+.data-table tbody tr:hover td {
+  background: var(--bb-sky-2);
+}
+
+.data-table tfoot td {
+  background: var(--bb-navy);
+  color: var(--bb-parchment);
+  font-weight: 800;
+  font-stretch: 80%;
+  text-transform: uppercase;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ================================================================== */
+/*  FORM                                                               */
+/* ================================================================== */
+
+input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+select,
+textarea {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--bb-red);
+  box-shadow: 0 0 0 3px rgba(200, 37, 44, 0.25);
+}
+
+label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ================================================================== */
+/*  ELEMENTI DECORATIVI                                                */
+/* ================================================================== */
+
+/* Linguetta color cuoio col numero (numeri pagina Spike!) */
+.page-tab {
+  display: inline-flex;
   align-items: center;
-  z-index: 2000;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  justify-content: center;
+  min-width: 2.2rem;
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  background: var(--bb-tan);
+  background-image: var(--tex-grain);
 }
 
-.nav-links a {
-  font-family: var(--font-impact);
-  font-size: 1.4rem;
-  color: #fff;
-  margin-left: 2rem;
-  letter-spacing: 1px;
+/* Etichetta inclinata gialla ("TEAM SPOTLIGHT") */
+.tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+  padding: 0.1rem 0.7rem;
+  transform: skewX(-10deg);
 }
 
-.nav-links a:hover {
-  color: var(--color-blood-bright);
+.tag-red { background: var(--bb-red); color: var(--bb-parchment); }
+.tag-navy { background: var(--bb-navy); color: var(--bb-parchment); }
+
+/* Schizzo di sangue decorativo (posizionare con top/left/right) */
+.splatter {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  background: url('/brand/splatter-a.svg') center / contain no-repeat;
+  pointer-events: none;
+  opacity: 0.85;
 }
 
-/* ========================================= */
-/* 📱 GESTIONE MOBILE UNIVERSALE             */
-/* ========================================= */
-.mobile-only { display: none !important; }
-.desktop-only { display: flex !important; }
-
-.mobile-sidebar {
-  display: none;
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 85%;
-  max-width: 350px;
-  height: 100vh;
-  background: var(--color-wood);
-  z-index: 2000;
-  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 3rem 2rem;
-  border-left: 6px solid var(--color-blood-bright);
-  box-shadow: -10px 0 30px rgba(0,0,0,0.8);
-  flex-direction: column;
+.splatter-b {
+  width: 160px;
+  height: 74px;
+  background-image: url('/brand/splatter-b.svg');
 }
 
-@media (max-width: 992px) {
-  .mobile-only { display: block !important; }
-  .desktop-only { display: none !important; }
+/* Catena divisoria */
+.chain-rule {
+  height: 20px;
+  background: url('/brand/chain.svg') left center / 48px 15px repeat-x;
+  opacity: 0.9;
+}
 
-  .mobile-sidebar { display: flex; }
-  .mobile-sidebar.open { right: 0; }
+/* Bordo inferiore strappato */
+.torn-bottom {
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 14px) no-repeat, url('/brand/torn-edge.svg') bottom / 100% 16px no-repeat;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 14px) no-repeat, url('/brand/torn-edge.svg') bottom / 100% 16px no-repeat;
+}
 
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(5px);
-    z-index: 1500;
+.muted {
+  color: var(--bb-slate-300);
+}
+
+.loading-state {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--bb-slate-300);
+  margin-top: 4rem;
+}
+
+.marker-highlight {
+  background: rgba(234, 178, 42, 0.22);
+  padding: 0 4px;
+  border-bottom: 2px solid var(--bb-mustard);
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .card,
+  .panel-parchment {
+    padding: 1.5rem 1.25rem;
+    border-width: 7px;
+    outline-offset: -11px;
+  }
+
+  .btn {
+    font-size: 1.15rem;
   }
 }
 
-.mobile-sidebar a {
-  font-family: var(--font-impact);
-  font-size: 2.5rem;
-  color: #fff;
-  margin-bottom: 2rem;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  transition: color 0.2s, transform 0.2s;
-  padding: 0.5rem;
-}
-
-.mobile-sidebar a:hover {
-  color: var(--color-blood-bright);
-  transform: translateX(10px);
-}
-
-/* ========================================= */
-/* UTILITIES                                 */
-/* ========================================= */
-.marker-highlight {
-  background: rgba(229, 9, 20, 0.15);
-  padding: 0 4px;
-  border-bottom: 3px solid var(--color-blood-bright);
-  font-weight: bold;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

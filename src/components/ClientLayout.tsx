@@ -1,20 +1,34 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut } from 'lucide-react'; // Rimossa l'icona Skull
+import { usePathname } from 'next/navigation';
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import Emblem from '@/components/brand/Emblem';
 import styles from './NavBar.module.css';
+
+const NAV_LINKS = [
+  { href: '/teams', key: 'teams', Icon: Users },
+  { href: '/schedule', key: 'schedule', Icon: Calendar },
+  { href: '/standings', key: 'standings', Icon: Trophy },
+  { href: '/stats', key: 'stats', Icon: BarChart3 },
+  { href: '/skills', key: 'skills', Icon: Book },
+] as const;
 
 function NavBar() {
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin } = useAuth();
+  const pathname = usePathname();
 
   // Blocca lo scroll del body quando il menu mobile è aperto
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset';
   }, [isMobileMenuOpen]);
+
+  const closeMenu = () => setIsMobileMenuOpen(false);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -23,34 +37,33 @@ function NavBar() {
     window.location.href = '/';
   };
 
-  const authLink = isAdmin ? (
-      <button onClick={handleLogout} className={styles.navItem} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-        <LogOut size={20} />{t.nav.logout}
-      </button>
-  ) : (
-      <Link href="/login" className={styles.navItem}><Lock size={20} />{t.nav.login}</Link>
-  );
-
   return (
       <>
         <nav className={styles.navBar}>
-          {/* NUOVA STRUTTURA LOGO CON IMMAGINE GRAFICA UFFICIALE */}
-          <Link href="/" className={styles.logoLink}>
-            <img
-                src="/logo-blood-bowl.png" // Percorso del file che hai salvato in public/
-                alt="Blood Bowl Official Logo"
-                className={styles.logoImage}
-            />
+          <Link href="/" className={styles.logoLink} aria-label="Blood Bowl League – Home">
+            <Emblem size={68} className={styles.logoEmblem} />
+            <span className={styles.wordmark}>
+              <span className={styles.wordmarkTop}>Blood Bowl</span>
+              <span className={styles.wordmarkBottom}>League · New Season</span>
+            </span>
           </Link>
 
           {/* Desktop Links */}
           <div className={styles.navLinks}>
-            <Link href="/teams" className={styles.navItem}><Users size={20} />{t.nav.teams}</Link>
-            <Link href="/schedule" className={styles.navItem}><Calendar size={20} />{t.nav.schedule}</Link>
-            <Link href="/standings" className={styles.navItem}><Trophy size={20} />{t.nav.standings}</Link>
-            <Link href="/stats" className={styles.navItem}><Trophy size={20} />{t.nav.stats}</Link>
-            <Link href="/skills" className={styles.navItem}><Book size={20} />{t.nav.skills}</Link>
-            {authLink}
+            {NAV_LINKS.map(({ href, key, Icon }) => (
+                <Link key={href} href={href} className={`${styles.navItem} ${isActive(href) ? styles.active : ''}`}>
+                  <Icon size={18} />{t.nav[key]}
+                </Link>
+            ))}
+            {isAdmin ? (
+                <button onClick={handleLogout} className={`${styles.navItem} ${styles.navButton}`}>
+                  <LogOut size={18} />{t.nav.logout}
+                </button>
+            ) : (
+                <Link href="/login" className={`${styles.navItem} ${isActive('/login') ? styles.active : ''}`}>
+                  <Lock size={18} />{t.nav.login}
+                </Link>
+            )}
 
             {/* Language Switcher */}
             <div className={styles.langContainer}>
@@ -71,56 +84,48 @@ function NavBar() {
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
           >
-            <Menu size={36} />
+            <Menu size={32} />
           </button>
         </nav>
 
         {/* Mobile Sidebar */}
         <div className={`${styles.mobileSidebar} ${isMobileMenuOpen ? styles.open : ''}`}>
           <div className={styles.closeHeader}>
-            <button
-                className={styles.closeBtn}
-                onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Close menu"
-            >
-              <X size={36} />
+            <Emblem size={56} />
+            <button className={styles.closeBtn} onClick={closeMenu} aria-label="Close menu">
+              <X size={32} />
             </button>
           </div>
 
           <div className={styles.mobileMenuContent}>
-            <Link href="/teams" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-              <Users size={28} />{t.nav.teams}
-            </Link>
-            <Link href="/schedule" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-              <Calendar size={28} />{t.nav.schedule}
-            </Link>
-            <Link href="/standings" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-              <Trophy size={28} />{t.nav.standings}
-            </Link>
-            <Link href="/stats" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-              <Trophy size={28} />{t.nav.stats}
-            </Link>
-            <Link href="/skills" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-              <Book size={28} />{t.nav.skills}
-            </Link>
+            {NAV_LINKS.map(({ href, key, Icon }) => (
+                <Link
+                    key={href}
+                    href={href}
+                    className={`${styles.mobileNavItem} ${isActive(href) ? styles.active : ''}`}
+                    onClick={closeMenu}
+                >
+                  <Icon size={26} />{t.nav[key]}
+                </Link>
+            ))}
             {isAdmin ? (
-                <button onClick={handleLogout} className={styles.mobileNavItem} style={{ cursor: 'pointer', width: '100%' }}>
-                  <LogOut size={28} />{t.nav.logout}
+                <button onClick={handleLogout} className={styles.mobileNavItem}>
+                  <LogOut size={26} />{t.nav.logout}
                 </button>
             ) : (
-                <Link href="/login" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Lock size={28} />{t.nav.login}
+                <Link href="/login" className={styles.mobileNavItem} onClick={closeMenu}>
+                  <Lock size={26} />{t.nav.login}
                 </Link>
             )}
 
             {/* Mobile Language Switcher */}
             <div className={styles.mobileLangContainer}>
               <button
-                  onClick={() => { setLanguage('en'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { setLanguage('en'); closeMenu(); }}
                   className={`${styles.mobileLangBtn} ${language === 'en' ? styles.active : ''}`}
               >EN (English)</button>
               <button
-                  onClick={() => { setLanguage('it'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { setLanguage('it'); closeMenu(); }}
                   className={`${styles.mobileLangBtn} ${language === 'it' ? styles.active : ''}`}
               >IT (Italiano)</button>
             </div>
@@ -128,11 +133,21 @@ function NavBar() {
         </div>
 
         {/* Mobile Overlay */}
-        <div
-            className={`${styles.mobileOverlay} ${isMobileMenuOpen ? styles.open : ''}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-        />
+        <div className={`${styles.mobileOverlay} ${isMobileMenuOpen ? styles.open : ''}`} onClick={closeMenu} />
       </>
+  );
+}
+
+function SiteFooter() {
+  return (
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <span className={styles.footerTitle}>Blood Bowl League</span>
+          <span className={styles.footerDot} aria-hidden="true">•</span>
+          <span className={styles.footerSub}>The Game of Fantasy Football</span>
+        </div>
+        <span className="page-tab">{new Date().getFullYear()}</span>
+      </footer>
   );
 }
 
@@ -144,6 +159,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <main className="container">
             {children}
           </main>
+          <SiteFooter />
         </AuthProvider>
       </LanguageProvider>
   );

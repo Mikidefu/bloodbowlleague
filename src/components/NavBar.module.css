@@ -1,272 +1,348 @@
-/* src/app/NavBar.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&display=swap');
+/* src/components/NavBar.module.css */
 
-/* Variabile per la texture della carta stropicciata */
-:root {
-    --paper-wrinkle: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch"/%3E%3CfeColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" /%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'), linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.08) 100%);
-}
-
-.reportHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    border-bottom: 2px solid rgba(255,255,255,0.1);
-    padding-bottom: 1rem;
-}
-
-/* NAVBAR PRINCIPALE */
+/* ================================================================== */
+/*  NAVBAR: striscia ardesia con filetto giallo e bordo rosso         */
+/* ================================================================== */
 .navBar {
-    background: #111;
-    border-bottom: 5px solid var(--color-blood-bright);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 2000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.5rem 1.5rem;
+  background-color: var(--bb-slate-950);
+  background-image: var(--tex-grunge), linear-gradient(180deg, var(--bb-slate-900), var(--bb-slate-950));
+  background-size: 700px, cover;
+  border-bottom: 5px solid var(--bb-red);
+  box-shadow: inset 0 -8px 0 -5px var(--bb-mustard), 0 10px 24px -10px rgba(0, 0, 0, 0.8);
 }
 
-/* CONTENITORE DEL LOGO IMMAGINE */
+/* LOGO: stemma + wordmark */
 .logoLink {
-    display: flex;
-    align-items: center;
-    transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--bb-parchment);
+  flex: none;
 }
 
 .logoLink:hover {
-    transform: scale(1.05);
+  color: var(--bb-parchment);
 }
 
-.logoImage {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-    filter: drop-shadow(2px 2px 5px rgba(229, 9, 20, 0.4));
+.logoEmblem {
+  flex: none;
+  margin: -2px 0 -18px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+  transition: transform 0.25s ease;
 }
 
-/* ========================================= */
-/* DESKTOP LINKS CON PEZZI DI CARTA          */
-/* ========================================= */
+.logoLink:hover .logoEmblem {
+  transform: rotate(-10deg) scale(1.04);
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.wordmarkTop {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 1.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  -webkit-text-stroke: 1px var(--bb-navy-deep);
+  text-shadow: 2px 2px 0 var(--bb-navy), 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.wordmarkBottom {
+  margin-top: 0.2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+/* LINK DESKTOP */
 .navLinks {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .navItem {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.4rem;
-    color: var(--color-ink); /* Testo scuro sulla carta */
-    letter-spacing: 1px;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease;
-    z-index: 1; /* Il testo sta sopra */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  isolation: isolate;
+  transition: color 0.15s ease;
 }
 
-/* I Foglietti di Carta Stropicciati dietro i Link */
 .navItem::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
-    z-index: -1;
-    transition: all 0.2s ease;
+  content: '';
+  position: absolute;
+  inset: 4px 0;
+  z-index: -1;
+  background: var(--bb-red);
+  background-image: var(--tex-grain);
+  transform: skewX(-12deg) scaleX(0);
+  transform-origin: left;
+  transition: transform 0.18s ease;
 }
 
-/* Rotazioni caotiche e diverse per ogni bottone */
-.navItem:nth-child(1)::before { transform: rotate(-2deg); }
-.navItem:nth-child(2)::before { transform: rotate(1.5deg); }
-.navItem:nth-child(3)::before { transform: rotate(-1deg); }
-.navItem:nth-child(4)::before { transform: rotate(2.5deg); }
-.navItem:nth-child(5)::before { transform: rotate(-3deg); }
-
-/* Hover: il foglio si colora di rosso, si raddrizza e il testo diventa bianco */
 .navItem:hover {
-    color: #fff;
-    transform: translateY(-3px);
+  color: var(--bb-mustard);
 }
 
 .navItem:hover::before {
-    background-color: var(--color-blood-bright);
-    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
-    transform: rotate(0deg) scale(1.05);
+  transform: skewX(-12deg) scaleX(1);
 }
 
-/* Switcher Lingua Stile "Badge Tattico" in Carta */
+.navItem.active {
+  color: var(--bb-mustard);
+}
+
+.navItem.active::before {
+  transform: skewX(-12deg) scaleX(1);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.navButton {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Switch lingua */
 .langContainer {
-    display: flex;
-    gap: 0.8rem;
-    border-left: 2px dashed #444;
-    padding-left: 2rem;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.75rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--bb-slate-700);
 }
 
 .langBtn {
-    position: relative;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.1rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
-}
-
-.langBtn:nth-child(1) { transform: rotate(2deg); }
-.langBtn:nth-child(2) { transform: rotate(-2deg); }
-
-.langBtn.active {
-    background-color: var(--color-blood-bright);
-    color: #fff;
-    transform: scale(1.1) rotate(0deg);
+  font-family: var(--font-slab);
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.4rem 0.5rem;
+  color: var(--bb-slate-300);
+  background: transparent;
+  border: 2px solid var(--bb-slate-700);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .langBtn:hover:not(.active) {
-    background-color: #ccc;
-    transform: scale(1.05) rotate(0deg);
+  color: var(--bb-parchment);
+  border-color: var(--bb-slate-500);
 }
 
-/* ========================================= */
-/* SIDEBAR MOBILE                            */
-/* ========================================= */
+.langBtn.active {
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+  border-color: var(--bb-mustard);
+}
+
+/* ================================================================== */
+/*  SIDEBAR MOBILE                                                     */
+/* ================================================================== */
 .hamburgerBtn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #fff;
-    display: none;
-    padding: 0.5rem;
+  display: none;
+  padding: 0.4rem;
+  color: var(--bb-parchment);
+  background: var(--bb-red);
+  border: 0;
+  cursor: pointer;
+  transform: skewX(-8deg);
 }
 
 .hamburgerBtn:hover {
-    color: var(--color-blood-bright);
+  color: var(--bb-mustard);
 }
 
 .mobileSidebar {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 85%;
-    max-width: 350px;
-    height: 100vh;
-    background: #111;
-    z-index: 3000;
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    border-left: 6px solid var(--color-blood-bright);
-    box-shadow: -15px 0 40px rgba(0,0,0,0.9);
+  position: fixed;
+  top: 0;
+  right: -100%;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  width: 86%;
+  max-width: 360px;
+  height: 100dvh;
+  overflow-y: auto;
+  background-color: var(--bb-blood-700);
+  background-image: var(--tex-grunge), linear-gradient(170deg, var(--bb-blood-600), var(--bb-blood-950));
+  background-size: 700px, cover;
+  border-left: 6px solid var(--bb-slate-950);
+  box-shadow: -15px 0 40px rgba(0, 0, 0, 0.8);
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobileSidebar.open {
-    right: 0;
+  right: 0;
 }
 
 .closeHeader {
-    padding: 1.5rem 2rem;
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.5rem;
 }
 
 .closeBtn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #fff;
+  color: var(--bb-parchment);
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
 .mobileMenuContent {
-    display: flex;
-    flex-direction: column;
-    padding: 2rem;
-    gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.5rem 2rem;
 }
 
-/* Pezzi di Carta anche per i bottoni Mobile */
 .mobileNavItem {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 2.2rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-    text-decoration: none;
-    transition: all 0.2s;
-    padding: 0.8rem 1rem;
-    transform: rotate(-1deg);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.65rem 0.25rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--bb-parchment);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid rgba(234, 178, 42, 0.35);
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s;
 }
 
-.mobileNavItem:nth-child(even) {
-    transform: rotate(1deg);
-}
-
-.mobileNavItem:hover {
-    background-color: var(--color-blood-bright);
-    color: #fff;
-    transform: translateX(10px) rotate(0deg);
+.mobileNavItem:hover,
+.mobileNavItem.active {
+  color: var(--bb-mustard);
+  transform: translateX(6px);
 }
 
 .mobileLangContainer {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    border-top: 2px dashed #444;
-    padding-top: 2rem;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .mobileLangBtn {
-    flex: 1;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.5rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  flex: 1;
+  padding: 0.8rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(239, 229, 210, 0.3);
+  cursor: pointer;
 }
 
 .mobileLangBtn.active {
-    background-color: var(--color-blood-bright);
-    color: #fff;
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+  border-color: var(--bb-mustard);
 }
 
-/* OVERLAY MOBILE OSCURANTE */
 .mobileOverlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(5px);
-    z-index: 2500;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(10, 10, 12, 0.8);
+  backdrop-filter: blur(4px);
 }
 
-/* ========================================= */
-/* MEDIA QUERIES (Mobile First)              */
-/* ========================================= */
+/* ================================================================== */
+/*  FOOTER: fascia rossa del Rulebook con linguetta                    */
+/* ================================================================== */
+.footer {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  margin-top: 2rem;
+  background: var(--bb-red);
+  background-image: var(--tex-grain);
+  border-top: 3px solid var(--bb-blood-800);
+}
+
+.footerInner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.7rem 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footerTitle {
+  color: var(--bb-mustard);
+  font-size: 1.05rem;
+}
+
+.footerDot {
+  color: var(--bb-parchment);
+}
+
+.footerSub {
+  color: var(--bb-parchment);
+  font-size: 0.95rem;
+}
+
+.footer :global(.page-tab) {
+  padding-inline: 1.1rem;
+  font-size: 1.25rem;
+}
+
+/* ================================================================== */
+/*  MEDIA QUERIES                                                      */
+/* ================================================================== */
+@media (max-width: 1180px) {
+  .navItem { font-size: 1.05rem; padding: 0.5rem 0.6rem; }
+  .wordmarkTop { font-size: 1.5rem; }
+}
+
 @media (max-width: 992px) {
-    .navLinks { display: none; }
-    .hamburgerBtn { display: block; }
-    .mobileOverlay.open { display: block; }
-    .logoImage { height: 40px; }
+  .navLinks { display: none; }
+  .hamburgerBtn { display: block; }
+  .mobileOverlay.open { display: block; }
+  .navBar { padding: 0.5rem 1rem; }
+  .logoEmblem { width: 52px; height: 52px; margin-bottom: -12px; }
+  .wordmarkTop { font-size: 1.35rem; }
+  .wordmarkBottom { font-size: 0.8rem; }
 }

@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import Emblem from '@/components/brand/Emblem';
 import styles from './Home.module.css';
-import { Users, Calendar } from 'lucide-react';
+import { Users, Calendar, Trophy } from 'lucide-react';
 
 export default function Home() {
     const { t } = useLanguage();
@@ -24,62 +25,72 @@ export default function Home() {
             .catch(console.error);
     }, []);
 
+    const headlines = [
+        { value: stats.teams, label: t.home.registeredTeams },
+        { value: stats.matches, label: t.home.matchesPlayed },
+        { value: stats.casualties, label: t.home.totalCasualties, blood: true },
+    ];
+
     return (
         <div className={styles.dashboard}>
-            {/* FILTRO SVG (Assicuriamoci che sia presente per l'effetto strappato) */}
-            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-                <filter id="rough-edges">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
-                </filter>
-            </svg>
-
-            {/* HERO POSTER */}
-            <div className={styles.heroPoster}>
-                <div className={styles.heroBg}></div>
-                <div className={styles.heroContent}>
-                    <h1 className={styles.heroTitle}>{t.home.title}</h1>
-                    <p className={styles.heroSubtitle}>{t.home.subtitle}</p>
-                    <Link href="/teams" className="btn btn-primary" style={{ fontSize: '1.8rem', padding: '1.5rem 4rem' }}>
-                        {t.home.manageTeamsBtn}
-                    </Link>
+            {/* COPERTINA (stile Spike! Journal) */}
+            <section className={styles.cover}>
+                <div className={styles.issueBox} aria-hidden="true">
+                    <span>New</span>
+                    <strong>{new Date().getFullYear()}</strong>
                 </div>
-            </div>
 
-            {/* LEAGUE STATUS (Note Card) */}
-            <div className={styles.noteCard}>
-                <h2 className={styles.cardTitle}>{t.home.leagueStatus}</h2>
-                <ul className={styles.statList}>
-                    <li className={styles.statItem}>
-                        <span className={styles.statLabel}>{t.home.registeredTeams}</span>
-                        <span className={styles.statValue}>{stats.teams}</span>
-                    </li>
-                    <li className={styles.statItem}>
-                        <span className={styles.statLabel}>{t.home.matchesPlayed}</span>
-                        <span className={styles.statValue}>{stats.matches}</span>
-                    </li>
-                    <li className={styles.statItem}>
-                        <span className={styles.statLabel}>{t.home.totalCasualties}</span>
-                        <span className={`${styles.statValue} ${styles.statValueBlood}`}>{stats.casualties}</span>
-                    </li>
+                <div className={styles.banner}>
+                    <h1 className={styles.heroTitle}>{t.home.title}</h1>
+                    <p className={styles.bannerLine}>The Game of Fantasy Football</p>
+                </div>
+
+                <div className={styles.coverBody}>
+                    <p className={styles.heroSubtitle}>{t.home.subtitle}</p>
+                    <div className={styles.heroActions}>
+                        <Link href="/teams" className="btn btn-gold">
+                            <Users size={20} /> {t.home.manageTeamsBtn}
+                        </Link>
+                        <Link href="/standings" className="btn btn-slate">
+                            <Trophy size={20} /> {t.nav.standings}
+                        </Link>
+                    </div>
+                </div>
+
+                <Emblem size={210} className={styles.coverEmblem} />
+                <span className={`splatter ${styles.coverSplatter}`} aria-hidden="true" />
+            </section>
+
+            {/* STATO DELLA LEGA: titoli a capolettera come in copertina */}
+            <section className={styles.statusPanel}>
+                <h2 className="title-spike">{t.home.leagueStatus}</h2>
+                <ul className={styles.headlineList}>
+                    {headlines.map(item => (
+                        <li key={item.label} className={styles.headline}>
+                            <span className={`${styles.headlineValue} ${item.blood ? styles.headlineBlood : ''}`}>
+                                {item.value}
+                            </span>
+                            <span className={styles.headlineLabel}>{item.label.replace(/:\s*$/, '')}</span>
+                        </li>
+                    ))}
                 </ul>
-            </div>
+            </section>
 
-            {/* QUICK ACTIONS (Note Card) */}
-            <div className={styles.noteCard}>
-                <h2 className={styles.cardTitle}>{t.home.quickActions}</h2>
+            {/* AZIONI RAPIDE */}
+            <section className={`card ${styles.actionsCard}`}>
+                <h2 className="title-slab">{t.home.quickActions}</h2>
                 <div className={styles.actionGrid}>
                     {isAdmin && (
-                        <Link href="/teams/new" className="btn btn-primary" style={{ width: '100%' }}>
-                            <Users size={20} style={{marginRight: '10px'}} /> {t.home.draftNewTeam}
+                        <Link href="/teams/new" className="btn btn-primary">
+                            <Users size={20} /> {t.home.draftNewTeam}
                         </Link>
                     )}
-                    <Link href="/schedule" className="btn" style={{ width: '100%', backgroundColor: '#fff' }}>
-                        <Calendar size={20} style={{marginRight: '10px'}} /> {t.home.generateSchedule}
+                    <Link href="/schedule" className="btn btn-navy">
+                        <Calendar size={20} /> {t.home.generateSchedule}
                     </Link>
                 </div>
-            </div>
-
+                <div className={`chain-rule ${styles.chain}`} aria-hidden="true" />
+            </section>
         </div>
     );
 }
