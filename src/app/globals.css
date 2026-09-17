@@ -1,246 +1,831 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&family=Permanent+Marker&family=Special+Elite&family=Pirata+One&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&family=Rokkitt:wght@500..900&display=swap');
+
+/* ================================================================== */
+/*  BLOOD BOWL LEAGUE · NEW SEASON                                     */
+/*  Design system ispirato a Spike! Journal e al Rulebook 3ª stagione  */
+/* ================================================================== */
 
 :root {
-  /* Palette Blood Bowl 2025: eSports Grunge */
-  --color-bg-grunge: #e5e0d8; /* Grigio/crema sporco per il fondo globale */
-  --color-paper: #f4f4f4; /* Bianco sporco per le card */
-  --color-blood: #8b0000;
-  --color-blood-bright: #e50914; /* Rosso acceso eSports */
-  --color-ink: #111111; /* Nero assoluto per contrasti massimi */
-  --color-ink-light: #222222;
-  --color-wood: #1a1a1a; /* Legno/Nero scuro per navbar e menu */
-  --color-gold: #b8860b;
-  --color-tape: rgba(210, 190, 150, 0.6);
+  /* --- Palette --- */
+  --bb-blood-950: #3a0d0f;
+  --bb-blood-800: #7a1a1c;
+  --bb-blood-700: #9a2226;   /* fondo pagine Spike! */
+  --bb-blood-600: #b5242a;
+  --bb-red: #c8252c;         /* fascia Rulebook */
+  --bb-red-bright: #e0332f;
 
-  /* Typography */
-  --font-impact: 'Anton', sans-serif; /* Titoli enormi, loghi, numeri */
-  --font-cursive: 'Dancing Script', cursive; /* Filigrane di sfondo */
-  --font-varsity: 'Pirata One', cursive; /* Titoli secondari gotici */
-  --font-note: 'Permanent Marker', cursive; /* Appunti a penna */
-  --font-typewriter: 'Special Elite', system-ui; /* Dati tabellari */
-  --font-text: 'Lora', serif; /* Testi lunghi */
+  --bb-slate-950: #16191e;
+  --bb-slate-900: #22262d;
+  --bb-slate-800: #2d323a;   /* bande laterali Spike! */
+  --bb-slate-700: #3c424c;
+  --bb-slate-500: #6c7380;
+  --bb-slate-300: #a9aeb7;
+
+  --bb-mustard: #eab22a;     /* titoli Spike! */
+  --bb-mustard-deep: #c48d14;
+  --bb-tan: #b8926a;         /* linguette numero pagina */
+  --bb-tan-dark: #8a6843;
+
+  --bb-parchment: #efe5d2;   /* pagine "pergamena" */
+  --bb-parchment-2: #e4d6bb;
+  --bb-paper: #f6f2ea;       /* carta Rulebook */
+
+  --bb-navy: #25386f;        /* blu Rulebook */
+  --bb-navy-deep: #1a2852;
+  --bb-sky: #e3e8f2;         /* righe alternate tabelle roster */
+  --bb-sky-2: #cfd8ea;
+
+  --bb-ink: #1d1a18;
+  --bb-ink-soft: #544b45;
+  --bb-grass: #5d7a2c;
+  --bb-success: #3d7a34;
+
+  /* --- Tipografia --- */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif; /* titoli corsivi Spike! */
+  --font-slab: 'Rokkitt', 'Rockwell', Georgia, serif;             /* titoli slab Rulebook */
+  --font-body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;    /* testo corrente */
+  --font-data: 'Archivo', 'Arial Narrow', sans-serif;             /* tabelle (usare con font-stretch) */
+
+  /* --- Superfici e texture --- */
+  --tex-grain: url('/brand/grain.svg');
+  --tex-grunge: url('/brand/grunge.svg');
+  --shadow-print: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 10px 24px -12px rgba(0, 0, 0, 0.65);
+  --shadow-hard: 5px 5px 0 rgba(0, 0, 0, 0.45);
+  --radius: 2px;
+
+  /* --- Materiali premium --- */
+  --bb-brass: linear-gradient(135deg, #f3d897 0%, #b8893f 26%, #f7e2ab 47%, #8d6831 70%, #d9b268 100%);
+  --bb-brass-v: linear-gradient(180deg, #f7e2ab 0%, #c99b4c 45%, #8d6831 100%);
+  --bb-gold-text: linear-gradient(180deg, #ffe08a 0%, #f2bd3a 48%, #c98d16 100%);
+  --rivet: radial-gradient(circle, #fbe7b4 0 1.5px, #a97d3c 2.5px 3.5px, rgba(60, 35, 10, 0.55) 4.5px, transparent 5.5px);
+  --shadow-deep: 0 30px 60px -28px rgba(0, 0, 0, 0.9), 0 12px 24px -12px rgba(0, 0, 0, 0.6);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Alias legacy (vecchi nomi → nuovo sistema) --- */
+  --color-bg-grunge: var(--bb-slate-800);
+  --color-paper: var(--bb-parchment);
+  --color-blood: var(--bb-blood-700);
+  --color-blood-bright: var(--bb-red);
+  --color-ink: var(--bb-ink);
+  --color-ink-light: var(--bb-ink-soft);
+  --color-wood: var(--bb-slate-900);
+  --color-gold: var(--bb-mustard);
+  --color-grass: var(--bb-grass);
+  --color-tape: rgba(184, 146, 106, 0.6);
+  --paper-wrinkle: var(--tex-grain);
+  --font-impact: var(--font-display);
+  --font-varsity: var(--font-slab);
+  --font-note: var(--font-display);
+  --font-typewriter: var(--font-data);
+  --font-text: var(--font-body);
+  --font-cursive: var(--font-display);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: var(--font-text);
-  background-color: var(--color-bg-grunge);
-  /* TEXTURE SPORCA GLOBALE APPLICATA A TUTTO IL SITO */
-  background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.12"/%3E%3C/svg%3E');
-  color: var(--color-ink); /* Il testo di base ora è scuro */
-  line-height: 1.6;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--bb-parchment);
+  background-color: var(--bb-slate-800);
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse at 50% -10%, rgba(154, 34, 38, 0.35), transparent 60%),
+    linear-gradient(180deg, var(--bb-slate-800), var(--bb-slate-900));
+  background-size: 900px, 100% 900px, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Le sezioni a tutta larghezza usano cqw: come vw ma senza la barra di scorrimento */
+body {
+  container-type: inline-size;
+}
+
+/* Vignettatura da stadio e grana di stampa sopra a tutto */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 214, 140, 0.07), transparent 70%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+body::after {
+  z-index: 9000;
+  background: var(--tex-grain);
+  background-size: 180px;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-impact);
+  font-family: var(--font-slab);
+  font-weight: 800;
+  line-height: 1.05;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-ink);
+  letter-spacing: 0.01em;
 }
 
 a {
-  color: var(--color-blood-bright);
+  color: var(--bb-mustard);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  color: var(--color-blood);
+  color: #f6cc5b;
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--bb-mustard);
+  color: var(--bb-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: 2.5rem 1.5rem 4rem;
 }
 
-/* ========================================= */
-/* 📜 CARDS BASE (Stile Brutalista)          */
-/* ========================================= */
-.card {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  border: 3px solid var(--color-ink);
-  border-radius: 4px;
-  padding: 2.5rem;
-  /* Ombra solida tipica della grafica vettoriale/eSports */
-  box-shadow: 8px 8px 0 var(--color-ink);
+/* ================================================================== */
+/*  PANNELLI                                                           */
+/* ================================================================== */
+
+/* Pergamena con cornice in ottone e rivetti agli angoli */
+.card,
+.panel-parchment {
   position: relative;
-  margin-bottom: 3rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: var(--bb-ink);
+  background-color: var(--bb-parchment);
+  background-image:
+    var(--rivet), var(--rivet), var(--rivet), var(--rivet),
+    var(--tex-grain),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 255, 255, 0.6), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 110%, rgba(122, 82, 40, 0.28), transparent 70%),
+    linear-gradient(180deg, #f5eddd, var(--bb-parchment-2));
+  background-size: 12px 12px, 12px 12px, 12px 12px, 12px 12px, 240px, cover, cover, cover;
+  background-position: left 5px top 5px, right 5px top 5px, left 5px bottom 5px, right 5px bottom 5px, 0 0, center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat, no-repeat, no-repeat;
+  border: 7px solid transparent;
+  border-image: var(--bb-brass) 1;
+  outline: 1px solid rgba(95, 62, 25, 0.45);
+  outline-offset: -16px;
+  border-radius: 0;
+  padding: 2.4rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 0 0 1px rgba(40, 22, 6, 0.8), var(--shadow-deep);
 }
 
-.card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 10px 10px 0 var(--color-ink);
+/* Pannello rosso sangue (Spike! pagine squadra) */
+.panel-blood {
+  position: relative;
+  color: var(--bb-parchment);
+  background-color: var(--bb-blood-700);
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse 70% 50% at 30% 0%, rgba(255, 170, 140, 0.18), transparent 70%),
+    linear-gradient(170deg, var(--bb-blood-600), var(--bb-blood-800) 70%, var(--bb-blood-950));
+  background-size: 700px, cover, cover;
+  padding: 2rem;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 3px 0 0;
+  border-image: var(--bb-brass) 1;
+  border-radius: 0;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.35), var(--shadow-deep);
 }
 
-/* ========================================= */
-/* 🔘 PULSANTI (High Impact)                 */
-/* ========================================= */
+/* Pannello ardesia (Spike! colonne laterali) */
+.panel-slate {
+  position: relative;
+  color: var(--bb-parchment);
+  background-color: var(--bb-slate-700);
+  background-image:
+    var(--tex-grunge),
+    radial-gradient(ellipse 70% 50% at 30% 0%, rgba(160, 190, 230, 0.12), transparent 70%),
+    linear-gradient(170deg, var(--bb-slate-700), var(--bb-slate-900));
+  background-size: 700px, cover, cover;
+  padding: 2rem;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 3px 0 0;
+  border-image: var(--bb-brass) 1;
+  border-radius: 0;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.3), var(--shadow-deep);
+}
+
+/* Box introduttivo con filetto giallo e capolettera */
+.intro-box {
+  border: 2px solid var(--bb-mustard);
+  padding: 1.25rem 1.5rem;
+  font-weight: 700;
+}
+
+.dropcap::first-letter {
+  float: left;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 3.6em;
+  line-height: 0.8;
+  margin: 0.08em 0.12em 0 0;
+  color: var(--bb-mustard);
+}
+
+.card .dropcap::first-letter,
+.panel-parchment .dropcap::first-letter {
+  color: var(--bb-blood-700);
+}
+
+/* ================================================================== */
+/*  TITOLI                                                             */
+/* ================================================================== */
+
+/* Slab rosso con filetto (Rulebook "CODE OF CONDUCT!") */
+.title-slab {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid currentColor;
+  margin-bottom: 1.25rem;
+}
+
+/* Corsivo giallo (Spike! "GREETINGS SPORTS FANS!") */
+.title-spike {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 3px 0 rgba(20, 8, 4, 0.55));
+  padding-right: 0.08em;
+}
+
+/* Occhiello maiuscoletto con filetto (Rulebook "CARDINAL RULES") */
+.subhead {
+  font-family: var(--font-slab);
+  font-weight: 800;
+  font-size: 1.35rem;
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.03em;
+  color: var(--bb-mustard);
+  border-bottom: 2px solid var(--bb-mustard);
+  padding-bottom: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.card .subhead,
+.panel-parchment .subhead {
+  color: var(--bb-blood-700);
+  border-color: var(--bb-blood-700);
+}
+
+/* ================================================================== */
+/*  PULSANTI                                                           */
+/* ================================================================== */
+
 .btn {
-  font-family: var(--font-impact);
-  font-size: 1.4rem;
-  letter-spacing: 1px;
-  padding: 0.8rem 2rem;
-  min-width: 150px;
-  border: 3px solid var(--color-ink);
-  background: var(--color-paper);
-  color: var(--color-ink) !important;
-  cursor: pointer;
-  box-shadow: 5px 5px 0px var(--color-ink);
-  transition: all 0.1s ease;
-  text-decoration: none;
+  --btn-bg: linear-gradient(180deg, #fbf5e8 0%, #efe5d2 55%, #d9c8a6 100%);
+  --btn-fg: var(--bb-ink);
+  --btn-edge: var(--bb-tan-dark);
+  --btn-glow: rgba(0, 0, 0, 0);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.6rem 1.5rem;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  text-decoration: none;
+  color: var(--btn-fg) !important;
+  background: var(--tex-grain), var(--btn-bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -4px 0 var(--btn-edge),
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 10px 22px -10px rgba(0, 0, 0, 0.85),
+    0 0 26px -6px var(--btn-glow);
+  cursor: pointer;
+  transform: skewX(-8deg);
+  transition: transform 0.2s var(--ease-out), filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Riflesso che attraversa il pulsante */
+.btn::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 45%;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transition: transform 0.6s var(--ease-out);
+  pointer-events: none;
+}
+
+.btn > * {
+  transform: skewX(8deg);
 }
 
 .btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0px var(--color-ink);
+  filter: brightness(1.06) saturate(1.05);
+  transform: skewX(-8deg) translateY(-2px);
+}
+
+.btn:hover::after {
+  transform: translateX(420%);
 }
 
 .btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px var(--color-ink);
+  transform: skewX(-8deg) translateY(1px);
+  box-shadow: inset 0 -1px 0 var(--btn-edge), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: skewX(-8deg);
 }
 
 .btn-primary {
-  background: var(--color-blood-bright) !important;
-  color: #fff !important;
+  --btn-bg: linear-gradient(180deg, #e8493f 0%, #c8252c 50%, #9a1c21 100%) !important;
+  --btn-fg: #fff4e0;
+  --btn-edge: var(--bb-blood-950);
+  --btn-glow: rgba(224, 51, 47, 0.45);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
-/* ========================================= */
-/* 📊 TABELLE GLOBALI (Rigide e leggibili)   */
-/* ========================================= */
+.btn-gold {
+  --btn-bg: linear-gradient(180deg, #ffe189 0%, #f0b930 48%, #c48d14 100%);
+  --btn-fg: #2a1a05;
+  --btn-edge: #8a600c;
+  --btn-glow: rgba(234, 178, 42, 0.45);
+}
+
+.btn-navy {
+  --btn-bg: linear-gradient(180deg, #3b54a0 0%, #25386f 55%, #1a2852 100%);
+  --btn-fg: var(--bb-parchment);
+  --btn-edge: #0f1834;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.btn-slate {
+  --btn-bg: linear-gradient(180deg, #535a66 0%, #3c424c 55%, #2a2e35 100%);
+  --btn-fg: var(--bb-parchment);
+  --btn-edge: var(--bb-slate-950);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ================================================================== */
+/*  TABELLE (roster del Rulebook)                                      */
+/* ================================================================== */
+
 .table-container {
+  position: relative;
   overflow-x: auto;
-  margin: 1.5rem 0;
-  border: 3px solid var(--color-ink);
-  box-shadow: 6px 6px 0 var(--color-ink);
+  margin: 2.25rem 0 1.5rem;
+  padding-top: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stars-bar {
+  height: 36px;
+  background:
+    url('/brand/stars-bar.svg') center bottom / 140px 36px no-repeat,
+    linear-gradient(var(--bb-navy), var(--bb-navy)) left bottom / 100% 10px no-repeat;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 0.98rem;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
+}
+
+.table-container {
+  box-shadow: var(--shadow-deep);
 }
 
 .data-table th {
-  background: var(--color-ink);
-  color: #fff;
-  font-family: var(--font-impact);
-  font-size: 1.2rem;
-  padding: 1rem;
-  letter-spacing: 1px;
-  border-bottom: 3px solid var(--color-blood-bright);
+  background: linear-gradient(180deg, #d6343a 0%, #b8222a 100%);
+  border-bottom: 2px solid #e2b766;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  color: var(--bb-parchment);
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  white-space: nowrap;
 }
 
 .data-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #ddd;
-  color: var(--color-ink);
-  font-family: var(--font-typewriter);
-  font-weight: bold;
+  padding: 0.55rem 0.75rem;
+  font-weight: 500;
+  vertical-align: top;
 }
 
-/* ========================================= */
-/* 🧭 NAVBAR & SIDEBAR                       */
-/* ========================================= */
-.nav-bar {
-  background: var(--color-wood);
-  border-bottom: 5px solid var(--color-blood-bright);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
+.data-table tbody tr:nth-child(even) td {
+  background: var(--bb-sky);
+}
+
+.data-table tbody tr td {
+  transition: background-color 0.15s ease;
+}
+
+.data-table tbody tr:hover td {
+  background: #f7e7bf;
+}
+
+.data-table tfoot td {
+  background: var(--bb-navy);
+  color: var(--bb-parchment);
+  font-weight: 800;
+  font-stretch: 80%;
+  text-transform: uppercase;
+}
+
+.num,
+.data-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ================================================================== */
+/*  FORM                                                               */
+/* ================================================================== */
+
+input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+select,
+textarea {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--bb-red);
+  box-shadow: 0 0 0 3px rgba(200, 37, 44, 0.25);
+}
+
+label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ================================================================== */
+/*  ELEMENTI DECORATIVI                                                */
+/* ================================================================== */
+
+/* Linguetta color cuoio col numero (numeri pagina Spike!) */
+.page-tab {
+  display: inline-flex;
   align-items: center;
-  z-index: 2000;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  justify-content: center;
+  min-width: 2.2rem;
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  background: var(--bb-tan);
+  background-image: var(--tex-grain);
 }
 
-.nav-links a {
-  font-family: var(--font-impact);
-  font-size: 1.4rem;
-  color: #fff;
-  margin-left: 2rem;
-  letter-spacing: 1px;
+/* Etichetta inclinata gialla ("TEAM SPOTLIGHT") */
+.tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+  padding: 0.12rem 0.75rem;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 60%);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  transform: skewX(-10deg);
 }
 
-.nav-links a:hover {
-  color: var(--color-blood-bright);
+.tag-red { background-color: var(--bb-red); color: var(--bb-parchment); }
+.tag-navy { background-color: var(--bb-navy); color: var(--bb-parchment); }
+
+/* Placca in ottone con rivetti (numeri, badge, riquadri importanti) */
+.plate {
+  position: relative;
+  padding: 1rem 1.25rem;
+  color: #2a1a05;
+  background-image: var(--rivet), var(--rivet), var(--rivet), var(--rivet), var(--tex-grain), var(--bb-brass);
+  background-size: 12px 12px, 12px 12px, 12px 12px, 12px 12px, 200px, cover;
+  background-position: left 4px top 4px, right 4px top 4px, left 4px bottom 4px, right 4px bottom 4px, 0 0, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(80, 50, 10, 0.45), 0 0 0 1px rgba(40, 22, 6, 0.8), var(--shadow-deep);
 }
 
-/* ========================================= */
-/* 📱 GESTIONE MOBILE UNIVERSALE             */
-/* ========================================= */
-.mobile-only { display: none !important; }
-.desktop-only { display: flex !important; }
+/* Testo dorato in rilievo */
+.gold-text {
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 3px 0 rgba(20, 8, 4, 0.55));
+}
 
-.mobile-sidebar {
+/* Sezione a tutta larghezza dentro .container */
+.bleed {
+  --gutter: max(1.5rem, calc(50cqw - 620px));
+  margin-inline: calc(50% - 50cqw);
+  padding-inline: var(--gutter);
+}
+
+/* Testo fantasma gigante sullo sfondo delle sezioni */
+.ghost-text {
+  position: absolute;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(6rem, 18cqw, 17rem);
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.14);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ghost-text.on-light {
+  -webkit-text-stroke-color: rgba(122, 26, 28, 0.12);
+}
+
+/* Angoli smussati (tagli a 45°) e cornice sfalsata */
+.chamfer {
+  --cut: 18px;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+
+.offset-frame {
+  position: relative;
+}
+
+.offset-frame::before {
+  content: '';
+  position: absolute;
+  inset: 8px -8px -8px 8px;
+  z-index: -1;
+  border: 1px solid rgba(234, 178, 42, 0.55);
+  pointer-events: none;
+}
+
+/* Binario decorativo sul margine sinistro (solo schermi larghi) */
+.page-rail {
   display: none;
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 85%;
-  max-width: 350px;
-  height: 100vh;
-  background: var(--color-wood);
-  z-index: 2000;
-  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 3rem 2rem;
-  border-left: 6px solid var(--color-blood-bright);
-  box-shadow: -10px 0 30px rgba(0,0,0,0.8);
-  flex-direction: column;
 }
 
-@media (max-width: 992px) {
-  .mobile-only { display: block !important; }
-  .desktop-only { display: none !important; }
-
-  .mobile-sidebar { display: flex; }
-  .mobile-sidebar.open { right: 0; }
-
-  .mobile-overlay {
-    display: block;
+@media (min-width: 1500px) {
+  .page-rail {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(5px);
-    z-index: 1500;
+    top: 30vh;
+    left: 22px;
+    bottom: 8vh;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 14px;
+    pointer-events: none;
+  }
+
+  .page-rail::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(234, 178, 42, 0.4) 15%, rgba(234, 178, 42, 0.4) 85%, transparent);
+  }
+
+  .page-rail i {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    background: var(--bb-slate-500);
+  }
+
+  .page-rail i:nth-child(1),
+  .page-rail i:nth-child(4) {
+    background: var(--bb-red);
+  }
+
+  .page-rail i:nth-child(3) {
+    width: 4px;
+    height: 22px;
+    background: var(--bb-mustard);
+  }
+
+  .page-rail span {
+    position: relative;
+    margin-top: auto;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--font-data);
+    font-stretch: 80%;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(243, 216, 151, 0.55);
+    background: var(--bb-slate-900);
+    padding: 8px 0;
   }
 }
 
-.mobile-sidebar a {
-  font-family: var(--font-impact);
-  font-size: 2.5rem;
-  color: #fff;
-  margin-bottom: 2rem;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  transition: color 0.2s, transform 0.2s;
-  padding: 0.5rem;
+/* Ingresso morbido dei blocchi di pagina */
+@keyframes bb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
 }
 
-.mobile-sidebar a:hover {
-  color: var(--color-blood-bright);
-  transform: translateX(10px);
+@keyframes bb-fade {
+  from {
+    opacity: 0;
+  }
 }
 
-/* ========================================= */
-/* UTILITIES                                 */
-/* ========================================= */
+main.container > * {
+  animation: bb-rise 0.7s var(--ease-out) backwards;
+}
+
+main.container > *:nth-child(2) { animation-delay: 80ms; }
+main.container > *:nth-child(3) { animation-delay: 160ms; }
+main.container > *:nth-child(4) { animation-delay: 240ms; }
+main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
+
+/* Schizzo di sangue decorativo (posizionare con top/left/right) */
+.splatter {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  background: url('/brand/splatter-a.svg') center / contain no-repeat;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.splatter-b {
+  width: 160px;
+  height: 74px;
+  background-image: url('/brand/splatter-b.svg');
+}
+
+/* Catena divisoria */
+.chain-rule {
+  height: 20px;
+  background: url('/brand/chain.svg') left center / 48px 15px repeat-x;
+  opacity: 0.9;
+}
+
+/* Bordo inferiore strappato */
+.torn-bottom {
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 14px) no-repeat, url('/brand/torn-edge.svg') bottom / 100% 16px no-repeat;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 14px) no-repeat, url('/brand/torn-edge.svg') bottom / 100% 16px no-repeat;
+}
+
+.muted {
+  color: var(--bb-slate-300);
+}
+
+.loading-state {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--bb-slate-300);
+  margin-top: 4rem;
+}
+
 .marker-highlight {
-  background: rgba(229, 9, 20, 0.15);
+  background: rgba(234, 178, 42, 0.22);
   padding: 0 4px;
-  border-bottom: 3px solid var(--color-blood-bright);
-  font-weight: bold;
+  border-bottom: 2px solid var(--bb-mustard);
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .card,
+  .panel-parchment {
+    padding: 1.6rem 1.25rem;
+    border-width: 5px;
+    outline-offset: -12px;
+  }
+
+  .btn {
+    font-size: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

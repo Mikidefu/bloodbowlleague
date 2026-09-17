@@ -1,0 +1,62 @@
+.wordmark {
+  --wm-size: 1.9rem;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.lg {
+  --wm-size: clamp(2.6rem, 6vw, 4.4rem);
+  align-items: center;
+}
+
+/* Lettere cesellate: sotto contorno navy spesso con ombra, sopra riempimento argento a bande */
+.title {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: var(--wm-size);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #1a2852;
+  -webkit-text-stroke: calc(var(--wm-size) * 0.16) #101a38;
+  paint-order: stroke fill;
+  text-shadow: 0 calc(var(--wm-size) * 0.08) 0 #0a0f22, 0 calc(var(--wm-size) * 0.14) calc(var(--wm-size) * 0.2) rgba(0, 0, 0, 0.6);
+}
+
+.title::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  background: linear-gradient(180deg, #ffffff 0%, #e8eef5 38%, #9fb1c6 50%, #dfe8f1 62%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ribbon {
+  position: relative;
+  margin-top: 0.3rem;
+  padding: 0.12rem 0.7rem 0.08rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: calc(var(--wm-size) * 0.46);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffe6a6;
+  background: linear-gradient(180deg, #d9383a, #a51f25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 0 rgba(0, 0, 0, 0.45);
+  transform: skewX(-12deg);
+}
+
+.lg .ribbon {
+  margin-top: 0.6rem;
+  font-size: calc(var(--wm-size) * 0.3);
+}

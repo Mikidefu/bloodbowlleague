@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import PageHeader from '@/components/brand/PageHeader';
 import styles from './NewTeam.module.css';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
 import { useSeason } from '@/lib/SeasonContext';
@@ -118,66 +120,78 @@ export default function NewTeamPage() {
 
   if (!isAdmin) {
     return (
-        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <p style={{ fontFamily: 'var(--font-impact)', fontSize: '2rem', color: 'var(--color-ink)' }}>{t.auth.adminOnly}</p>
-          <Link href="/login" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>{t.nav.login}</Link>
+        <div>
+          <PageHeader title={t.draft.title} icon={<Plus size={44} />} />
+          <div className={`card ${styles.deniedCard}`}>
+            <p className={styles.deniedText}>{t.auth.adminOnly}</p>
+            <Link href="/login" className="btn btn-primary">{t.nav.login}</Link>
+          </div>
         </div>
     );
   }
 
   return (
       <div>
-        <div className={styles.headerArea}>
-          <h1 className={styles.pageTitle}>{t.draft.title}</h1>
-        </div>
-        {activeSeason && (
-            <p style={{ textAlign: 'center', fontFamily: 'var(--font-typewriter)', fontWeight: 'bold', marginTop: '-2rem', marginBottom: '2rem' }}>
-              {t.seasons.season}: {activeSeason.name}
-            </p>
-        )}
+        <PageHeader
+            title={t.draft.title}
+            icon={<Plus size={44} />}
+            subtitle={activeSeason ? `${t.seasons.season}: ${activeSeason.name}` : undefined}
+        />
 
-        <div className={styles.registrationForm}>
-          <form onSubmit={handleSubmit} className={styles.formGrid}>
+        <form onSubmit={handleSubmit} className={styles.form}>
 
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>{t.draft.teamName}</label>
-              <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className={styles.inputField}
-                  placeholder={t.draft.teamNamePlaceholder}
-              />
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>{t.draft.race}</label>
-              <select
-                  value={formData.race}
-                  onChange={(e) => setFormData({...formData, race: e.target.value})}
-                  className={styles.selectField}
-              >
-                {RACES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="coach-select">{t.coachPicker.label}</label>
-              <CoachPicker
-                  coaches={coaches}
-                  value={coachChoice}
-                  onChange={setCoachChoice}
-                  required
-                  selectClassName={styles.selectField}
-                  inputClassName={styles.inputField}
-              />
-            </div>
-
-            <div className={styles.colorGrid}>
+          {/* IDENTITÀ */}
+          <section className={`card ${styles.section}`}>
+            <h2 className="subhead">Team</h2>
+            <div className={styles.fieldGrid}>
               <div className={styles.inputGroup}>
-                <label className={styles.label}>{t.draft.primaryColor}</label>
+                <label htmlFor="team-name" className={styles.label}>{t.draft.teamName}</label>
                 <input
+                    id="team-name"
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className={styles.inputField}
+                    placeholder={t.draft.teamNamePlaceholder}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label htmlFor="team-race" className={styles.label}>{t.draft.race}</label>
+                <select
+                    id="team-race"
+                    value={formData.race}
+                    onChange={(e) => setFormData({...formData, race: e.target.value})}
+                    className={styles.inputField}
+                >
+                  {RACES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              {/* Allenatore della squadra nella stagione in corso */}
+              <div className={`${styles.inputGroup} ${styles.coachGroup}`}>
+                <label htmlFor="coach-select" className={styles.label}>{t.coachPicker.label}</label>
+                <CoachPicker
+                    coaches={coaches}
+                    value={coachChoice}
+                    onChange={setCoachChoice}
+                    required
+                    selectClassName={styles.inputField}
+                    inputClassName={styles.inputField}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* COLORI E LOGO */}
+          <section className={`card ${styles.section}`}>
+            <h2 className="subhead">Colors &amp; Logo</h2>
+            <div className={styles.fieldGrid}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="team-primary" className={styles.label}>{t.draft.primaryColor}</label>
+                <input
+                    id="team-primary"
                     type="color"
                     value={formData.primary_color}
                     onChange={(e) => setFormData({...formData, primary_color: e.target.value})}
@@ -185,8 +199,9 @@ export default function NewTeamPage() {
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label className={styles.label}>{t.draft.secondaryColor}</label>
+                <label htmlFor="team-secondary" className={styles.label}>{t.draft.secondaryColor}</label>
                 <input
+                    id="team-secondary"
                     type="color"
                     value={formData.secondary_color}
                     onChange={(e) => setFormData({...formData, secondary_color: e.target.value})}
@@ -195,54 +210,18 @@ export default function NewTeamPage() {
               </div>
             </div>
 
-            {/* Griglia Management Stats */}
-            <div className={styles.statsGrid}>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>REROLLS</label>
-                <input type="number" min="0" max="8" value={formData.rerolls} onChange={e => setFormData({...formData, rerolls: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>R. COST</label>
-                <input type="number" min="0" step="10000" value={formData.reroll_cost} onChange={e => setFormData({...formData, reroll_cost: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>CHEERLEADERS</label>
-                <input type="number" min="0" max="16" value={formData.cheerleaders} onChange={e => setFormData({...formData, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>ASST. COACHES</label>
-                <input type="number" min="0" max="16" value={formData.assistant_coaches} onChange={e => setFormData({...formData, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>FANS</label>
-                <input type="number" min="0" max="18" value={formData.fan_factor} onChange={e => setFormData({...formData, fan_factor: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>TREASURY</label>
-                <input type="number" min="0" step="10000" value={formData.treasury} onChange={e => setFormData({...formData, treasury: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label className={styles.statLabel}>BANK</label>
-                <input type="number" min="0" step="10000" value={formData.bank} onChange={e => setFormData({...formData, bank: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <label className={styles.apothecaryCheck}>
-                <span>MEDIC</span>
-                <input type="checkbox" checked={formData.apothecary} onChange={e => setFormData({...formData, apothecary: e.target.checked})} style={{ width: '25px', height: '25px', accentColor: 'var(--color-blood-bright)' }} />
-              </label>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>{t.draft.logoUrl}</label>
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className={`${styles.inputGroup} ${styles.logoGroup}`}>
+              <label htmlFor="team-logo-url" className={styles.label}>{t.draft.logoUrl}</label>
+              <div className={styles.logoRow}>
+                <div className={styles.logoInputs}>
                   <input
                       type="file"
                       accept="image/*"
                       onChange={handleLogoChange}
-                      style={{ fontFamily: 'var(--font-typewriter)', padding: '0.5rem', border: '3px solid var(--color-ink)' }}
+                      className={styles.fileInput}
                   />
                   <input
+                      id="team-logo-url"
                       type="url"
                       value={formData.logo_url}
                       onChange={(e) => {
@@ -256,21 +235,61 @@ export default function NewTeamPage() {
                 </div>
 
                 {(logoPreview || formData.logo_url) && (
-                    <div style={{ width: '100px', height: '100px', border: '4px solid var(--color-ink)', flexShrink: 0, padding: '5px', background: '#fff' }}>
-                      <img src={logoPreview || formData.logo_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <div className={styles.logoPreview} style={{ borderColor: formData.primary_color }}>
+                      <img src={logoPreview || formData.logo_url} alt="Preview" />
                     </div>
                 )}
               </div>
             </div>
+          </section>
 
-            <div className={styles.actionButtons}>
-              <button type="button" onClick={() => router.back()} className="btn">CANCEL</button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? t.draft.drafting : t.draft.registerBtn}
-              </button>
+          {/* GESTIONE */}
+          <section className={`card ${styles.section}`}>
+            <h2 className="subhead">Management</h2>
+            <div className={styles.statsGrid}>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-rerolls" className={styles.statLabel}>REROLLS</label>
+                <input id="stat-rerolls" type="number" min="0" max="8" value={formData.rerolls} onChange={e => setFormData({...formData, rerolls: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-reroll-cost" className={styles.statLabel}>R. COST</label>
+                <input id="stat-reroll-cost" type="number" min="0" step="10000" value={formData.reroll_cost} onChange={e => setFormData({...formData, reroll_cost: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-cheerleaders" className={styles.statLabel}>CHEERLEADERS</label>
+                <input id="stat-cheerleaders" type="number" min="0" max="16" value={formData.cheerleaders} onChange={e => setFormData({...formData, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-coaches" className={styles.statLabel}>ASST. COACHES</label>
+                <input id="stat-coaches" type="number" min="0" max="16" value={formData.assistant_coaches} onChange={e => setFormData({...formData, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-fans" className={styles.statLabel}>FANS</label>
+                <input id="stat-fans" type="number" min="0" max="18" value={formData.fan_factor} onChange={e => setFormData({...formData, fan_factor: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-treasury" className={styles.statLabel}>TREASURY</label>
+                <input id="stat-treasury" type="number" min="0" step="10000" value={formData.treasury} onChange={e => setFormData({...formData, treasury: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <div className={styles.statInputGroup}>
+                <label htmlFor="stat-bank" className={styles.statLabel}>BANK</label>
+                <input id="stat-bank" type="number" min="0" step="10000" value={formData.bank} onChange={e => setFormData({...formData, bank: parseInt(e.target.value) || 0})} className={styles.statInput} />
+              </div>
+              <label className={styles.apothecaryCheck}>
+                <span className={styles.statLabel}>MEDIC</span>
+                <input type="checkbox" checked={formData.apothecary} onChange={e => setFormData({...formData, apothecary: e.target.checked})} className={styles.checkbox} />
+              </label>
             </div>
-          </form>
-        </div>
+          </section>
+
+          <div className={styles.actionButtons}>
+            <button type="button" onClick={() => router.back()} className="btn">CANCEL</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? t.draft.drafting : t.draft.registerBtn}
+            </button>
+          </div>
+        </form>
       </div>
   );
 }

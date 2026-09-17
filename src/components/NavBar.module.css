@@ -1,290 +1,531 @@
-/* src/app/NavBar.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&display=swap');
+/* src/components/NavBar.module.css */
 
-/* Variabile per la texture della carta stropicciata */
-:root {
-    --paper-wrinkle: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch"/%3E%3CfeColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" /%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'), linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.08) 100%);
-}
-
-.reportHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    border-bottom: 2px solid rgba(255,255,255,0.1);
-    padding-bottom: 1rem;
-}
-
-/* NAVBAR PRINCIPALE */
+/* ================================================================== */
+/*  TOPBAR: blocco logo spigoloso, link numerati, CTA smussata         */
+/* ================================================================== */
 .navBar {
-    background: #111;
-    border-bottom: 5px solid var(--color-blood-bright);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 2000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  min-height: 68px;
+  padding: 0 1.25rem 0 0;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 14px) right / 40% 100% no-repeat,
+    linear-gradient(180deg, #1b1f26, #111419);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.9);
 }
 
-/* CONTENITORE DEL LOGO IMMAGINE */
+/* Filetto d'ottone + segmento rosso sotto la barra */
+.navBar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 3px;
+  background:
+    linear-gradient(90deg, var(--bb-red) 0 340px, transparent 340px) left / 100% 100% no-repeat,
+    var(--bb-brass);
+  pointer-events: none;
+}
+
+/* LOGO: placca rossa con taglio diagonale */
 .logoLink {
-    display: flex;
-    align-items: center;
-    transition: transform 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+  padding: 0 2.6rem 0 1.25rem;
+  color: var(--bb-parchment);
+  isolation: isolate;
+}
+
+.logoLink::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    var(--tex-grunge),
+    linear-gradient(120deg, #c8252c, #7a1a1c 70%, #4a1012);
+  background-size: 500px, cover;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+}
+
+.logoLink::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 6px;
+  width: 30px;
+  z-index: -2;
+  background: #eab22a;
+  clip-path: polygon(22px 0, 30px 0, 8px 100%, 0 100%);
 }
 
 .logoLink:hover {
-    transform: scale(1.05);
+  color: var(--bb-parchment);
 }
 
-.logoImage {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-    filter: drop-shadow(2px 2px 5px rgba(229, 9, 20, 0.4));
+.logoEmblem {
+  flex: none;
+  margin: 2px 0 -14px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+  transition: transform 0.25s var(--ease-out);
 }
 
-/* ========================================= */
-/* DESKTOP LINKS CON PEZZI DI CARTA          */
-/* ========================================= */
+.logoLink:hover .logoEmblem {
+  transform: rotate(-10deg) scale(1.05);
+}
+
+.wordmark {
+  margin-top: -0.1rem;
+}
+
+/* LINK DESKTOP */
 .navLinks {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.15rem;
+  margin: 0 auto;
 }
 
 .navItem {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.4rem;
-    color: var(--color-ink); /* Testo scuro sulla carta */
-    letter-spacing: 1px;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease;
-    z-index: 1; /* Il testo sta sopra */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(245, 236, 220, 0.82);
+  isolation: isolate;
+  transition: color 0.18s ease;
 }
 
-/* I Foglietti di Carta Stropicciati dietro i Link */
-.navItem::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
-    z-index: -1;
-    transition: all 0.2s ease;
+.navIndex {
+  align-self: flex-start;
+  margin-top: 1.05rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--bb-slate-500);
+  transition: color 0.18s ease;
 }
 
-/* Rotazioni caotiche e diverse per ogni bottone */
-.navItem:nth-child(1)::before { transform: rotate(-2deg); }
-.navItem:nth-child(2)::before { transform: rotate(1.5deg); }
-.navItem:nth-child(3)::before { transform: rotate(-1deg); }
-.navItem:nth-child(4)::before { transform: rotate(2.5deg); }
-.navItem:nth-child(5)::before { transform: rotate(-3deg); }
-.navItem:nth-child(6)::before { transform: rotate(2deg); }
-.navItem:nth-child(7)::before { transform: rotate(-1.5deg); }
-
-/* Schermi intermedi: con 7 voci i link si stringono per stare su una riga */
-@media (max-width: 1560px) {
-    .navLinks { gap: 1.1rem; }
-    .navItem { font-size: 1.15rem; padding: 0.4rem 0.7rem; }
-    .langContainer { padding-left: 1rem; }
+.navIcon {
+  opacity: 0.7;
 }
 
-@media (max-width: 1240px) {
-    .navBar { padding: 1rem 1.2rem; }
-    .navLinks { gap: 0.6rem; }
-    .navItem { font-size: 1rem; padding: 0.35rem 0.5rem; gap: 0.3rem; }
-    .navItem svg { width: 16px; height: 16px; }
-    .logoImage { height: 48px; }
-    .langContainer { padding-left: 0.6rem; gap: 0.5rem; }
+/* Barra che scorre sotto al passaggio del mouse */
+.navItem::after {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 12px;
+  height: 3px;
+  background: var(--bb-mustard);
+  transform: scaleX(0) skewX(-30deg);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-out);
 }
 
-/* Hover: il foglio si colora di rosso, si raddrizza e il testo diventa bianco */
 .navItem:hover {
-    color: #fff;
-    transform: translateY(-3px);
+  color: #fff6e6;
 }
 
-.navItem:hover::before {
-    background-color: var(--color-blood-bright);
-    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
-    transform: rotate(0deg) scale(1.05);
+.navItem:hover::after {
+  transform: scaleX(1) skewX(-30deg);
 }
 
-/* Switcher Lingua Stile "Badge Tattico" in Carta */
+.navItem:hover .navIndex {
+  color: var(--bb-mustard);
+}
+
+/* Voce attiva: linguetta rossa smussata che scende dalla barra */
+.navItem.active {
+  color: #fff6e6;
+}
+
+.navItem.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -6px;
+  z-index: -1;
+  background:
+    linear-gradient(#eab22a, #eab22a) right 8px top 10px / 6px 6px no-repeat,
+    linear-gradient(180deg, #d9383a, #9a2226);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.navItem.active::after {
+  transform: scaleX(0);
+}
+
+.navItem.active .navIndex {
+  color: #ffe6a6;
+}
+
+.navItem.active .navIcon {
+  opacity: 1;
+}
+
+/* STRUMENTI A DESTRA */
+.navTools {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex: none;
+}
+
+/* CTA smussata (come "Play now") */
+.ctaBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0 1rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff4e0;
+  background: linear-gradient(180deg, #e0453c, #b8222a);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.ctaBtn:hover {
+  color: #fff4e0;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.ctaActive {
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+  color: #2a1a05;
+}
+
+.ctaActive:hover {
+  color: #2a1a05;
+}
+
+/* Switch lingua segmentato */
 .langContainer {
-    display: flex;
-    gap: 0.8rem;
-    border-left: 2px dashed #444;
-    padding-left: 2rem;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  background: #0b0d11;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 
 .langBtn {
-    position: relative;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.1rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
-}
-
-.langBtn:nth-child(1) { transform: rotate(2deg); }
-.langBtn:nth-child(2) { transform: rotate(-2deg); }
-
-.langBtn.active {
-    background-color: var(--color-blood-bright);
-    color: #fff;
-    transform: scale(1.1) rotate(0deg);
+  min-width: 38px;
+  min-height: 32px;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  color: var(--bb-slate-300);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .langBtn:hover:not(.active) {
-    background-color: #ccc;
-    transform: scale(1.05) rotate(0deg);
+  color: #fff6e6;
 }
 
-/* ========================================= */
-/* SIDEBAR MOBILE                            */
-/* ========================================= */
+.langBtn.active {
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+}
+
+/* ================================================================== */
+/*  MENU MOBILE: pannello con voci numerate                            */
+/* ================================================================== */
 .hamburgerBtn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #fff;
-    display: none;
-    padding: 0.5rem;
+  display: none;
+  align-self: center;
+  margin-left: auto;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  color: #fff4e0;
+  background: linear-gradient(180deg, #e0453c, #b8222a);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 
 .hamburgerBtn:hover {
-    color: var(--color-blood-bright);
+  filter: brightness(1.1);
 }
 
 .mobileSidebar {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 85%;
-    max-width: 350px;
-    height: 100vh;
-    background: #111;
-    z-index: 3000;
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    border-left: 6px solid var(--color-blood-bright);
-    box-shadow: -15px 0 40px rgba(0,0,0,0.9);
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 420px);
+  height: 100dvh;
+  overflow-y: auto;
+  isolation: isolate;
+  background: linear-gradient(170deg, #1b1f26, #0e1014);
+  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.8);
+  transform: translateX(105%);
+  visibility: hidden;
+  transition: transform 0.4s var(--ease-out), visibility 0s linear 0.4s;
 }
 
 .mobileSidebar.open {
-    right: 0;
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.4s var(--ease-out), visibility 0s;
+}
+
+.sidebarShards {
+  z-index: -1;
+  opacity: 0.55;
 }
 
 .closeHeader {
-    padding: 1.5rem 2rem;
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.sidebarMicro {
+  flex: 1;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.8);
 }
 
 .closeBtn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #fff;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #fff4e0;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 
 .mobileMenuContent {
-    display: flex;
-    flex-direction: column;
-    padding: 2rem;
-    gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1rem 1.25rem 2rem;
 }
 
-/* Pezzi di Carta anche per i bottoni Mobile */
 .mobileNavItem {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 2.2rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-    text-decoration: none;
-    transition: all 0.2s;
-    padding: 0.8rem 1rem;
-    transform: rotate(-1deg);
-}
-
-.mobileNavItem:nth-child(even) {
-    transform: rotate(1deg);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 60px;
+  padding: 0 1rem 0 0.75rem;
+  color: #fff6e6;
+  background: rgba(10, 12, 16, 0.6);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  transition: background 0.2s ease, transform 0.2s var(--ease-out);
 }
 
 .mobileNavItem:hover {
-    background-color: var(--color-blood-bright);
-    color: #fff;
-    transform: translateX(10px) rotate(0deg);
+  color: #fff6e6;
+  transform: translateX(4px);
+}
+
+.mobileIndex {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(234, 178, 42, 0.9);
+}
+
+.mobileLabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.7rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mobileIcon {
+  opacity: 0.6;
+}
+
+.mobileNavItem.active {
+  background: linear-gradient(90deg, #c8252c, #7a1a1c);
+}
+
+.mobileNavItem.active .mobileIndex {
+  -webkit-text-stroke-color: #ffe6a6;
+}
+
+.mobileCta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  margin-top: 0.75rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.mobileCta:hover {
+  color: #2a1a05;
 }
 
 .mobileLangContainer {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    border-top: 2px dashed #444;
-    padding-top: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .mobileLangBtn {
-    flex: 1;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.5rem;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    background-image: var(--paper-wrinkle); /* Effetto Grinzoso */
-    border: 2px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  flex: 1;
+  min-height: 46px;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+  background: rgba(0, 0, 0, 0.45);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 
 .mobileLangBtn.active {
-    background-color: var(--color-blood-bright);
-    color: #fff;
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
 }
 
-/* OVERLAY MOBILE OSCURANTE */
 .mobileOverlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(5px);
-    z-index: 2500;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(8, 9, 12, 0.75);
+  backdrop-filter: blur(4px);
 }
 
-/* ========================================= */
-/* MEDIA QUERIES (Mobile First)              */
-/* ========================================= */
-@media (max-width: 1100px) {
-    .navLinks { display: none; }
-    .hamburgerBtn { display: block; }
-    .mobileOverlay.open { display: block; }
-    .logoImage { height: 40px; }
+/* ================================================================== */
+/*  FOOTER: fascia rossa del Rulebook con linguetta                    */
+/* ================================================================== */
+.footer {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  margin-top: 2rem;
+  background: var(--bb-red);
+  background-image: var(--tex-grain);
+  border-top: 3px solid var(--bb-blood-800);
+}
+
+.footerInner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.7rem 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footerTitle {
+  color: var(--bb-mustard);
+  font-size: 1.05rem;
+}
+
+.footerDot {
+  color: var(--bb-parchment);
+}
+
+.footerSub {
+  color: var(--bb-parchment);
+  font-size: 0.95rem;
+}
+
+.footer :global(.page-tab) {
+  padding-inline: 1.1rem;
+  font-size: 1.25rem;
+}
+
+/* ================================================================== */
+/*  MEDIA QUERIES                                                      */
+/* ================================================================== */
+@media (max-width: 1440px) {
+  .navItem { padding: 0 0.6rem; font-size: 1.02rem; }
+  .navItem::after { left: 0.6rem; right: 0.6rem; }
+  .navIcon { display: none; }
+  .wordmark { --wm-size: 1.6rem; }
+}
+
+@media (max-width: 1240px) {
+  .navIndex { display: none; }
+  .wordmark { display: none; }
+  .logoLink { padding-right: 2.2rem; }
+  .navBar::after { background: linear-gradient(90deg, var(--bb-red) 0 130px, transparent 130px) left / 100% 100% no-repeat, var(--bb-brass); }
+}
+
+@media (max-width: 1060px) {
+  .navLinks,
+  .navTools { display: none; }
+  .hamburgerBtn { display: grid; }
+  .mobileOverlay.open { display: block; }
+  .navBar { min-height: 62px; padding-right: 0.9rem; }
+  .logoEmblem { width: 50px; height: 50px; margin-bottom: -10px; }
+  .wordmark { display: inline-flex; --wm-size: 1.25rem; }
+  .logoLink { padding-right: 2.4rem; padding-left: 0.9rem; }
+  .navBar::after { background: linear-gradient(90deg, var(--bb-red) 0 60%, transparent 60%) left / 100% 100% no-repeat, var(--bb-brass); }
+}
+
+@media (max-width: 380px) {
+  .wordmark { --wm-size: 1.05rem; }
 }

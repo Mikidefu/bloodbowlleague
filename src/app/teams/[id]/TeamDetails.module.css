@@ -1,413 +1,1341 @@
 /* src/app/teams/[id]/TeamDetails.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&family=Special+Elite&display=swap');
 
-/* Variabile texture stropicciata */
-:root {
-    --paper-wrinkle: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch"/%3E%3CfeColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.1 0" /%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)"/%3E%3C/svg%3E'), linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.08) 100%);
+/* --team-accent / --team-accent-2 arrivano inline dai colori squadra (filetti, bordi e tinte miscelate) */
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ========================================= */
-/* IDENTITÀ SQUADRA (Banner Principale)      */
-/* ========================================= */
-.teamIdentityBanner {
-    display: flex;
-    align-items: stretch;
-    background: #111;
-    border: 5px solid var(--color-ink);
-    box-shadow: 12px 12px 0 var(--color-ink);
-    margin-bottom: 3rem;
-    position: relative;
-    overflow: visible; /* Importante per far sbordare i pulsanti */
-    min-height: 220px;
+.inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  margin: 0 auto;
 }
 
-/* 🟢 MIGLIORAMENTO: LOGO COME TOPPA DI STOFFA CUCITA */
-.logoSection {
-    width: 280px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-    position: relative;
-    z-index: 2;
-    background-color: var(--color-paper);
-    /* Applica filtro bordi strappati */
-    filter: url(#rough-edges) drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
-    transform: rotate(-4deg) translateX(-10px);
-    border: 2px solid #ddd !important;
-    border-right: none !important;
+/* Tre quadratini tecnici (uno rosso) */
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
 }
 
-/* Texture tessuto cucito sopra il logo */
-.logoSection::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.1"/%3E%3C/svg%3E');
-    mix-blend-mode: multiply;
-    pointer-events: none;
+.micro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+/* ================================================================== */
+/*  LOGO NELLA TESTATA                                                 */
+/* ================================================================== */
+.logoFrame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 5px;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--team-accent), 0 0 0 5px #d9b268, 0 8px 14px -6px rgba(0, 0, 0, 0.6);
 }
 
 .teamLogo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.6));
-    transform: rotate(2deg);
-    transition: transform 0.3s;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.teamIdentityBanner:hover .teamLogo {
-    transform: rotate(0deg) scale(1.05);
+.logoFallback {
+  color: var(--bb-ink-soft);
 }
 
-/* Dati della Squadra */
-.infoSection {
-    flex: 1;
-    padding: 2rem 3rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-    z-index: 2;
+/* ================================================================== */
+/*  PROFILO SQUADRA: scheda personaggio                                */
+/* ================================================================== */
+.profileBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  padding-top: 4.5rem;
+  padding-bottom: 6rem;
+  color: var(--bb-parchment);
+  background:
+    radial-gradient(ellipse 50% 70% at 22% 45%, color-mix(in srgb, var(--team-accent) 35%, transparent), transparent 70%),
+    var(--tex-grunge),
+    linear-gradient(180deg, #101318 0%, #1a1e25 55%, #111418 100%);
+  background-size: cover, 700px, cover;
+  clip-path: polygon(0 2.5rem, 18% 0, 47% 2rem, 78% 0.5rem, 100% 2.2rem, 100% calc(100% - 3rem), 82% 100%, 55% calc(100% - 2.2rem), 26% 100%, 0 calc(100% - 1.8rem));
 }
 
-.teamName {
-    font-family: 'Anton', sans-serif;
-    font-size: 4.5rem;
-    line-height: 0.9;
-    margin: 0 0 0.5rem 0;
-    text-transform: uppercase;
-    color: #fff;
-    letter-spacing: 2px;
+.profileShards {
+  z-index: -1;
+  opacity: 0.75;
 }
 
-.teamRace {
-    font-family: 'Dancing Script', cursive;
-    font-size: 2.5rem;
-    color: #888;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    transform: rotate(-2deg);
-    display: inline-block;
+.ghostRace {
+  right: -3%;
+  bottom: 5.5rem;
 }
 
-/* Statistiche del Management */
-.coachLine {
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    color: #ddd;
-    margin: 0.4rem 0 0.8rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 0.8rem;
+.profileInner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 3.5rem;
+  align-items: center;
+  max-width: 1240px;
+  margin: 0 auto;
 }
 
-.coachLink {
-    color: var(--color-gold);
-    font-family: var(--font-impact);
-    font-size: 1.2rem;
-    letter-spacing: 1px;
+/* --- Ritratto: scheggia tinta col colore squadra + stemma in ottone --- */
+.portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 460px;
+  padding: 3rem 1rem 5.5rem;
 }
 
-.coachLink:hover { color: var(--color-blood-bright); }
-
-.seasonHistory {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+/* Sagoma rossa sfalsata dietro al ritratto (effetto a strati) */
+.portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(135deg, #e0332f, #7a1a1c 70%);
+  clip-path: polygon(9% 4%, 58% 0, 100% 9%, 93% 58%, 100% 94%, 46% 100%, 0 90%, 5% 46%);
+  transform: translate(16px, 16px);
+  opacity: 0.9;
 }
 
-.historyChip {
-    font-size: 0.8rem;
-    color: #bbb;
-    border: 1px dashed #666;
-    padding: 0.05rem 0.45rem;
+.portraitShard {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    var(--bb-brass) left 12% bottom 14% / 42% 3px no-repeat,
+    var(--tex-grain),
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(255, 240, 210, 0.22), transparent 70%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--team-accent) 92%, #fff 8%) 0%,
+      color-mix(in srgb, var(--team-accent) 62%, #16191e) 55%,
+      color-mix(in srgb, var(--team-accent-2) 40%, #0c0e12) 100%);
+  background-size: 42% 3px, 200px, cover, cover;
+  clip-path: polygon(9% 4%, 58% 0, 100% 9%, 93% 58%, 100% 94%, 46% 100%, 0 90%, 5% 46%);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.45);
 }
 
-.managementBadges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
+/* Filetto d'ottone sfalsato sulla sagoma */
+.portraitShard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bb-brass);
+  clip-path: polygon(58% 0, 100% 9%, 99.3% 14%, 58.2% 5%, 9% 8%, 9% 4%);
+}
+
+.portraitCount {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(6rem, 12vw, 10rem);
+  line-height: 0.75;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 246, 230, 0.55);
+  pointer-events: none;
+}
+
+.portraitMicro {
+  position: absolute;
+  top: 2.2rem;
+  left: 12%;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 230, 0.8);
 }
 
 .badge {
-    font-family: 'Anton', sans-serif;
-    background: #222;
-    color: #fff;
-    border: 2px solid #444;
-    padding: 0.3rem 0.8rem;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(280px, 70%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cdb994);
+  box-shadow:
+    0 0 0 5px var(--team-accent),
+    0 0 0 14px #2a1a05,
+    0 0 0 16px #d9b268,
+    0 30px 50px -18px rgba(0, 0, 0, 0.9);
+  animation: bb-badge-in 0.9s var(--ease-out) backwards 0.15s;
 }
 
-.badgeGold {
-    color: var(--color-gold);
-    border-color: var(--color-gold);
+/* Anello d'ottone vero (gradiente conico) tra i due filetti */
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 20deg, #f7e2ab, #8d6831, #f3d897, #b8893f, #f7e2ab, #8d6831, #d9b268, #f7e2ab);
+  -webkit-mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
+  mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
 }
 
-/* 🟢 AGGIUNTA: PULSANTI COME ETICHETTE DI CARTA (Riquadrini) */
-.actionGroup {
-    position: absolute;
-    top: -15px;
-    right: 15px;
-    display: flex;
-    gap: 1rem;
-    z-index: 10;
+@keyframes bb-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) rotate(-8deg);
+  }
 }
 
-.actionBtn {
-    position: relative;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.2rem;
-    padding: 0.6rem 1.2rem;
-    border: 3px solid var(--color-ink) !important;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 1;
+.badgeLogo {
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
 }
 
-/* Corpo dell'etichetta (sfondo grinzoso) */
-.actionBtn::before {
-    content: '';
-    position: absolute;
-    inset: -3px; /* Copre il bordo originale */
-    z-index: -1;
-    background-image: var(--paper-wrinkle);
-    border: inherit;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+.badgeFallback {
+  color: var(--team-accent);
 }
 
-.editBtn {
-    color: var(--color-ink) !important;
-    transform: rotate(3deg);
-}
-.editBtn::before { background-color: var(--color-paper); }
-
-.editBtn:hover {
-    transform: rotate(0deg) translateY(-3px);
-    box-shadow: 6px 6px 0 rgba(0,0,0,0.6);
+.portraitRace {
+  position: absolute;
+  left: 8%;
+  bottom: 4.6rem;
+  font-size: 1.15rem;
 }
 
-.disbandBtn {
-    color: #fff !important;
-    transform: rotate(-2deg);
-}
-.disbandBtn::before {
-    background-color: var(--color-blood-bright);
-    border-color: var(--color-ink) !important;
+.portraitValue {
+  --cut: 12px;
+  position: absolute;
+  right: 4%;
+  bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0.5rem 1.1rem 0.55rem;
+  background: rgba(10, 12, 18, 0.82);
+  border-right: 4px solid var(--bb-red);
+  backdrop-filter: blur(3px);
 }
 
-.disbandBtn:hover {
-    transform: rotate(0deg) translateY(-3px);
+.portraitValue small {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
 }
 
-/* ========================================= */
-/* MODULI EDIT E AGGIUNGI (Stile Cartaceo)   */
-/* ========================================= */
+.portraitValue strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1;
+  color: #fff6e6;
+  font-variant-numeric: tabular-nums;
+}
+
+.portraitValue em {
+  font-size: 0.55em;
+  color: var(--bb-mustard);
+}
+
+/* --- Dossier: nome e righe etichetta --- */
+.dossier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.dossierName {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 4px 5px 0 color-mix(in srgb, var(--team-accent) 70%, #000);
+  overflow-wrap: break-word;
+}
+
+.labelRows {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.labelRow {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 44px;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px dashed rgba(243, 216, 151, 0.18);
+}
+
+.labelRowWide {
+  align-items: start;
+}
+
+.labelChip {
+  --cut: 9px;
+  align-self: center;
+  padding: 0.42rem 0.8rem 0.4rem 0.9rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff4f2;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(100deg, #e6475c 0%, #c8252c 55%, #9a2226 100%);
+}
+
+.labelValue {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
+}
+
+/* Allenatore (link alla scheda carriera) e storico stagioni */
+.coachLink {
+  font-style: italic;
+  color: var(--bb-mustard);
+  text-decoration: underline;
+  text-decoration-color: rgba(234, 178, 42, 0.45);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.coachLink:hover,
+.coachLink:focus-visible {
+  color: #fff6e6;
+  text-decoration-color: var(--bb-red);
+}
+
+.seasonHistory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.historyChip {
+  --cut: 7px;
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+}
+
+.historyChipActive {
+  background: var(--bb-success);
+}
+
+.colours {
+  display: inline-flex;
+  gap: 0.5rem;
+  vertical-align: middle;
+}
+
+.swatch {
+  display: inline-block;
+  width: 2.4rem;
+  height: 1.5rem;
+  background: var(--bb-slate-700);
+  box-shadow: 0 0 0 2px #d9b268, 0 4px 8px -3px rgba(0, 0, 0, 0.6);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+/* --- Striscia statistiche su placche d'ottone --- */
+.plates {
+  position: relative;
+  z-index: 2;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  max-width: 1240px;
+  margin: 2.5rem auto 0;
+  padding: 0;
+}
+
+.plateItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.9rem 1.4rem 0.8rem;
+  transform: skewX(-6deg);
+}
+
+.plateItem > * {
+  transform: skewX(6deg);
+}
+
+.plateValue {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 0.9;
+  color: #2a1a05;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.plateLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4a3210;
+}
+
+/* ================================================================== */
+/*  MODALI (smussati)                                                  */
+/* ================================================================== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(122, 26, 28, 0.35), transparent 70%),
+    rgba(12, 14, 18, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  --cut: 26px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.modalMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.modalMicroLight {
+  color: var(--bb-navy);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modalTitle {
+  flex: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sppStrip {
+  --cut: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1.2rem;
+  background: linear-gradient(100deg, #16191e, var(--bb-navy-deep));
+  border-left: 5px solid var(--bb-red);
+  color: var(--bb-parchment);
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sppValue {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--bb-mustard);
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.choiceBtn {
+  width: 100%;
+  font-size: 1.05rem;
+  white-space: normal;
+  text-align: center;
+  padding: 0.55rem 1rem;
+}
+
+.statChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.statChoices .choiceBtn {
+  width: auto;
+  flex: 1 1 4.5rem;
+}
+
+.modalSelect {
+  margin-bottom: 1.5rem;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Celebrazione skill casuale */
+.celebration {
+  --cut: 30px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  border-left: 12px solid var(--team-accent);
+}
+
+.celebrationIcon {
+  color: var(--bb-mustard);
+}
+
+.celebrationText {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: rgba(239, 229, 210, 0.88);
+}
+
+.celebrationSkill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+}
+
+.celebrationSkillName {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2rem, 7vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
+}
+
+.celebrationSkillType {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(239, 229, 210, 0.75);
+}
+
+/* ================================================================== */
+/*  FORM                                                               */
+/* ================================================================== */
 .formCard {
-    background: var(--color-paper);
-    border: 4px dashed var(--color-ink);
-    padding: 2.5rem;
-    box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
-    margin-bottom: 3rem;
-    position: relative;
-}
-
-.formTitle {
-    font-family: 'Permanent Marker', cursive;
-    font-size: 2.5rem;
-    color: var(--color-blood-bright);
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--color-ink);
-    display: inline-block;
+  margin-bottom: 2.5rem;
 }
 
 .inputGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .label {
-    font-family: 'Special Elite', cursive;
-    font-weight: bold;
-    font-size: 1rem;
-    color: #333;
-    text-transform: uppercase;
+  font-size: 0.95rem;
+  color: var(--bb-ink-soft);
+}
+
+.labelCenter {
+  text-align: center;
 }
 
 .inputField {
-    font-family: 'Permanent Marker', cursive;
-    font-size: 1.4rem;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid var(--color-ink);
-    color: var(--color-blood-bright);
-    padding: 0.5rem 0;
-    width: 100%;
+  width: 100%;
 }
 
-.inputField:focus {
-    outline: none;
-    border-bottom-color: var(--color-blood-bright);
+.center {
+  text-align: center;
 }
 
-/* Griglie interne ai Form */
-.grid3Col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 2rem; }
-.grid4Col { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 2rem; margin-bottom: 2rem; align-items: end; }
+.blockGap {
+  margin-bottom: 1.5rem;
+}
+
+.grid2Col,
+.grid3Col,
+.grid4Col {
+  display: grid;
+  gap: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: end;
+}
+
+.grid2Col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid3Col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid4Col { grid-template-columns: 90px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
+
 .gridStats {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 1rem;
-    background: rgba(255,255,255,0.5);
-    border: 2px solid var(--color-ink);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan);
+  border-radius: var(--radius);
 }
 
-/* Input Quadri per le Statistiche */
-.statInput {
-    font-family: 'Anton', sans-serif;
-    font-size: 2rem;
-    text-align: center;
-    border: 3px solid var(--color-ink);
-    background: #fff;
-    color: var(--color-ink);
-    width: 100%;
-    padding: 0.5rem;
-}
-.statInput:focus { border-color: var(--color-blood-bright); outline: none; }
-
-/* ========================================= */
-/* ROSTER DELLA SQUADRA (Foglio Presenze)    */
-/* ========================================= */
-.rosterHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    border-bottom: 4px solid var(--color-ink);
-    padding-bottom: 0.5rem;
+/* Specificità allineata al selettore globale degli input */
+.page input.statInput:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']) {
+  width: 100%;
+  min-height: 56px;
+  padding: 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.rosterTitle {
-    font-family: 'Anton', sans-serif;
-    font-size: 3rem;
-    color: var(--color-ink);
-    margin: 0;
+.checkGroup {
+  align-items: center;
+  justify-content: center;
 }
 
-.tableWrapper {
-    overflow-x: auto;
-    border: 4px solid var(--color-ink);
-    background: #fff;
-    box-shadow: 10px 10px 0 rgba(0,0,0,0.2);
+.checkLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 56px;
+  font-size: 0.95rem;
+  color: var(--bb-ink-soft);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--bb-red);
+  cursor: pointer;
+}
+
+.colorInput {
+  width: 100%;
+  height: 48px;
+  padding: 3px;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.fileInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
+  border: 2px dashed var(--bb-tan-dark);
+  border-radius: var(--radius);
+}
+
+.logoRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.logoInputs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.logoPreview {
+  flex: none;
+  width: 80px;
+  height: 80px;
+  padding: 4px;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+  border-radius: var(--radius);
+}
+
+.logoPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Autocomplete skill */
+.autocomplete {
+  position: relative;
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.skillChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-left: 0.8rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+  border-radius: var(--radius);
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--bb-parchment);
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  color: var(--bb-mustard);
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 350px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+  box-shadow: var(--shadow-print);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--bb-parchment-2);
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--bb-ink);
+  cursor: pointer;
+}
+
+.suggestion:hover {
+  background: var(--bb-sky);
+}
+
+.suggestionType {
+  font-size: 0.8rem;
+  color: var(--bb-ink-soft);
+}
+
+
+.editCard {
+  position: relative;
+  z-index: 3;
+  margin-top: 2rem;
+}
+
+/* ================================================================== */
+/*  01 · ROSTER (fascia pergamena con tagli angolati)                  */
+/* ================================================================== */
+.rosterBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -2.5rem;
+  margin-bottom: -4rem;
+  padding-top: 6.5rem;
+  padding-bottom: 7rem;
+  color: var(--bb-ink);
+  background:
+    var(--tex-grain),
+    radial-gradient(ellipse 55% 60% at 90% 20%, rgba(200, 37, 44, 0.08), transparent 70%),
+    linear-gradient(180deg, #f3ecdf, #e7dcc7);
+  background-size: 200px, cover, cover;
+  clip-path: polygon(0 1.8rem, 24% 0, 61% 2.4rem, 100% 0.4rem, 100% 100%, 0 100%);
+}
+
+.rosterBand::before {
+  content: '';
+  position: absolute;
+  top: 4.4rem;
+  left: var(--gutter);
+  width: 60px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 36px 6px no-repeat,
+    linear-gradient(var(--bb-ink), var(--bb-ink)) 44px 0 / 6px 6px no-repeat,
+    linear-gradient(var(--bb-ink), var(--bb-ink)) 54px 0 / 6px 6px no-repeat;
+}
+
+.ghostRoster {
+  right: -2%;
+  top: 2.5rem;
+}
+
+.rosterBand .formCard {
+  margin-bottom: 2.5rem;
+}
+
+.rosterBand .rosterFrame::before {
+  inset: 10px -10px -10px 10px;
+  border: 2px solid rgba(154, 34, 38, 0.35);
+}
+
+.rosterTable {
+  --cut: 22px;
+  margin: 0;
+  background: var(--bb-paper);
+}
+
+/* Barra tecnica sopra la tabella */
+.tableStrip {
+  position: sticky;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem 0.7rem 2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+  background:
+    repeating-linear-gradient(-45deg, #eab22a 0 8px, transparent 8px 16px) bottom / 100% 4px no-repeat,
+    linear-gradient(100deg, #16191e 0%, #22262d 60%, var(--bb-navy-deep) 100%);
+}
+
+.tableStrip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableStripMeta {
+  flex: none;
+  font-family: var(--font-data);
+  font-style: normal;
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--bb-slate-300);
 }
 
 .dataTable {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1000px;
+  min-width: 1040px;
 }
-
-.dataTable th {
-    background: var(--color-ink);
-    color: #fff;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.2rem;
-    padding: 1rem;
-    text-align: center;
-    border-right: 1px solid #333;
-}
-.dataTable th.leftAlign { text-align: left; }
 
 .dataTable td {
+  vertical-align: middle;
+}
+
+.dataTable .right {
+  text-align: right;
+}
+
+.dataTable th:global(.num) {
+  text-align: center;
+}
+
+.skillsCol {
+  min-width: 220px;
+}
+
+.jersey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  padding: 0 0.3rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--bb-ink);
+  background: var(--bb-paper);
+  border: 1px solid var(--bb-tan-dark);
+  box-shadow: inset 0 -5px 0 var(--team-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  min-width: 180px;
+  max-width: 280px;
+  line-height: 1.05;
+}
+
+.playerRole {
+  color: var(--bb-ink-soft);
+  white-space: nowrap;
+}
+
+.stars {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85rem;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--bb-mustard-deep);
+}
+
+.statCell {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.sppCell {
+  color: var(--bb-blood-700);
+  font-weight: 800;
+}
+
+.skillLink {
+  display: inline;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(29, 26, 24, 0.35);
+  text-underline-offset: 3px;
+}
+
+.skillLink:hover {
+  color: var(--bb-red);
+  text-decoration-color: currentColor;
+}
+
+.skillEarned {
+  font-weight: 800;
+  color: var(--bb-blood-700);
+}
+
+.valueCell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.statusOk {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bb-success);
+}
+
+.rowActions {
+  display: flex;
+  gap: 0.15rem;
+  justify-content: center;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--bb-ink-soft);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.iconBtn:hover {
+  color: var(--bb-ink);
+  background: rgba(29, 26, 24, 0.08);
+}
+
+.iconDanger { color: var(--bb-red); }
+.iconSave { color: var(--bb-success); }
+.iconLevel { color: var(--bb-mustard-deep); }
+
+/* Giocatori morti: riga smorzata */
+.dataTable tbody tr.deadRow td {
+  background: var(--bb-parchment-2);
+  color: var(--bb-ink-soft);
+}
+
+.deadRow .playerName,
+.deadRow .valueCell {
+  text-decoration: line-through;
+}
+
+.deadRow .jersey {
+  color: var(--bb-ink-soft);
+  box-shadow: inset 0 -5px 0 var(--bb-slate-300);
+}
+
+.deadRow .sppCell,
+.deadRow .skillEarned,
+.deadRow .stars {
+  color: var(--bb-ink-soft);
+}
+
+/* Riga in modifica */
+.dataTable tbody tr.editRow td {
+  padding: 0.4rem;
+  background: rgba(234, 178, 42, 0.22);
+}
+
+.page input.editInput:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']) {
+  width: 100%;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0.35rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.page input.editInputTxt:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']) {
+  min-width: 130px;
+  text-align: left;
+}
+
+.page input.editInputValue:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']) {
+  min-width: 100px;
+}
+
+.locked {
+  color: var(--bb-ink-soft);
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  font-size: 0.9rem;
+  color: var(--bb-ink);
+  cursor: pointer;
+}
+
+
+/* Stato vuoto */
+.empty {
+  --cut: 20px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: linear-gradient(160deg, #2d323a, #16191e);
+}
+
+.emptyTitle {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+/* ================================================================== */
+/*  RESPONSIVE                                                         */
+/* ================================================================== */
+@media (max-width: 1000px) {
+  .profileInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .portrait {
+    min-height: 400px;
+  }
+
+  .plates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gridStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .logoFrame {
+    width: 48px;
+    height: 48px;
+    padding: 3px;
+  }
+
+  .profileBand {
+    margin-top: -1rem;
+    padding-top: 3.5rem;
+    padding-bottom: 5rem;
+  }
+
+  .ghostRace {
+    display: none;
+  }
+
+  .portrait {
+    min-height: 340px;
+    padding: 3rem 0.5rem 5.5rem;
+  }
+
+  .badge {
+    width: min(200px, 60%);
+  }
+
+  .portraitCount {
+    right: 0.75rem;
+    font-size: 5.5rem;
+  }
+
+  .portraitMicro {
+    display: none;
+  }
+
+  .profileShards {
+    opacity: 0.4;
+  }
+
+  .portraitRace {
+    left: 4%;
+    bottom: 4.4rem;
+    font-size: 1rem;
+  }
+
+  .portraitValue strong {
+    font-size: 1.6rem;
+  }
+
+  .labelRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .labelChip {
+    justify-self: start;
+  }
+
+  .plates {
+    gap: 0.9rem;
+  }
+
+  .plateItem {
+    padding: 0.8rem 1rem 0.7rem;
+  }
+
+  .rosterBand {
+    padding-top: 5rem;
+    padding-bottom: 6rem;
+  }
+
+  .rosterBand .rosterFrame::before {
+    inset: 6px -6px -6px 6px;
+  }
+
+  .grid3Col,
+  .grid2Col {
+    grid-template-columns: 1fr;
+  }
+
+  .grid4Col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .choiceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .gridStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 1rem;
-    border-bottom: 2px solid #ddd;
-    border-right: 1px solid #ddd;
-    text-align: center;
-    font-family: 'Special Elite', cursive;
-    font-weight: bold;
-    color: var(--color-ink);
+  }
+
+  .logoRow {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .formActions :global(.btn) {
+    flex: 1 1 100%;
+  }
+
+  .celebration {
+    padding: 2rem 1rem;
+    border-left-width: 8px;
+  }
+
+  .modal {
+    --cut: 16px;
+  }
 }
 
-.dataTable td.leftAlign { text-align: left; }
-
-/* Dati del Giocatore in riga */
-.playerName { font-family: 'Anton', sans-serif; font-size: 1.5rem; color: var(--color-ink); }
-.playerRole { color: #666; font-size: 1rem; }
-.playerSkill {
-    background: var(--color-ink);
-    color: #fff;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.8rem;
-    display: inline-block;
-    margin: 2px;
-}
-
-.statusActive { color: #4ade80; }
-.statusInjured { color: #f59e0b; }
-.statusDead { color: var(--color-blood-bright); text-decoration: line-through; }
-
-/* Modalità Modifica in Riga */
-.editRow {
-    background: rgba(229, 9, 20, 0.1);
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-}
-
-.editRow td {
-    padding: 0.5rem; /* Riduciamo un po' il padding della cella per far spazio all'input */
-}
-
-.editInput {
-    width: 100%;
-    min-width: 55px; /* Forza una larghezza minima per evitare schiacciamenti */
-    padding: 0.4rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.3rem;
-    text-align: center;
-    border: 2px solid var(--color-ink);
-    background: #fff; /* Sfondo bianco per massima leggibilità */
-    color: var(--color-ink); /* Testo scuro */
-    border-radius: 2px;
-}
-
-
-.editInput:focus {
-    outline: none;
-    border-color: var(--color-blood-bright);
-    box-shadow: 0 0 5px rgba(229, 9, 20, 0.5);
-}
-
-.editInputTxt {
-    text-align: left;
-    font-family: 'Special Elite', cursive;
-    font-size: 1.1rem;
-    min-width: 120px; /* Spazio per i nomi lunghi */
-}
-
-/* ========================================= */
-/* MOBILE RESPONSIVE                         */
-/* ========================================= */
-@media (max-width: 992px) {
-    .teamIdentityBanner { flex-direction: column; }
-    .logoSection { width: 100%; padding: 2rem; border-right: none !important; border-bottom: 4px solid var(--color-ink); }
-    .teamLogo { height: 150px; }
-    .infoSection { padding: 3rem 1.5rem 2rem 1.5rem; text-align: center; }
-    .managementBadges { justify-content: center; }
-    .actionGroup { position: relative; top: 0; right: 0; justify-content: center; margin-bottom: 1.5rem; width: 100%; }
-
-    .grid3Col { grid-template-columns: 1fr; gap: 1rem; }
-    .grid4Col { grid-template-columns: 1fr; gap: 1rem; }
-    .gridStats { grid-template-columns: repeat(3, 1fr); }
-
-    .rosterHeader { flex-direction: column; gap: 1rem; align-items: stretch; text-align: center; }
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    animation: none;
+  }
 }

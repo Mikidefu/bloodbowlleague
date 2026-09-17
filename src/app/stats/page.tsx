@@ -1,8 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { Skull, Star, Trophy, Target } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
+import Shards from '@/components/brand/Shards';
 import { useSeason } from '@/lib/SeasonContext';
+import { ART } from '@/lib/art';
+import { useArt } from '@/lib/useArt';
 import styles from './Stats.module.css';
 import type { PlayerLeader } from '@/lib/types';
 
@@ -13,11 +19,36 @@ type PlayerStatsBoard = {
     spp: PlayerLeader[];
 };
 
+type SortKey = 'td' | 'cas' | 'mvp' | 'spp';
+
+const STAT_COLUMNS: { key: SortKey; label: string; value: (p: PlayerLeader) => number }[] = [
+    { key: 'td', label: 'TD', value: p => p.total_td ?? 0 },
+    { key: 'cas', label: 'CAS', value: p => p.total_cas ?? 0 },
+    { key: 'mvp', label: 'MVP', value: p => p.total_mvp ?? 0 },
+    { key: 'spp', label: 'SPP', value: p => p.total_spp ?? 0 },
+];
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+type BoardConfig = {
+    players: PlayerLeader[];
+    sortKey: SortKey;
+    title: string;
+    icon: ReactNode;
+    index: string;
+    code: string;
+    ghost: string;
+    tone: 'light' | 'dark';
+    flip?: boolean;
+    withArt?: boolean;
+};
+
 export default function StatsPage() {
     const { t } = useLanguage();
-    const { seasonQuery, seasonsLoading } = useSeason();
+    const { seasonQuery, seasonsLoading, selectedSeason } = useSeason();
     const [stats, setStats] = useState<PlayerStatsBoard | null>(null);
     const [loading, setLoading] = useState(true);
+    const hasStarArt = useArt(ART.starPlayer);
 
     // Statistiche della stagione consultata
     useEffect(() => {
@@ -37,108 +68,144 @@ export default function StatsPage() {
         return () => { cancelled = true; };
     }, [seasonQuery, seasonsLoading]);
 
-    if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Scouting player stats...</div>;
+    if (loading) return <div className="loading-state">Scouting player stats...</div>;
 
-    // Renderizzatore intelligente delle tabelle
-    const renderPlayerTable = (players: PlayerLeader[], sortKey: string, highlightColor: string) => (
-        <div className={styles.tableWrapper}>
-            <table className={styles.dataTable}>
-                <thead className={styles.tableHead}>
-                <tr>
-                    <th className={styles.playerCol}>{t.stats.thPlayer}</th>
-                    <th style={{ color: sortKey === 'td' ? highlightColor : '#888' }}>TD</th>
-                    <th style={{ color: sortKey === 'cas' ? highlightColor : '#888' }}>CAS</th>
-                    <th style={{ color: sortKey === 'mvp' ? highlightColor : '#888' }}>MVP</th>
-                    <th style={{ color: sortKey === 'spp' ? highlightColor : '#888' }}>SPP</th>
-                </tr>
-                </thead>
-                <tbody>
-                {players.map((p, idx) => {
-                    const isTopPlayer = idx === 0;
-                    return (
-                        <tr key={p.id} className={isTopPlayer ? styles.topPlayerRow : styles.playerRow}>
-                            {/* Nome Giocatore e Squadra */}
-                            <td className={styles.playerCell}>
-                                <h3 className={styles.playerName} style={{ color: isTopPlayer ? highlightColor : '#fff' }}>
-                                    {p.name}
-                                </h3>
-                                <div className={styles.teamName}>{p.team_name}</div>
-                            </td>
+    const seasonCode = `S${pad(selectedSeason?.number ?? 1)}`;
 
-                            {/* Statistiche */}
-                            <td className={`${styles.numberCell} ${sortKey === 'td' ? styles.highlightNumber : ''}`} style={sortKey === 'td' ? { color: highlightColor } : {}}>
-                                {p.total_td ?? 0}
-                            </td>
-                            <td className={`${styles.numberCell} ${sortKey === 'cas' ? styles.highlightNumber : ''}`} style={sortKey === 'cas' ? { color: highlightColor } : {}}>
-                                {p.total_cas ?? 0}
-                            </td>
-                            <td className={`${styles.numberCell} ${sortKey === 'mvp' ? styles.highlightNumber : ''}`} style={sortKey === 'mvp' ? { color: highlightColor } : {}}>
-                                {p.total_mvp ?? 0}
-                            </td>
-                            <td className={`${styles.numberCell} ${sortKey === 'spp' ? styles.highlightNumber : ''}`} style={sortKey === 'spp' ? { color: highlightColor } : {}}>
-                                {p.total_spp ?? 0}
-                            </td>
-                        </tr>
-                    );
-                })}
-                {players.length === 0 && (
-                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#555', fontFamily: 'var(--font-typewriter)' }}>NO DATA</td></tr>
-                )}
-                </tbody>
-            </table>
-        </div>
-    );
+    // Sezione numerata della Hall of Fame: capoclassifica in grande + inseguitori in righe smussate
+    const renderBoard = ({ players, sortKey, title, icon, index, code, ghost, tone, flip, withArt }: BoardConfig) => {
+        const sortColumn = STAT_COLUMNS.find(c => c.key === sortKey)!;
+        const leader = players[0];
+        const chasers = players.slice(1);
+        const isLight = tone === 'light';
+        const showArt = withArt && hasStarArt;
+
+        return (
+            <section
+                key={sortKey}
+                className={[
+                    'bleed',
+                    styles.band,
+                    isLight ? styles.bandLight : styles.bandDark,
+                    flip ? styles.flip : '',
+                    showArt ? styles.withArt : '',
+                ].filter(Boolean).join(' ')}
+            >
+                <div className={styles.bandBg} aria-hidden="true">
+                    {!isLight && <Shards variant="band" className={styles.bandShards} />}
+                    <span className={`ghost-text ${isLight ? 'on-light' : ''} ${styles.ghost}`}>{ghost}</span>
+                </div>
+
+                <div className={styles.inner}>
+                    <SectionTitle
+                        index={index}
+                        on={tone}
+                        align={flip ? 'right' : 'left'}
+                        micro={`${seasonCode} // ${code}`}
+                        title={title}
+                        action={<span className={`tag ${isLight ? 'tag-red' : ''} ${styles.boardTag}`}>{sortColumn.label}</span>}
+                    />
+
+                    <div className={styles.boardGrid}>
+                        {showArt && (
+                            <div className={styles.artCol} aria-hidden="true">
+                                <img src={ART.starPlayer} alt="" className={styles.starArt} />
+                            </div>
+                        )}
+
+                        <div className={styles.featureCol}>
+                            {leader ? (
+                                <div className={`offset-frame ${styles.featureFrame}`}>
+                                    <div
+                                        className={`chamfer ${styles.feature}`}
+                                        style={{ ['--team' as string]: leader.primary_color || 'var(--bb-mustard)' }}
+                                    >
+                                        <span className={styles.featureNumeral} aria-hidden="true">01</span>
+                                        <span className={styles.featureIcon} aria-hidden="true">{icon}</span>
+
+                                        <span className={styles.featureMicro}>
+                                            <i className={styles.microBar} aria-hidden="true" />
+                                            {`#1 // ${code} // Leader`}
+                                        </span>
+
+                                        <div className={styles.featureBody}>
+                                            <span className={styles.featureTeam}>
+                                                <span className={styles.teamSwatch} aria-hidden="true" />
+                                                {leader.team_name}
+                                            </span>
+                                            <h3 className={styles.featureName}>{leader.name}</h3>
+                                        </div>
+
+                                        <div className={styles.featureValue}>
+                                            <strong>{sortColumn.value(leader)}</strong>
+                                            <span>{sortColumn.label}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className={styles.noData}>NO DATA</p>
+                            )}
+                        </div>
+
+                        <div className={styles.rowsCol}>
+                            <div className={styles.rowsHead} aria-hidden="true">
+                                <span>#</span>
+                                <span>{t.stats.thPlayer}</span>
+                                <span>{sortColumn.label}</span>
+                            </div>
+                            {chasers.length > 0 ? (
+                                <ol className={styles.rows} start={2}>
+                                    {chasers.map((p, idx) => (
+                                        <li
+                                            key={p.id}
+                                            className={`chamfer ${styles.row}`}
+                                            style={{ ['--team' as string]: p.primary_color || 'var(--bb-slate-500)' }}
+                                        >
+                                            <span className={styles.rowPos}>{pad(idx + 2)}</span>
+                                            <span className={styles.rowText}>
+                                                <span className={styles.rowName}>{p.name}</span>
+                                                <span className={styles.rowTeam}>{p.team_name}</span>
+                                            </span>
+                                            <span className={styles.rowValue}>{sortColumn.value(p)}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                            ) : (
+                                <p className={styles.noData}>NO DATA</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+    };
 
     return (
-        <div>
-            {/* HEADER PAGE */}
-            <div className={styles.headerArea}>
-                <h1 className={styles.pageTitle}>
-                    <Target size={48} color="var(--color-ink)" />
-                    {t.stats.title}
-                </h1>
-            </div>
+        <div className={styles.page}>
+            <PageHeader title={t.stats.title} kicker={selectedSeason?.name} icon={<Target size={44} />} tone="slate" />
 
-            {/* CONTENUTO */}
             {!stats || (!stats.scorers.length && !stats.killers.length) ? (
-                <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
-                    <p style={{ fontFamily: 'var(--font-impact)', fontSize: '2rem', color: 'var(--color-ink)' }}>{t.stats.noStats}</p>
+                <div className={`card ${styles.emptyCard}`}>
+                    <p className={styles.emptyText}>{t.stats.noStats}</p>
                 </div>
             ) : (
-                <div className={styles.statsGrid}>
-
-                    {/* TABELLONE TOP SCORERS (Verde) */}
-                    <div className={styles.statCard} style={{ borderTopColor: '#4ade80' }}>
-                        <div className={styles.cardHeader} style={{ color: '#4ade80' }}>
-                            <Star size={32} /> {t.stats.topScorers} (TD)
-                        </div>
-                        {renderPlayerTable(stats.scorers, 'td', '#4ade80')}
-                    </div>
-
-                    {/* TABELLONE TOP KILLERS (Rosso) */}
-                    <div className={styles.statCard} style={{ borderTopColor: 'var(--color-blood-bright)' }}>
-                        <div className={styles.cardHeader} style={{ color: 'var(--color-blood-bright)' }}>
-                            <Skull size={32} /> {t.stats.topKillers} (CAS)
-                        </div>
-                        {renderPlayerTable(stats.killers, 'cas', 'var(--color-blood-bright)')}
-                    </div>
-
-                    {/* TABELLONE MOST MVPs (Oro) */}
-                    <div className={styles.statCard} style={{ borderTopColor: 'var(--color-gold)' }}>
-                        <div className={styles.cardHeader} style={{ color: 'var(--color-gold)' }}>
-                            <Trophy size={32} /> {t.stats.mostMvps} (MVP)
-                        </div>
-                        {renderPlayerTable(stats.mvps, 'mvp', 'var(--color-gold)')}
-                    </div>
-
-                    {/* TABELLONE TOP EXPERIENCE (Bianco/Osso) */}
-                    <div className={styles.statCard} style={{ borderTopColor: '#fff' }}>
-                        <div className={styles.cardHeader} style={{ color: '#fff' }}>
-                            <Star size={32} /> {t.stats.topExperience} (SPP)
-                        </div>
-                        {renderPlayerTable(stats.spp, 'spp', '#fff')}
-                    </div>
-
+                <div className={styles.bands}>
+                    {renderBoard({
+                        players: stats.scorers, sortKey: 'td', title: t.stats.topScorers, icon: <Star size={30} />,
+                        index: '01', code: 'Touchdowns', ghost: 'Scorers', tone: 'light', withArt: true,
+                    })}
+                    {renderBoard({
+                        players: stats.killers, sortKey: 'cas', title: t.stats.topKillers, icon: <Skull size={30} />,
+                        index: '02', code: 'Casualties', ghost: 'Killers', tone: 'dark', flip: true,
+                    })}
+                    {renderBoard({
+                        players: stats.mvps, sortKey: 'mvp', title: t.stats.mostMvps, icon: <Trophy size={30} />,
+                        index: '03', code: 'Most valuable', ghost: 'MVP', tone: 'light',
+                    })}
+                    {renderBoard({
+                        players: stats.spp, sortKey: 'spp', title: t.stats.topExperience, icon: <Star size={30} />,
+                        index: '04', code: 'Star player points', ghost: 'Legends', tone: 'dark', flip: true,
+                    })}
                 </div>
             )}
         </div>

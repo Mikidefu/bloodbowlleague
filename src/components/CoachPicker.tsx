@@ -1,6 +1,7 @@
 'use client';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import type { Coach } from '@/lib/types';
+import styles from './CoachPicker.module.css';
 
 // Valore del selettore: un allenatore esistente oppure il nome di uno nuovo
 export type CoachChoice = { coachId: string; newCoachName: string; isNew: boolean };
@@ -33,7 +34,7 @@ export default function CoachPicker({ coaches, value, onChange, required, allowN
   const { t } = useLanguage();
 
   return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+      <div className={styles.picker}>
         <select
             id={`${idPrefix}-select`}
             aria-label={t.coachPicker.label}

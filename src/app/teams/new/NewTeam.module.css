@@ -1,190 +1,222 @@
 /* src/app/teams/new/NewTeam.module.css */
 
-.headerArea {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 3rem;
-    border-bottom: 4px solid var(--color-ink);
-    padding-bottom: 1rem;
+/* ========================================= */
+/* ACCESSO NEGATO                            */
+/* ========================================= */
+.deniedCard {
+    max-width: 640px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 3rem 2rem;
 }
 
-.pageTitle {
-    font-family: var(--font-impact);
-    font-size: 4.5rem;
-    color: var(--color-ink);
+.deniedText {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    line-height: 1.05;
     text-transform: uppercase;
-    margin: 0;
-    line-height: 1;
-    text-shadow: 3px 3px 0 #fff;
-    letter-spacing: 2px;
+    color: var(--bb-blood-700);
+    margin-bottom: 1.5rem;
 }
 
 /* ========================================= */
-/* FORM CARD (Il Modulo di Iscrizione)       */
+/* MODULO DI ISCRIZIONE                      */
 /* ========================================= */
-.registrationForm {
-    background: var(--color-paper);
-    border: 4px dashed var(--color-ink);
-    padding: 3rem;
-    box-shadow: 10px 10px 0 rgba(0,0,0,0.4);
-    max-width: 800px;
+.form {
+    max-width: 860px;
     margin: 0 auto;
-    position: relative;
-    transform: rotate(-0.5deg);
-}
-
-/* Timbro falso sullo sfondo */
-.registrationForm::after {
-    content: 'OFFICIAL DOCUMENT';
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-15deg);
-    font-family: var(--font-impact);
-    font-size: 6rem;
-    color: rgba(0, 0, 0, 0.03);
-    pointer-events: none;
-    white-space: nowrap;
-}
-
-.formGrid {
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
-    position: relative;
-    z-index: 1;
+}
+
+.section {
+    margin-bottom: 2rem;
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.5rem;
+    margin-top: 1rem;
 }
 
 .inputGroup {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    min-width: 0;
 }
 
 .label {
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: #333;
-    text-transform: uppercase;
+    font-size: 1.05rem;
+    color: var(--bb-ink-soft);
 }
 
 .inputField {
-    font-family: var(--font-note);
-    font-size: 1.6rem;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid var(--color-ink);
-    color: var(--color-blood-bright);
-    padding: 0.5rem 0;
     width: 100%;
+    min-height: 46px;
 }
 
-.inputField:focus {
-    outline: none;
-    border-bottom-color: var(--color-blood-bright);
+.coachGroup {
+    grid-column: 1 / -1;
 }
 
-.selectField {
-    font-family: var(--font-impact);
-    font-size: 1.4rem;
-    background: rgba(255,255,255,0.5);
-    border: 3px solid var(--color-ink);
-    color: var(--color-ink);
-    padding: 0.8rem;
-    width: 100%;
+select.inputField {
     cursor: pointer;
-}
-
-/* Colori e Logo */
-.colorGrid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
 }
 
 .colorPicker {
     width: 100%;
-    height: 60px;
-    border: 3px solid var(--color-ink);
+    height: 52px;
+    padding: 3px;
     cursor: pointer;
-    padding: 2px;
-    background: #fff;
+    background: var(--bb-paper);
+    border: 2px solid var(--bb-tan-dark);
+    border-radius: var(--radius);
 }
 
-/* Sezione Statistiche (Griglia stretta) */
+/* Logo */
+.logoGroup {
+    margin-top: 1.5rem;
+}
+
+.logoRow {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.logoInputs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.fileInput {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--bb-ink);
+    background: var(--bb-paper);
+    border: 2px dashed var(--bb-tan-dark);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.fileInput::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.35rem 0.9rem;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bb-parchment);
+    background: var(--bb-navy);
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.logoPreview {
+    flex-shrink: 0;
+    width: 104px;
+    height: 104px;
+    padding: 8px;
+    background: var(--bb-paper);
+    border: 4px solid var(--bb-tan-dark);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--bb-tan-dark);
+}
+
+.logoPreview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* ========================================= */
+/* STATISTICHE DI GESTIONE                   */
+/* ========================================= */
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    background: rgba(255,255,255,0.4);
-    border: 3px solid var(--color-ink);
-    padding: 1.5rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
 }
 
 .statInputGroup {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: stretch;
+    gap: 0.35rem;
+    min-width: 0;
 }
 
 .statLabel {
-    font-family: var(--font-typewriter);
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: #555;
+    font-family: var(--font-data);
+    font-stretch: 80%;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     text-align: center;
+    color: var(--bb-ink-soft);
 }
 
 .statInput {
-    font-family: var(--font-impact);
-    font-size: 2rem;
-    text-align: center;
-    border: 3px solid var(--color-ink);
-    background: #fff;
-    color: var(--color-ink);
     width: 100%;
-    padding: 0.5rem;
-    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+    min-height: 52px;
+    font-family: var(--font-data) !important;
+    font-stretch: 85%;
+    font-weight: 800;
+    font-size: 1.5rem !important;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
 }
 
-.statInput:focus {
-    outline: none;
-    border-color: var(--color-blood-bright);
-}
-
-/* Checkbox Medico */
 .apothecaryCheck {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
     cursor: pointer;
-    font-family: var(--font-impact);
-    font-size: 1.4rem;
-    color: var(--color-ink);
 }
 
-/* Azioni */
+.checkbox {
+    width: 28px;
+    height: 28px;
+    margin-top: 0.6rem;
+    accent-color: var(--bb-red);
+    cursor: pointer;
+}
+
+/* ========================================= */
+/* AZIONI                                    */
+/* ========================================= */
 .actionButtons {
     display: flex;
     justify-content: flex-end;
-    gap: 1.5rem;
-    margin-top: 1rem;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: 0.5rem;
 }
 
 /* ========================================= */
-/* MOBILE RESPONSIVE                         */
+/* MOBILE                                    */
 /* ========================================= */
 @media (max-width: 768px) {
-    .pageTitle { font-size: 3.5rem; text-align: center; }
-    .registrationForm { padding: 1.5rem; transform: rotate(0deg); }
-    .colorGrid { grid-template-columns: 1fr; gap: 1rem; }
-    .statsGrid { grid-template-columns: 1fr 1fr; }
-    .actionButtons { flex-direction: column; }
+    .fieldGrid { grid-template-columns: 1fr; }
+    .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .logoRow { flex-direction: column-reverse; align-items: stretch; }
+    .logoPreview { align-self: center; }
+    .actionButtons { flex-direction: column-reverse; }
     .actionButtons button { width: 100%; }
 }

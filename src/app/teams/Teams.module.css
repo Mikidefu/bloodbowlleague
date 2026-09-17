@@ -1,146 +1,369 @@
 /* src/app/teams/Teams.module.css */
 
-.headerArea {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 3rem;
-    border-bottom: 4px solid var(--color-ink);
-    padding-bottom: 1rem;
+/* ========================================= */
+/* STATO VUOTO                               */
+/* ========================================= */
+.emptyCard {
+  max-width: 640px;
+  margin: 2rem auto;
+  text-align: center;
+  padding: 3.5rem 2.5rem;
 }
 
-.pageTitle {
-    font-family: var(--font-impact);
-    font-size: 4rem;
-    color: var(--color-ink);
-    text-shadow: 2px 2px 0 #fff;
-    letter-spacing: 2px;
+.emptyCard :global(.title-slab) {
+  display: inline-block;
+}
+
+.emptyAction {
+  margin-top: 2rem;
 }
 
 /* ========================================= */
-/* LA FIGURINA DI CARTA (Team Card)          */
+/* FASCIA CON LE SQUADRE                     */
+/* ========================================= */
+.rosterBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  margin-bottom: -4rem;
+  padding-top: 3.5rem;
+  padding-bottom: 6rem;
+}
+
+.ghost {
+  right: -3%;
+  top: 0.5rem;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
+}
+
+/* Contatore squadre */
+.countStrip {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 2.25rem;
+}
+
+.countNumber {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 4.5rem;
+  line-height: 0.75;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(234, 178, 42, 0.9);
+}
+
+.countLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.3rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.9);
+}
+
+/* ========================================= */
+/* CARD SQUADRA (stile scheda personaggio)   */
 /* ========================================= */
 .teamsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 2.25rem 2rem;
+}
+
+.cardFrame {
+  height: 100%;
 }
 
 .teamCard {
-    position: relative;
-    background-color: var(--color-paper);
-    background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.1"/%3E%3C/svg%3E');
-    min-height: 380px;
-    padding: 2rem;
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    border: 1px solid rgba(0,0,0,0.1);
-    box-shadow: 10px 10px 20px rgba(0,0,0,0.4);
-    /* Bordo irregolare stile carta strappata */
-    filter: url(#rough-edges);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    overflow: visible;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+  padding: 1.1rem 1.25rem 1rem;
+  overflow: hidden;
+  color: var(--bb-parchment);
+  text-decoration: none;
+  background:
+    linear-gradient(var(--team-color), var(--team-color)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(165deg, #2d323a 0%, #1b1f26 55%, #121418 100%);
+  background-size: 100% 4px, 200px, cover;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  transition: transform 0.35s var(--ease-out), filter 0.35s ease;
 }
 
-/* Rotazione casuale gestita da React o fissa */
-.teamCard:nth-child(odd) { transform: rotate(-1.5deg); }
-.teamCard:nth-child(even) { transform: rotate(1.5deg); }
+/* Scheggia nel colore della squadra dietro allo stemma */
+.cardShard {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--team-color) 70%, transparent), color-mix(in srgb, var(--team-color) 15%, transparent) 70%);
+  clip-path: polygon(0 18%, 100% 4%, 100% 52%, 58% 66%, 0 58%);
+  opacity: 0.55;
+  transition: opacity 0.35s ease, clip-path 0.5s var(--ease-out);
+}
 
-.teamCard:hover {
-    transform: scale(1.05) rotate(0deg) !important;
-    z-index: 10;
-    box-shadow: 15px 15px 30px rgba(0,0,0,0.5);
+.cardShard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 55%, color-mix(in srgb, var(--team-color-2) 60%, transparent) 55% 62%, transparent 62%);
+}
+
+/* Numero gigante a contorno */
+.cardIndex {
+  position: absolute;
+  z-index: -1;
+  right: 0.6rem;
+  bottom: 2.6rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 6.5rem;
+  line-height: 0.75;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(243, 216, 151, 0.18);
+  transition: -webkit-text-stroke-color 0.35s ease;
+}
+
+.cardMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.8);
+}
+
+/* Riflesso che attraversa la card */
+.teamCard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 240, 210, 0.16) 48%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.9s var(--ease-out);
+}
+
+.teamCard:hover,
+.teamCard:focus-visible {
+  color: var(--bb-parchment);
+  transform: translate(-5px, -5px);
+  filter: brightness(1.06);
+}
+
+.teamCard:hover::after,
+.teamCard:focus-visible::after {
+  transform: translateX(100%);
+}
+
+.teamCard:hover .cardShard {
+  opacity: 0.85;
+  clip-path: polygon(0 12%, 100% 0, 100% 58%, 55% 72%, 0 64%);
+}
+
+.teamCard:hover .cardIndex {
+  -webkit-text-stroke-color: rgba(234, 178, 42, 0.55);
 }
 
 /* ========================================= */
-/* LOGO GIGANTE (A mo' di timbro)            */
+/* STEMMA                                    */
 /* ========================================= */
 .logoWrapper {
-    position: absolute;
-    top: 15%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 220px; /* Logo molto più grande */
-    height: 220px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0.8;
-    z-index: 1;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 164px;
+  height: 164px;
+  margin: 1.4rem 0 1.2rem;
+  padding: 1.1rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  box-shadow:
+    0 0 0 4px var(--team-color),
+    0 0 0 9px #d9b268,
+    0 0 0 10px rgba(40, 22, 6, 0.8),
+    0 18px 30px -10px rgba(0, 0, 0, 0.8);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.teamCard:hover .logoWrapper {
+  transform: scale(1.05) rotate(-3deg);
 }
 
 .teamLogo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    /* Effetto inchiostro su carta */
-    filter: grayscale(100%) contrast(150%) multiply;
-    mix-blend-mode: multiply;
-    transition: all 0.3s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.teamCard:hover .teamLogo {
-    filter: grayscale(0%) contrast(100%);
-    transform: scale(1.1);
-    opacity: 1;
+.fallbackLogo {
+  width: 70%;
+  height: 70%;
+  color: var(--bb-ink-soft);
 }
 
 /* ========================================= */
-/* ETICHETTE TESTUALI (Scritte a macchina)   */
+/* NOME, RAZZA, ALLENATORE                   */
 /* ========================================= */
-.cardFooter {
-    position: relative;
-    z-index: 5;
-    margin-top: auto;
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
 }
 
-.nameTag {
-    background: var(--color-ink);
-    color: #fff;
-    font-family: var(--font-impact);
-    font-size: 2rem;
-    padding: 0.5rem 1rem;
-    display: inline-block;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 4px 4px 0 var(--color-blood-bright);
-    transform: rotate(-2deg);
-    margin-bottom: 0.5rem;
+.teamName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.85rem;
+  line-height: 0.92;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+  overflow-wrap: break-word;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .raceTag {
-    background: var(--color-paper);
-    border: 2px solid var(--color-ink);
-    color: var(--color-ink);
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    font-size: 1rem;
-    padding: 0.3rem 0.8rem;
-    display: table;
-    text-transform: uppercase;
-    transform: rotate(1deg);
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 0.7rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
 
-/* Nastro adesivo nell'angolo superiore */
-.tape {
-    position: absolute;
-    top: -15px;
-    left: 50%;
-    transform: translateX(-50%) rotate(-1deg);
-    width: 100px;
-    height: 35px;
-    background: rgba(200, 180, 150, 0.4);
-    backdrop-filter: blur(2px);
-    border-left: 1px solid rgba(0,0,0,0.1);
-    border-right: 1px solid rgba(0,0,0,0.1);
-    z-index: 6;
+.coachLine {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.coachLabel {
+  flex: none;
+  padding: 0.12rem 0.55rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff4e0;
+  background: var(--bb-red);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+}
+
+.coachName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px dashed rgba(243, 216, 151, 0.22);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
 }
 
 /* Mobile */
 @media (max-width: 768px) {
-    .pageTitle { font-size: 3rem; }
-    .teamsGrid { gap: 2rem; }
-    .logoWrapper { width: 180px; height: 180px; }
+  .rosterBand {
+    padding-top: 2.5rem;
+  }
+
+  .teamsGrid {
+    gap: 1.75rem;
+  }
+
+  .teamCard {
+    min-height: 0;
+  }
+
+  .logoWrapper {
+    width: 132px;
+    height: 132px;
+  }
+
+  .teamName {
+    font-size: 1.6rem;
+  }
+
+  .countNumber {
+    font-size: 3.4rem;
+  }
+
+  .ghost {
+    display: none;
+  }
+
+  .emptyCard {
+    padding: 2rem 1.25rem;
+  }
 }

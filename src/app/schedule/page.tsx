@@ -1,12 +1,17 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
+import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy, ArrowRight, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
 import type { Match, Team } from '@/lib/types';
+import PageHeader from '@/components/brand/PageHeader';
+import Shards from '@/components/brand/Shards';
+import TapeStrip from '@/components/brand/TapeStrip';
+import SectionTitle from '@/components/brand/SectionTitle';
+import styles from './Schedule.module.css';
 
 // Messaggio d'errore restituito dall'API, se presente
 const errorMessage = async (res: Response, fallback: string) => {
@@ -14,18 +19,24 @@ const errorMessage = async (res: Response, fallback: string) => {
   return data?.error || fallback;
 };
 
+// Il colore squadra arriva dal DB: lo passiamo come variabile CSS e lo usiamo solo come anello del logo
+const teamRing = (color: string | null | undefined) =>
+  (color ? { '--team-color': color } : undefined) as React.CSSProperties | undefined;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
 export default function SchedulePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const { seasonQuery, seasonsLoading, isViewingActive } = useSeason();
+  const { seasonQuery, seasonsLoading, isViewingActive, selectedSeason } = useSeason();
   // Le stagioni concluse sono in sola lettura anche per l'admin
   const canEdit = isAdmin && isViewingActive;
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- STATO PER RESPONSIVE ---
+  // --- STATO PER RESPONSIVE (solo per accorciare le etichette) ---
   const [isMobile, setIsMobile] = useState(false);
 
   // Add Match Modal State
@@ -245,131 +256,175 @@ export default function SchedulePage() {
 
   const currentRoundIndex = currentRound !== null ? rounds.indexOf(currentRound) : -1;
 
-  if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem', color: 'var(--color-ink)' }}>Loading Schedule...</div>;
+  // Le giornate dei playoff vanno nella fascia rossa "Final Four"
+  const isPlayoffRound = currentRound !== null
+      && (groupedMatches[currentRound] ?? []).some(m => isSemifinal(m.match_type) || isFinal(m.match_type));
+
+  if (loading) return <div className="loading-state">Loading Schedule...</div>;
+
+  const seasonCode = `S${pad(selectedSeason?.number ?? 1)}`;
+  const roundMatches = currentRound !== null ? groupedMatches[currentRound] ?? [] : [];
+  const playedInRound = roundMatches.filter(m => m.is_played).length;
+  const roundType = isPlayoffRound ? 'Playoffs' : displayMatchType(roundMatches[0]?.match_type);
+
+  const renderTeam = (name: string, logo: string | null, color: string | null, side: 'home' | 'away') => (
+      <div className={styles.team}>
+        <div className={styles.logoRing} style={teamRing(color)}>
+          {logo
+              ? <img src={logo} alt="" className={styles.logoImage} />
+              : <ShieldAlert size={28} color={color ?? undefined} className={styles.logoFallback} />}
+        </div>
+        <span className={styles.teamName} data-side={side}>{name}</span>
+      </div>
+  );
+
+  const matchGrid = currentRound !== null && (
+      <div className={styles.fixtureGrid}>
+        {groupedMatches[currentRound]?.map(match => (
+            <div key={match.id} className={`offset-frame ${styles.frame}`}>
+              <article className={`chamfer ${styles.fixture} ${match.is_played ? styles.fixturePlayed : styles.fixtureUpcoming}`}>
+                <div className={styles.fixtureMeta}>
+                  <span className={styles.metaCode}>
+                    <b>R{pad(match.round || 0)}</b> {'// '}{displayMatchType(match.match_type)}
+                  </span>
+                  <span className={`${styles.status} ${match.is_played ? styles.statusDone : styles.statusNext}`}>
+                    {match.is_played ? 'COMPLETED' : 'UPCOMING'}
+                  </span>
+                </div>
+
+                {match.match_date && (
+                    <div className={styles.fixtureDate}>
+                      <Clock size={14} aria-hidden="true" /> {formatDate(match.match_date)}
+                    </div>
+                )}
+
+                <div className={styles.fixtureBody}>
+                  {renderTeam(match.home_name, match.home_logo, match.home_color, 'home')}
+
+                  {/* PUNTEGGIO O VS */}
+                  <div className={styles.scoreCenter}>
+                    {match.is_played ? (
+                        <div className={styles.score}>
+                          <span>{match.home_score}</span>
+                          <i className={styles.scoreDash} aria-hidden="true">–</i>
+                          <span>{match.away_score}</span>
+                        </div>
+                    ) : (
+                        <div className={styles.vs}>VS</div>
+                    )}
+                  </div>
+
+                  {renderTeam(match.away_name, match.away_logo, match.away_color, 'away')}
+                </div>
+
+                <div className={styles.fixtureActions}>
+                  {canEdit && (
+                      <button
+                          type="button"
+                          onClick={() => deleteMatch(match.id)}
+                          className={`chamfer ${styles.iconBtn}`}
+                          aria-label={t.schedule.deleteMatch}
+                          title={t.schedule.deleteMatch}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                  )}
+                  <button
+                      type="button"
+                      onClick={() => router.push(`/schedule/${match.id}`)}
+                      className={`${styles.fixtureMain} ${!match.is_played && canEdit ? `chamfer ${styles.playBtn}` : styles.reportLink}`}
+                  >
+                    {!match.is_played && canEdit && <Play size={16} aria-hidden="true" />}
+                    {match.is_played
+                        ? (isMobile ? 'REPORT' : 'MATCH REPORT')
+                        : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
+                    {!(!match.is_played && canEdit) && <ArrowRight size={16} aria-hidden="true" />}
+                  </button>
+                </div>
+              </article>
+            </div>
+        ))}
+      </div>
+  );
 
   return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '0.5rem' : '1rem' }}>
+      <div className={styles.page}>
+        <PageHeader
+            title={t.schedule.title}
+            icon={<Calendar size={44} />}
+            actions={canEdit ? (
+                <>
+                  {(canStartPlayoffs || canGenerateFinals) && (
+                      <button
+                          type="button"
+                          className="btn btn-gold"
+                          disabled={isGenerating}
+                          onClick={() => handlePlayoffs(canStartPlayoffs ? 'semifinals' : 'finals')}
+                      >
+                        <Trophy size={20} /> {isGenerating ? t.schedule.generating : canStartPlayoffs ? t.schedule.startFinalFour : t.schedule.generateFinals}
+                      </button>
+                  )}
+                  <button type="button" className="btn btn-slate" onClick={() => setShowGenerateModal(true)}>
+                    <Settings size={20} /> {isMobile ? 'GENERATE' : 'AUTO-GENERATE'}
+                  </button>
+                  <button type="button" className="btn" onClick={() => setShowAddMatch(true)}>
+                    <Plus size={20} /> {isMobile ? 'MATCH' : 'ADD MATCH'}
+                  </button>
+                </>
+            ) : undefined}
+        />
 
-        {/* HEADER DELLA PAGINA - RESPONSIVE */}
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          marginBottom: '2rem',
-          borderBottom: '4px solid var(--color-ink)',
-          paddingBottom: '1rem',
-          gap: '1rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Calendar size={isMobile ? 30 : 40} color="var(--color-blood-bright)" />
-            <h1 style={{
-              fontFamily: 'var(--font-impact)',
-              fontSize: isMobile ? '2.2rem' : '3.5rem',
-              color: 'var(--color-ink)',
-              margin: 0,
-              textShadow: '2px 2px 0 #fff, 4px 4px 0 var(--color-blood-bright)',
-              letterSpacing: '1px'
-            }}>
-              SEASON SCHEDULE
-            </h1>
-          </div>
-          {canEdit && (
-          <div style={{ display: 'flex', gap: '0.5rem', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-            {(canStartPlayoffs || canGenerateFinals) && (
-                <button
-                    className="btn btn-primary"
-                    disabled={isGenerating}
-                    onClick={() => handlePlayoffs(canStartPlayoffs ? 'semifinals' : 'finals')}
-                    style={{ boxShadow: '4px 4px 0 var(--color-ink)', flex: isMobile ? '1 1 100%' : 1, padding: '0.5rem 1rem', fontSize: isMobile ? '0.9rem' : '1.1rem', background: 'var(--color-gold)', color: '#111' }}
-                >
-                  <Trophy size={isMobile ? 16 : 20} /> {isGenerating ? t.schedule.generating : canStartPlayoffs ? t.schedule.startFinalFour : t.schedule.generateFinals}
-                </button>
-            )}
-            <button
-                style={{
-                  background: '#fff',
-                  color: 'var(--color-ink)',
-                  border: '3px solid var(--color-ink)',
-                  boxShadow: '4px 4px 0 var(--color-ink)',
-                  padding: '0.5rem 1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  fontFamily: 'var(--font-impact)',
-                  fontSize: isMobile ? '0.9rem' : '1.1rem',
-                  cursor: 'pointer',
-                  flex: 1
-                }}
-                onClick={() => setShowGenerateModal(true)}
-            >
-              <Settings size={isMobile ? 16 : 20} /> {isMobile ? 'GENERATE' : 'AUTO-GENERATE'}
-            </button>
-
-            <button className="btn btn-primary" onClick={() => setShowAddMatch(true)} style={{ boxShadow: '4px 4px 0 var(--color-ink)', flex: 1, padding: '0.5rem 1rem', fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
-              <Plus size={isMobile ? 16 : 20} /> {isMobile ? 'MATCH' : 'ADD MATCH'}
-            </button>
-          </div>
-          )}
-        </div>
-
-        {/* BARRA FILTRO SQUADRE - RESPONSIVE */}
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: '0.5rem',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          marginBottom: '2rem',
-          background: 'var(--color-paper)',
-          padding: '1rem',
-          border: '3px solid var(--color-ink)',
-          boxShadow: '6px 6px 0 var(--color-ink)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={20} color="var(--color-ink)" />
-            <label style={{ fontFamily: 'var(--font-typewriter)', fontWeight: 'bold', color: 'var(--color-ink)', fontSize: '1rem' }}>
-              FILTER:
-            </label>
-          </div>
+        {/* BARRA FILTRO SQUADRE */}
+        <div className={styles.filterBar}>
+          <span className={styles.filterCode} aria-hidden="true">
+            <i className={styles.filterSquares} />{`${seasonCode} // ${pad(teams.length)} TEAMS`}
+          </span>
+          <label htmlFor="schedule-team-filter" className={styles.filterLabel}>
+            <Filter size={18} aria-hidden="true" /> FILTER:
+          </label>
           <select
+              id="schedule-team-filter"
               value={selectedTeamFilter}
               onChange={e => setSelectedTeamFilter(e.target.value)}
-              style={{
-                padding: '0.5rem', fontFamily: 'var(--font-impact)', fontSize: '1.1rem',
-                flex: 1, width: isMobile ? '100%' : 'auto', border: '2px solid var(--color-ink)', background: '#fff', color: 'var(--color-ink)', cursor: 'pointer'
-              }}
+              className={styles.filterSelect}
           >
             <option value="">-- ALL TEAMS --</option>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
 
-        {/* AUTO-GENERATE MODAL - MOBILE OPTIMIZED */}
-        {showGenerateModal && (
-            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <div style={{ background: 'var(--color-paper)', padding: '1.5rem', border: '4px solid var(--color-ink)', maxWidth: '500px', width: '100%', boxShadow: '8px 8px 0 rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
-                <h2 style={{ fontFamily: 'var(--font-impact)', fontSize: '1.8rem', color: 'var(--color-ink)', marginTop: 0, marginBottom: '1rem', textTransform: 'uppercase' }}>
-                  Generate Schedule
-                </h2>
-                <p style={{ fontFamily: 'var(--font-typewriter)', marginBottom: '1.5rem', color: '#444', fontSize: '0.9rem' }}>
-                  Round-Robin schedule for all active teams.
-                </p>
+        {/* NASTRO DI SEPARAZIONE */}
+        <div className={`bleed ${styles.tapeWrap}`}>
+          <TapeStrip
+              tone={isPlayoffRound ? 'mustard' : 'red'}
+              angle={-1.6}
+              moving={false}
+              text={currentRound !== null ? `Matchday ${pad(currentRound)} ✦ ${roundType}` : `Blood Bowl League ✦ ${t.schedule.title}`}
+          />
+        </div>
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontFamily: 'var(--font-typewriter)', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--color-ink)' }}>START FROM ROUND</label>
+        {/* AUTO-GENERATE MODAL */}
+        {showGenerateModal && (
+            <div className={styles.modalOverlay}>
+              <div className={`card ${styles.modal}`} role="dialog" aria-modal="true" aria-labelledby="generate-title">
+                <h2 id="generate-title" className="title-slab">Generate Schedule</h2>
+                <p className={styles.modalText}>Round-Robin schedule for all active teams.</p>
+
+                <div className={styles.field}>
+                  <label htmlFor="generate-start-round" className={styles.fieldLabel}>START FROM ROUND</label>
                   <input
+                      id="generate-start-round"
                       type="number"
                       min="1"
                       value={generateStartRound}
                       onChange={e => setGenerateStartRound(Number(e.target.value))}
-                      style={{ width: '100%', padding: '0.8rem', fontFamily: 'var(--font-impact)', fontSize: '1.5rem', border: '3px solid var(--color-ink)' }}
+                      className={styles.fieldInput}
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn" style={{ flex: 1 }} onClick={() => setShowGenerateModal(false)}>CANCEL</button>
-                  <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleGenerateSchedule} disabled={isGenerating}>
+                <div className={styles.modalActions}>
+                  <button type="button" className={`btn ${styles.cancelBtn}`} onClick={() => setShowGenerateModal(false)}>CANCEL</button>
+                  <button type="button" className={`btn btn-primary ${styles.confirmBtn}`} onClick={handleGenerateSchedule} disabled={isGenerating}>
                     {isGenerating ? '...' : 'GENERATE'}
                   </button>
                 </div>
@@ -377,65 +432,64 @@ export default function SchedulePage() {
             </div>
         )}
 
-        {/* ADD MATCH MODAL - MOBILE OPTIMIZED */}
+        {/* ADD MATCH MODAL */}
         {showAddMatch && (
-            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem' }}>
-              <div style={{ background: 'var(--color-paper)', padding: '1.2rem', border: '4px solid var(--color-ink)', maxWidth: '600px', width: '100%', boxShadow: '8px 8px 0 rgba(0,0,0,0.5)', maxHeight: '95vh', overflowY: 'auto' }}>
-                <h2 style={{ fontFamily: 'var(--font-impact)', fontSize: '1.8rem', color: 'var(--color-ink)', marginTop: 0, marginBottom: '1rem', textTransform: 'uppercase' }}>
-                  SCHEDULE FIXTURE
-                </h2>
+            <div className={styles.modalOverlay}>
+              <div className={`card ${styles.modal} ${styles.modalWide}`} role="dialog" aria-modal="true" aria-labelledby="add-match-title">
+                <h2 id="add-match-title" className="title-slab">SCHEDULE FIXTURE</h2>
 
-                <form onSubmit={handleAddMatch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--color-ink)', fontSize: '0.8rem' }}>ROUND</label>
-                      <input type="number" min="1" required value={form.round} onChange={e => setForm({...form, round: parseInt(e.target.value) || 1})} style={{ width: '100%', padding: '0.5rem', fontFamily: 'var(--font-impact)', fontSize: '1.2rem', border: '2px solid var(--color-ink)' }} />
+                <form onSubmit={handleAddMatch} className={styles.form}>
+                  <div className={styles.formRow}>
+                    <div className={styles.field}>
+                      <label htmlFor="add-round" className={styles.fieldLabel}>ROUND</label>
+                      <input id="add-round" type="number" min="1" required value={form.round} onChange={e => setForm({...form, round: parseInt(e.target.value) || 1})} className={styles.fieldInput} />
                     </div>
-                    <div style={{ flex: 2 }}>
-                      <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--color-ink)', fontSize: '0.8rem' }}>DATE & TIME</label>
-                      <input type="datetime-local" value={form.match_date} onChange={e => setForm({...form, match_date: e.target.value})} style={{ width: '100%', padding: '0.5rem', fontFamily: 'var(--font-typewriter)', border: '2px solid var(--color-ink)', fontSize: '0.9rem' }} />
+                    <div className={`${styles.field} ${styles.fieldWide}`}>
+                      <label htmlFor="add-date" className={styles.fieldLabel}>DATE & TIME</label>
+                      <input id="add-date" type="datetime-local" value={form.match_date} onChange={e => setForm({...form, match_date: e.target.value})} className={styles.fieldInput} />
                     </div>
                   </div>
 
-                  <div>
-                    <label style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>HOME TEAM</label>
-                    <select required value={form.home_team_id} onChange={e => setForm({...form, home_team_id: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '2px solid var(--color-ink)' }}>
+                  <div className={styles.field}>
+                    <label htmlFor="add-home" className={styles.fieldLabel}>HOME TEAM</label>
+                    <select id="add-home" required value={form.home_team_id} onChange={e => setForm({...form, home_team_id: e.target.value})} className={styles.fieldInput}>
                       <option value="">Select Team...</option>
                       {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
 
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-impact)', fontSize: '1.5rem', color: 'var(--color-blood-bright)' }}>VS</div>
+                  <div className={styles.formVs} aria-hidden="true">VS</div>
 
-                  <div>
-                    <label style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>AWAY TEAM</label>
-                    <select required value={form.away_team_id} onChange={e => setForm({...form, away_team_id: e.target.value})} style={{ width: '100%', padding: '0.6rem', border: '2px solid var(--color-ink)' }}>
+                  <div className={styles.field}>
+                    <label htmlFor="add-away" className={styles.fieldLabel}>AWAY TEAM</label>
+                    <select id="add-away" required value={form.away_team_id} onChange={e => setForm({...form, away_team_id: e.target.value})} className={styles.fieldInput}>
                       <option value="">Select Team...</option>
                       {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
 
                   {form.home_team_id && form.away_team_id && (
-                      <div style={{ background: '#f5f5f5', padding: '0.8rem', border: '2px dashed var(--color-ink)', fontSize: '0.85rem' }}>
+                      <div className={styles.rivalryNote}>
                         {bothLegsPlayed ? (
-                            <div style={{ color: 'var(--color-blood-bright)', fontWeight: 'bold' }}>H/A legs played! Friendly forced.</div>
+                            <div className={styles.noteDanger}>H/A legs played! Friendly forced.</div>
                         ) : needsSwap ? (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ color: '#f59e0b' }}>Fixture already played!</span>
-                              <button type="button" onClick={handleSwapTeams} style={{ background: 'var(--color-ink)', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-impact)' }}>SWAP H/A</button>
+                            <div className={styles.noteSwap}>
+                              <span className={styles.noteWarning}>Fixture already played!</span>
+                              <button type="button" onClick={handleSwapTeams} className={`btn btn-slate ${styles.swapBtn}`}>SWAP H/A</button>
                             </div>
                         ) : (
-                            <div style={{ color: 'var(--color-grass)', fontWeight: 'bold' }}>✓ Matchup is valid.</div>
+                            <div className={styles.noteOk}>✓ Matchup is valid.</div>
                         )}
                       </div>
                   )}
 
-                  <div>
-                    <label style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>MATCH TYPE</label>
+                  <div className={styles.field}>
+                    <label htmlFor="add-type" className={styles.fieldLabel}>MATCH TYPE</label>
                     <select
+                        id="add-type"
                         value={form.match_type}
                         onChange={e => setForm({...form, match_type: e.target.value})}
-                        style={{ width: '100%', padding: '0.6rem', border: '2px solid var(--color-ink)' }}
+                        className={styles.fieldInput}
                         disabled={bothLegsPlayed}
                     >
                       <option value={MATCH_TYPES.league}>League Match</option>
@@ -444,9 +498,9 @@ export default function SchedulePage() {
                     </select>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setShowAddMatch(false)}>CANCEL</button>
-                    <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={isSubmitting}>
+                  <div className={styles.modalActions}>
+                    <button type="button" className={`btn ${styles.cancelBtn}`} onClick={() => setShowAddMatch(false)}>CANCEL</button>
+                    <button type="submit" className={`btn btn-primary ${styles.confirmBtn}`} disabled={isSubmitting}>
                       {isSubmitting ? '...' : 'SCHEDULE'}
                     </button>
                   </div>
@@ -455,138 +509,94 @@ export default function SchedulePage() {
             </div>
         )}
 
-        {/* MATCH LIST CON PAGINAZIONE E TASTO ELIMINA ROUND - MOBILE OPTIMIZED */}
+        {/* GIORNATE: NAVIGAZIONE, ELIMINA ROUND E PARTITE */}
         {rounds.length === 0 || currentRound === null || !groupedMatches[currentRound] ? (
-            <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--color-paper)', border: '4px dashed var(--color-ink)' }}>
-              <p style={{ fontFamily: 'var(--font-impact)', fontSize: '1.5rem', color: '#555', margin: 0 }}>NO MATCHES FOUND</p>
-            </div>
+            <section className={`bleed ${styles.band}`}>
+              <span className={`ghost-text on-light ${styles.ghost}`} aria-hidden="true">Fixtures</span>
+              <div className={`chamfer ${styles.emptyState}`}>
+                <span className={styles.emptyCode}>{`${seasonCode} // 00 FIXTURES`}</span>
+                <p className={styles.emptyText}>NO MATCHES FOUND</p>
+              </div>
+            </section>
         ) : (
-            <div>
-              {/* CONTROLLI PAGINAZIONE - MOBILE FRIENDLY */}
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: 'var(--color-ink)', padding: isMobile ? '0.6rem' : '1rem 2rem', marginBottom: '2rem',
-                boxShadow: '4px 4px 0 rgba(0,0,0,0.3)'
-              }}>
-                <button
-                    onClick={() => setSelectedRound(rounds[currentRoundIndex - 1])}
-                    disabled={currentRoundIndex <= 0}
-                    style={{
-                      background: 'transparent', border: 'none', color: currentRoundIndex <= 0 ? '#555' : '#fff',
-                      cursor: 'pointer'
-                    }}
-                >
-                  <ChevronLeft size={isMobile ? 35 : 45} />
-                </button>
+            <section className={`bleed ${styles.band} ${isPlayoffRound ? styles.bandPlayoff : ''}`}>
+              {isPlayoffRound && <Shards variant="band" className={styles.bandShards} />}
+              <span className={`ghost-text ${isPlayoffRound ? '' : 'on-light'} ${styles.ghost}`} aria-hidden="true">
+                {isPlayoffRound ? 'Final Four' : 'Matchday'}
+              </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1.5rem' }}>
-                  <h2 style={{
-                    fontFamily: 'var(--font-impact)', color: '#fff', margin: 0, letterSpacing: '1px',
-                    fontSize: isMobile ? '1.4rem' : '2.5rem'
-                  }}>
-                    DAY <span style={{ color: 'var(--color-blood-bright)', fontSize: isMobile ? '2.4rem' : '3.5rem' }}>{currentRound}</span>
+              <div className={styles.inner}>
+                {/* STRISCIA NUMERATA DELLA GIORNATA */}
+                <div className={styles.roundNav}>
+                  <button
+                      type="button"
+                      onClick={() => setSelectedRound(rounds[currentRoundIndex - 1])}
+                      disabled={currentRoundIndex <= 0}
+                      className={`chamfer ${styles.navBtn} ${styles.navPrev}`}
+                      aria-label="Previous round"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+
+                  <h2 className={styles.roundHeading}>
+                    <span className={styles.roundLabel}>DAY</span>
+                    <span className={styles.roundNumber}>{pad(currentRound)}</span>
                   </h2>
 
+                  <div className={styles.roundInfo}>
+                    <span className={styles.roundMicro}>
+                      <i className={styles.filterSquares} aria-hidden="true" />
+                      {`R${pad(currentRound)} // ${roundType} // ${seasonCode}`}
+                    </span>
+                    <span className={styles.roundStats}>
+                      <b>{pad(roundMatches.length)}</b> fixtures <span aria-hidden="true">/</span> <b>{pad(playedInRound)}</b> played
+                    </span>
+                    <span className={styles.roundTicks} aria-hidden="true">
+                      {rounds.map(r => (
+                          <i
+                              key={r}
+                              className={`${r === currentRound ? styles.tickCurrent : ''} ${groupedMatches[r].every(m => m.is_played) ? styles.tickDone : ''}`}
+                          />
+                      ))}
+                    </span>
+                  </div>
+
                   {canEdit && (
-                  <button
-                      onClick={() => handleDeleteRound(currentRound)}
-                      style={{
-                        background: 'var(--color-blood-bright)', border: '2px solid #fff', color: '#fff',
-                        cursor: 'pointer', padding: isMobile ? '0.3rem' : '0.5rem',
-                        boxShadow: '2px 2px 0 #000', borderRadius: '4px'
-                      }}
-                      title={`Elimina Round ${currentRound}`}
-                  >
-                    <Trash2 size={isMobile ? 18 : 24} />
-                  </button>
+                      <button
+                          type="button"
+                          onClick={() => handleDeleteRound(currentRound)}
+                          className={`chamfer ${styles.roundDelete}`}
+                          title={`Elimina Round ${currentRound}`}
+                          aria-label={`Elimina Round ${currentRound}`}
+                      >
+                        <Trash2 size={20} />
+                      </button>
                   )}
+
+                  <button
+                      type="button"
+                      onClick={() => setSelectedRound(rounds[currentRoundIndex + 1])}
+                      disabled={currentRoundIndex >= rounds.length - 1}
+                      className={`chamfer ${styles.navBtn} ${styles.navNext}`}
+                      aria-label="Next round"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
                 </div>
 
-                <button
-                    onClick={() => setSelectedRound(rounds[currentRoundIndex + 1])}
-                    disabled={currentRoundIndex >= rounds.length - 1}
-                    style={{
-                      background: 'transparent', border: 'none', color: currentRoundIndex >= rounds.length - 1 ? '#555' : '#fff',
-                      cursor: 'pointer'
-                    }}
-                >
-                  <ChevronRight size={isMobile ? 35 : 45} />
-                </button>
-              </div>
-
-              {/* GRIGLIA PARTITE - RESPONSIVE */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))',
-                gap: isMobile ? '1rem' : '2rem'
-              }}>
-                {groupedMatches[currentRound]?.map(match => (
-                    <div key={match.id} style={{
-                      background: 'var(--color-paper)', border: '4px solid var(--color-ink)',
-                      boxShadow: '6px 6px 0 var(--color-ink)', position: 'relative', overflow: 'hidden',
-                      display: 'flex', flexDirection: 'column'
-                    }}>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: '#111', color: '#fff', padding: '0.4rem 0.8rem', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                        <span style={{ color: match.is_played ? 'var(--color-grass)' : '#f59e0b' }}>
-                          {match.is_played ? 'COMPLETED' : 'UPCOMING'}
-                        </span>
-                        <span style={{ color: 'var(--color-gold)' }}>{displayMatchType(match.match_type)}</span>
-                      </div>
-
-                      {match.match_date && (
-                          <div style={{ background: '#333', color: '#fff', textAlign: 'center', padding: '0.2rem', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
-                            <Clock size={12} color="var(--color-gold)" /> {formatDate(match.match_date)}
-                          </div>
-                      )}
-
-                      <div style={{ padding: '1.5rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1, gap: '0.2rem' }}>
-
-                        {/* HOME TEAM */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '38%' }}>
-                          <div style={{ width: isMobile ? '50px' : '70px', height: isMobile ? '50px' : '70px', border: `3px solid ${match.home_color || '#111'}`, padding: '5px', background: '#fff', marginBottom: '0.4rem', transform: 'rotate(-3deg)' }}>
-                            {match.home_logo ? <img src={match.home_logo} alt="H" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.home_color ?? undefined} />}
-                          </div>
-                          <span style={{ fontFamily: 'var(--font-varsity)', fontSize: isMobile ? '0.85rem' : '1.1rem', textAlign: 'center', color: 'var(--color-ink)', lineHeight: 1, wordBreak: 'break-word' }}>{match.home_name}</span>
-                        </div>
-
-                        {/* PUNTEGGIO O VS */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '24%' }}>
-                          {match.is_played ? (
-                              <div style={{ fontFamily: 'var(--font-impact)', fontSize: isMobile ? '1.8rem' : '2.8rem', color: 'var(--color-ink)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                <span>{match.home_score}</span> <span style={{ color: 'var(--color-blood-bright)', fontSize: '1rem' }}>-</span> <span>{match.away_score}</span>
-                              </div>
-                          ) : (
-                              <div style={{ fontFamily: 'var(--font-impact)', fontSize: isMobile ? '1.5rem' : '2rem', color: 'var(--color-blood-bright)' }}>VS</div>
-                          )}
-                        </div>
-
-                        {/* AWAY TEAM */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '38%' }}>
-                          <div style={{ width: isMobile ? '50px' : '70px', height: isMobile ? '50px' : '70px', border: `3px solid ${match.away_color || '#111'}`, padding: '5px', background: '#fff', marginBottom: '0.4rem', transform: 'rotate(3deg)' }}>
-                            {match.away_logo ? <img src={match.away_logo} alt="A" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.away_color ?? undefined} />}
-                          </div>
-                          <span style={{ fontFamily: 'var(--font-varsity)', fontSize: isMobile ? '0.85rem' : '1.1rem', textAlign: 'center', color: 'var(--color-ink)', lineHeight: 1, wordBreak: 'break-word' }}>{match.away_name}</span>
-                        </div>
-
-                      </div>
-
-                      <div style={{ display: 'flex', borderTop: '2px solid var(--color-ink)' }}>
-                        <button onClick={() => router.push(`/schedule/${match.id}`)} style={{ flex: 1, padding: isMobile ? '0.8rem 0.4rem' : '1rem', background: 'transparent', border: 'none', borderRight: canEdit ? '2px solid var(--color-ink)' : 'none', fontFamily: 'var(--font-impact)', fontSize: isMobile ? '0.9rem' : '1.1rem', color: 'var(--color-ink)', cursor: 'pointer' }}>
-                          {match.is_played
-                              ? (isMobile ? 'REPORT' : 'MATCH REPORT')
-                              : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
-                        </button>
-                        {canEdit && (
-                            <button onClick={() => deleteMatch(match.id)} style={{ padding: '0.8rem', background: 'transparent', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer' }}>
-                              <Trash2 size={isMobile ? 20 : 24} />
-                            </button>
-                        )}
-                      </div>
+                {isPlayoffRound && (
+                    <div className={styles.playoffTitle}>
+                      <SectionTitle
+                          micro={`${seasonCode} // Knockout stage`}
+                          title="Final Four"
+                          action={<Trophy size={48} className={styles.playoffTrophy} aria-hidden="true" />}
+                      />
                     </div>
-                ))}
+                )}
+
+                {matchGrid}
               </div>
-            </div>
+            </section>
         )}
       </div>
   );

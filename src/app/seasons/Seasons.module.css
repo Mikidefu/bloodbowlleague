@@ -1,294 +1,961 @@
-/* src/app/seasons/Seasons.module.css */
+/* src/app/seasons/Seasons.module.css: stagioni (linguaggio editoriale v3) */
 
-.seasonList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-.seasonCard {
-    background: var(--color-paper);
-    border: 4px solid var(--color-ink);
-    box-shadow: 8px 8px 0 var(--color-ink);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-}
-
-.seasonCardActive {
-    border-color: var(--color-blood-bright);
-    box-shadow: 8px 8px 0 var(--color-blood-bright);
-}
-
-.cardTop {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-}
-
-.seasonNumber {
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    color: #666;
-}
-
-.seasonName {
-    font-family: var(--font-impact);
-    font-size: 2rem;
-    line-height: 1.05;
-    margin: 0;
-}
-
-.status {
-    font-family: var(--font-impact);
-    letter-spacing: 1px;
-    padding: 0.1rem 0.6rem;
-    border: 3px solid currentColor;
-    white-space: nowrap;
-}
-
-.statusActive { color: #15803d; }
-.statusCompleted { color: #666; }
-.statusPaused { color: #b45309; }
-.statusCancelled { color: var(--color-blood-bright); }
-
-.seasonCardCancelled {
-    background: repeating-linear-gradient(-45deg, var(--color-paper), var(--color-paper) 14px, #ebe4e4 14px, #ebe4e4 28px);
-}
-
-.seasonCardCancelled .seasonName { text-decoration: line-through; text-decoration-thickness: 3px; }
-
-.dangerBtn {
-    background: #fff !important;
-    color: var(--color-blood-bright) !important;
-    border-color: var(--color-blood-bright) !important;
-}
-
-/* Finestra "stagione senza campione" */
-.modalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-
-.modal {
-    background: var(--color-paper);
-    border: 4px solid var(--color-ink);
-    box-shadow: 10px 10px 0 var(--color-blood-bright);
-    padding: 2rem;
-    max-width: 760px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.decisionGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.decisionBtn {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    text-align: left;
-    background: #fff;
-    border: 3px solid var(--color-ink);
-    box-shadow: 5px 5px 0 var(--color-ink);
-    padding: 1rem;
-    cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.decisionBtn:hover:not(:disabled) {
-    transform: translate(-2px, -2px);
-    box-shadow: 7px 7px 0 var(--color-ink);
-}
-
-.decisionBtn:disabled { opacity: 0.5; cursor: wait; }
-
-.decisionLabel {
-    font-family: var(--font-impact);
-    font-size: 1.4rem;
-    letter-spacing: 1px;
-    color: var(--color-ink);
-}
-
-.decisionHint {
-    font-family: var(--font-typewriter);
-    font-size: 0.9rem;
-    color: #555;
-}
-
-.decisionDanger { border-color: var(--color-blood-bright); box-shadow: 5px 5px 0 var(--color-blood-bright); }
-.decisionDanger .decisionLabel { color: var(--color-blood-bright); }
-
-.facts {
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.2rem 1rem;
-}
-
-.factLabel { color: #666; }
-
-.champion {
-    background: #111;
-    color: var(--color-gold);
-    font-family: var(--font-impact);
-    font-size: 1.3rem;
-    letter-spacing: 1px;
-    padding: 0.5rem 0.8rem;
-}
-
-.championCoach {
-    display: block;
-    font-family: var(--font-typewriter);
-    font-size: 0.9rem;
-    color: #ccc;
-    letter-spacing: 0;
-}
-
-.cardActions {
-    display: flex;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    margin-top: auto;
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
 }
 
 .smallBtn {
-    font-size: 1rem !important;
-    padding: 0.4rem 0.9rem !important;
-    min-width: 0 !important;
-    box-shadow: 3px 3px 0 var(--color-ink) !important;
+  min-height: 44px;
+  font-size: 1.1rem;
+  padding: 0.45rem 1.1rem;
 }
 
-/* Procedura nuova stagione */
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.inlineForm .input {
+  flex: 1 1 180px;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+/* ================================================================== */
+/*  STAGIONE IN CORSO (fascia in evidenza)                             */
+/* ================================================================== */
+.activeBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  padding-top: 6rem;
+  padding-bottom: 9rem;
+  color: var(--bb-parchment);
+  background: #101318;
+}
+
+.activeShards {
+  z-index: -1;
+}
+
+.ghostActive {
+  left: -2%;
+  bottom: 4.5rem;
+}
+
+.activeInner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 3rem;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.activeNumWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.activeNumLabel {
+  margin-bottom: -0.5rem;
+  padding-left: 0.6rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 3px 3px 0 rgba(58, 13, 15, 0.8);
+}
+
+.activeNum {
+  position: relative;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(10rem, 22vw, 20rem);
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  color: rgba(234, 178, 42, 0.1);
+  -webkit-text-stroke: 3px #f3d897;
+  filter: drop-shadow(8px 10px 0 rgba(10, 8, 6, 0.55));
+}
+
+.activeNum::after {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 38%;
+  bottom: -0.9rem;
+  height: 8px;
+  background: var(--bb-red);
+  transform: skewX(-20deg);
+}
+
+.activeContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+  padding: 2rem 2.2rem 2.2rem;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 100% 4px no-repeat,
+    linear-gradient(135deg, rgba(10, 12, 18, 0.88), rgba(26, 40, 82, 0.72));
+  backdrop-filter: blur(4px);
+  clip-path: polygon(28px 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%, 0 28px);
+}
+
+.activeMicro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.activeName {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.8rem, 5.5vw, 4.8rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 5px 6px 0 rgba(122, 26, 28, 0.9);
+  overflow-wrap: break-word;
+}
+
+/* Barra avanzamento partite */
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.meterHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.meterHead strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--bb-mustard);
+}
+
+.meterHead small {
+  font-size: 0.6em;
+  color: var(--bb-slate-300);
+}
+
+.meterTrack {
+  position: relative;
+  height: 14px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(16, 19, 24, 0.9) 22px 25px),
+    rgba(255, 255, 255, 0.08);
+  transform: skewX(-20deg);
+  overflow: hidden;
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(16, 19, 24, 0.9) 22px 25px),
+    linear-gradient(90deg, #c8252c, #eab22a);
+  box-shadow: 0 0 16px rgba(234, 178, 42, 0.5);
+}
+
+.activeFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2.5rem;
+  margin: 0;
+}
+
+.activeFacts div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.15rem;
+  padding-left: 0.8rem;
+  border-left: 3px solid var(--bb-red);
+}
+
+.activeFacts dt {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.activeFacts dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  font-variant-numeric: tabular-nums;
+}
+
+.activeBottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.activeBottom .champion {
+  flex: 1 1 260px;
+}
+
+.activeTape {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2.2rem;
+  z-index: 3;
+}
+
+/* ================================================================== */
+/*  CAMPIONE SU PLACCA D'OTTONE                                        */
+/* ================================================================== */
+.champion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.75rem 1.3rem 0.8rem;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.championLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #4a3210;
+}
+
+.championTeam {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #2a1a05;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  overflow-wrap: anywhere;
+}
+
+.championTeam:hover {
+  color: var(--bb-blood-800);
+}
+
+.championCoach {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #4a3210;
+}
+
+.championNone {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  color: rgba(42, 26, 5, 0.7);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ================================================================== */
+/*  STAGIONI CONCLUSE (card smussate)                                  */
+/* ================================================================== */
+.pastSection {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 4.5rem 0 2rem;
+}
+
+.ghostPast {
+  right: -4%;
+  top: 1.5rem;
+}
+
+.seasonList {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 2.25rem;
+  margin-bottom: 1rem;
+  padding: 0 10px 10px 0;
+}
+
+.seasonCard {
+  --cut: 24px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-width: 0;
+  padding: 1.5rem 1.5rem 1.6rem;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.seasonCard:hover {
+  transform: translate(-4px, -4px);
+}
+
+/* Numero stagione gigante a contorno */
+.cardNum {
+  position: absolute;
+  z-index: -1;
+  top: -0.6rem;
+  right: -0.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 9rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.28);
+  pointer-events: none;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-right: 5rem;
+}
+
+.cardMicro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.seasonName {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 3px 4px 0 rgba(122, 26, 28, 0.85);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.75rem 0;
+  border-block: 1px dashed rgba(243, 216, 151, 0.22);
+  font-family: var(--font-data);
+  font-stretch: 85%;
+}
+
+.facts dt {
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+  align-self: center;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-parchment);
+}
+
+.seasonCard .cardActions {
+  margin-top: auto;
+}
+
+/* ================================================================== */
+/*  STATI DELLA STAGIONE (pausa, annullata)                            */
+/* ================================================================== */
+
+/* In pausa: filetto senape al posto del rosso */
+.seasonCardPaused {
+  background:
+    linear-gradient(var(--bb-mustard), var(--bb-mustard)) 0 0 / 100% 4px no-repeat,
+    repeating-linear-gradient(-45deg, rgba(234, 178, 42, 0.07) 0 12px, transparent 12px 24px),
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, cover, 200px, cover;
+}
+
+.seasonCardPaused .cardNum {
+  -webkit-text-stroke-color: rgba(234, 178, 42, 0.35);
+}
+
+/* Annullata: resta consultabile ma spenta, nome barrato */
+.seasonCardCancelled {
+  background:
+    linear-gradient(var(--bb-slate-500), var(--bb-slate-500)) 0 0 / 100% 4px no-repeat,
+    repeating-linear-gradient(-45deg, rgba(200, 37, 44, 0.08) 0 12px, transparent 12px 24px),
+    var(--tex-grain),
+    linear-gradient(160deg, #22262d, #16191e);
+  background-size: 100% 4px, cover, 200px, cover;
+}
+
+.seasonCardCancelled .seasonName,
+.seasonCardCancelled .facts,
+.seasonCardCancelled .champion,
+.seasonCardCancelled .cardNum {
+  opacity: 0.6;
+}
+
+.seasonCardCancelled .seasonName {
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 4px;
+}
+
+:global(.tag).tagCancelled {
+  background-color: var(--bb-slate-700);
+  color: var(--bb-slate-300);
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 2px;
+}
+
+/* ================================================================== */
+/*  FINESTRA "STAGIONE SENZA CAMPIONE"                                 */
+/* ================================================================== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(16, 19, 24, 0.88);
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  --cut: 28px;
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  margin: 0;
+  overflow-y: auto;
+}
+
+.decisionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.decisionBtn {
+  --cut: 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 1.1rem 1.2rem 1.2rem;
+  text-align: left;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--bb-slate-500), var(--bb-slate-500)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), filter 0.2s ease;
+}
+
+.decisionBtn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  filter: brightness(1.12);
+}
+
+.decisionBtn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.decisionNum {
+  position: absolute;
+  z-index: -1;
+  top: -0.4rem;
+  right: 0.2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(243, 216, 151, 0.25);
+  pointer-events: none;
+}
+
+.decisionLabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff6e6;
+}
+
+.decisionHint {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: var(--bb-slate-300);
+}
+
+.decisionPause {
+  background:
+    linear-gradient(var(--bb-mustard), var(--bb-mustard)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+}
+
+.decisionPause .decisionLabel {
+  color: var(--bb-mustard);
+}
+
+.decisionDanger {
+  background:
+    var(--tex-grain),
+    linear-gradient(180deg, #e8493f 0%, #c8252c 50%, #9a1c21 100%);
+  background-size: 200px, cover;
+}
+
+.decisionDanger .decisionHint {
+  color: #fff4e0;
+}
+
+.decisionDanger .decisionNum {
+  -webkit-text-stroke-color: rgba(255, 244, 224, 0.35);
+}
+
+/* ================================================================== */
+/*  PROCEDURA NUOVA STAGIONE                                           */
+/* ================================================================== */
 .wizard {
-    background: var(--color-paper);
-    border: 4px dashed var(--color-ink);
-    box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.4);
-    padding: 2rem;
-    margin-bottom: 3rem;
+  --cut: 28px;
+  position: relative;
+  z-index: 3;
+  margin-bottom: 3rem;
 }
 
-.wizardTitle {
-    font-family: var(--font-impact);
-    font-size: 2.2rem;
-    margin-bottom: 0.5rem;
+.wizardMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bb-navy);
 }
 
 .wizardIntro {
-    font-family: var(--font-typewriter);
-    color: #444;
-    margin-bottom: 1.5rem;
+  max-width: 70ch;
+  margin-bottom: 2rem;
+  color: var(--bb-ink-soft);
+  font-weight: 600;
 }
 
-.label {
-    display: block;
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    margin-bottom: 0.3rem;
+.step + .step {
+  margin-top: 2.5rem;
 }
 
-.input, .select {
-    font-family: var(--font-impact);
-    font-size: 1.15rem;
-    padding: 0.45rem 0.7rem;
-    border: 3px solid var(--color-ink);
-    background: #fff;
-    color: var(--color-ink);
-    width: 100%;
+/* Intestazione del passo come SectionTitle: numero a contorno + micro-etichetta */
+.stepTitle {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
 }
 
-.teamsTableWrapper {
-    overflow-x: auto;
-    margin: 1.5rem 0;
-    border: 3px solid var(--color-ink);
+.stepNum {
+  position: relative;
+  flex: none;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(3.4rem, 7vw, 5rem);
+  line-height: 0.72;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px #b8893f;
 }
 
-.teamsTable {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 640px;
-    background: #fff;
+.stepNum::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 30%;
+  bottom: -0.45rem;
+  height: 4px;
+  background: var(--bb-red);
+  transform: skewX(-20deg);
 }
 
-.teamsTable th {
-    background: var(--color-ink);
-    color: #fff;
-    font-family: var(--font-impact);
-    letter-spacing: 1px;
-    text-align: left;
-    padding: 0.6rem 0.8rem;
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
 }
 
-.teamsTable td {
-    padding: 0.6rem 0.8rem;
-    border-bottom: 2px solid #ddd;
-    vertical-align: top;
+.stepText label {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
 }
 
-.rowOff td { opacity: 0.45; }
-.rowOff td:first-child { opacity: 1; }
-
-.teamName {
-    font-family: var(--font-impact);
-    font-size: 1.2rem;
-    letter-spacing: 1px;
-}
-
-.muted {
-    display: block;
-    font-family: var(--font-typewriter);
-    color: #777;
-    font-size: 0.85rem;
-}
-
-.checkbox {
-    width: 24px;
-    height: 24px;
-    accent-color: var(--color-blood-bright);
-    cursor: pointer;
+.stepMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-data);
+  font-style: normal;
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.22em;
+  color: var(--bb-navy);
 }
 
 .bulk {
-    display: flex;
-    gap: 1rem;
-    font-family: var(--font-typewriter);
-    font-weight: bold;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
 }
 
-.bulk button {
-    background: none;
-    border: none;
-    color: var(--color-blood-bright);
-    cursor: pointer;
-    font: inherit;
-    text-decoration: underline;
+.teamsTableWrapper {
+  margin: 0;
+  border: 2px solid var(--bb-tan-dark);
+}
+
+.teamsTable td {
+  vertical-align: middle;
+}
+
+.colCheck {
+  width: 90px;
+}
+
+.colCoach {
+  width: 38%;
+}
+
+.cellCheck {
+  text-align: center;
+}
+
+.checkWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--bb-red);
+  cursor: pointer;
+}
+
+.rowOff td {
+  opacity: 0.5;
+}
+
+.rowOff td:first-child {
+  opacity: 1;
+}
+
+.teamName {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+}
+
+.muted {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--bb-ink-soft);
 }
 
 .note {
-    font-family: var(--font-typewriter);
-    color: #92400e;
-    font-weight: bold;
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--bb-mustard-deep);
+  background: rgba(234, 178, 42, 0.18);
+  font-weight: 700;
+  color: var(--bb-ink);
 }
 
 .wizardActions {
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* ================================================================== */
+/*  RESPONSIVE                                                         */
+/* ================================================================== */
+@media (max-width: 900px) {
+  .activeInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .activeNumWrap {
+    flex-direction: row;
+    align-items: flex-end;
     gap: 1rem;
-    flex-wrap: wrap;
+  }
+
+  .activeNumLabel {
+    order: 2;
+    margin: 0 0 0.6rem;
+    padding: 0;
+  }
+
+  .activeNum {
+    font-size: 8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .activeBand {
+    margin-top: -1rem;
+    padding-top: 4rem;
+    padding-bottom: 8rem;
+  }
+
+  .ghostActive {
+    display: none;
+  }
+
+  .activeContent {
+    padding: 1.5rem 1.1rem 1.6rem;
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  }
+
+  .activeNum {
+    font-size: 6.5rem;
+    -webkit-text-stroke-width: 2px;
+  }
+
+  .activeBottom .champion,
+  .activeBottom .cardActions {
+    flex: 1 1 100%;
+  }
+
+  .seasonCard {
+    padding: 1.3rem 1.1rem 1.4rem;
+  }
+
+  .cardNum {
+    font-size: 7rem;
+  }
+
+  .cardActions :global(.btn),
+  .wizardActions :global(.btn),
+  .bulk :global(.btn) {
+    flex: 1 1 auto;
+  }
+
+  .teamsTableWrapper {
+    overflow: visible;
+    border: 0;
+  }
+
+  .teamsTable,
+  .teamsTable tbody,
+  .teamsTable tr,
+  .teamsTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .teamsTable thead {
+    display: none;
+  }
+
+  .teamsTable tbody tr {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--bb-sky-2);
+  }
+
+  .teamsTable tbody tr td,
+  .teamsTable tbody tr:nth-child(even) td,
+  .teamsTable tbody tr:hover td {
+    background: transparent;
+    padding: 0.2rem 0;
+  }
+
+  .teamsTable tbody tr:nth-child(even) {
+    background: var(--bb-sky);
+  }
+
+  .cellCheck {
+    grid-row: 1 / span 3;
+    text-align: left;
+  }
+
+  .cellTeam,
+  .cellLast,
+  .cellCoach {
+    grid-column: 2;
+  }
+
+  .cellLast {
+    font-size: 0.9rem;
+  }
+
+  .cellLast::before {
+    content: attr(data-label) ': ';
+    font-weight: 800;
+    font-stretch: 80%;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--bb-ink-soft);
+  }
+
+  .cellCoach:empty {
+    display: none;
+  }
+
+  .wizardActions {
+    justify-content: stretch;
+  }
 }

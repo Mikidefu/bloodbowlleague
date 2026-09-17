@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Plus, ShieldAlert } from 'lucide-react';
+import { Users, Plus, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
+import PageHeader from '@/components/brand/PageHeader';
 import styles from './Teams.module.css';
 import type { Team } from '@/lib/types';
 
@@ -13,7 +14,8 @@ type SeasonTeam = Team & { coach_id: string | null; coach_name: string | null };
 export default function TeamsPage() {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const { seasonQuery, seasonsLoading, isViewingActive } = useSeason();
+  const { seasonQuery, seasonsLoading, isViewingActive, selectedSeason } = useSeason();
+  const seasonName = selectedSeason?.name ?? 'New Season';
   const [teams, setTeams] = useState<SeasonTeam[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,77 +42,90 @@ export default function TeamsPage() {
 
   return (
       <div>
-        {/* FILTRO SVG PER EFFETTO CARTA STRAPPATA */}
-        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-          <filter id="rough-edges">
-            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </svg>
-
-        <div className={styles.headerArea}>
-          <h1 className={styles.pageTitle}>
-            <Users size={48} color="var(--color-ink)" />
-            {t.teams.title}
-          </h1>
-          {canDraft && (
-              <Link href="/teams/new" className="btn btn-primary">
-                <Plus size={24} />
-                {t.teams.draftBtn}
-              </Link>
-          )}
-        </div>
+        <PageHeader
+            title={t.teams.title}
+            icon={<Users size={48} />}
+            actions={canDraft && (
+                <Link href="/teams/new" className="btn btn-gold">
+                  <Plus size={22} />
+                  {t.teams.draftBtn}
+                </Link>
+            )}
+        />
 
         {loading ? (
-            <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>
-              Opening archives...
-            </div>
+            <div className="loading-state">Opening archives...</div>
         ) : teams.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
-              <h2 className={styles.emptyTitle}>{t.teams.noTeamsTitle}</h2>
+            <div className={`card ${styles.emptyCard}`}>
+              <h2 className="title-slab">{t.teams.noTeamsTitle}</h2>
               <p>{t.teams.noTeamsDesc}</p>
               {canDraft && (
-                  <Link href="/teams/new" className="btn btn-primary" style={{ marginTop: '2rem' }}>
+                  <Link href="/teams/new" className={`btn btn-primary ${styles.emptyAction}`}>
                     {t.teams.createFirstBtn}
                   </Link>
               )}
             </div>
         ) : (
-            <div className={styles.teamsGrid}>
-              {teams.map(team => (
-                  <Link
-                      href={`/teams/${team.id}`}
-                      key={team.id}
-                      className={styles.teamCard}
-                  >
-                    {/* Pezzetto di nastro adesivo in alto */}
-                    <div className={styles.tape}></div>
+            <section className={`bleed ${styles.rosterBand}`}>
+              <span className={`ghost-text ${styles.ghost}`} aria-hidden="true">Teams</span>
+              <div className={styles.inner}>
+                <div className={styles.countStrip}>
+                  <span className={styles.countNumber}>{String(teams.length).padStart(2, '0')}</span>
+                  <span className={styles.countLabel}>
+                    <i className={styles.microSquares} aria-hidden="true" />
+                    {`${seasonName} // ${t.teams.title}`}
+                  </span>
+                </div>
 
-                    {/* LOGO GIGANTE CENTRALE */}
-                    <div className={styles.logoWrapper}>
-                      {team.logo_url ? (
-                          <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
-                      ) : (
-                          <ShieldAlert size={150} color={team.primary_color || '#333'} className={styles.teamLogo} />
-                      )}
-                    </div>
+                <div className={styles.teamsGrid}>
+                  {teams.map((team, i) => (
+                      <div key={team.id} className={`offset-frame ${styles.cardFrame}`}>
+                        <Link
+                            href={`/teams/${team.id}`}
+                            className={styles.teamCard}
+                            style={{
+                              '--team-color': team.primary_color || 'var(--bb-blood-700)',
+                              '--team-color-2': team.secondary_color || 'var(--bb-navy)',
+                            } as React.CSSProperties}
+                        >
+                          <span className={styles.cardShard} aria-hidden="true" />
+                          <span className={styles.cardIndex} aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                          <span className={styles.cardMicro}>
+                            <i className={styles.microSquares} aria-hidden="true" />
+                            {`BBL // ${team.race}`}
+                          </span>
 
-                    {/* ETICHETTE IN BASSO */}
-                    <div className={styles.cardFooter}>
-                      <div
-                          className={styles.nameTag}
-                          style={{ backgroundColor: team.primary_color || '#111' }}
-                      >
-                        {team.name}
+                          <span className={styles.logoWrapper}>
+                            {team.logo_url ? (
+                                <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
+                            ) : (
+                                <ShieldAlert size={80} className={styles.fallbackLogo} aria-hidden="true" />
+                            )}
+                          </span>
+
+                          <div className={styles.cardBody}>
+                            <h2 className={styles.teamName}>{team.name}</h2>
+                            <span className={styles.tags}>
+                              <span className={styles.raceTag}>{team.race}</span>
+                            </span>
+                            {team.coach_name && (
+                                <span className={styles.coachLine}>
+                                  <span className={styles.coachLabel}>{t.coachPicker.label}</span>
+                                  <span className={styles.coachName}>{team.coach_name}</span>
+                                </span>
+                            )}
+                          </div>
+
+                          <span className={styles.cardFoot}>
+                            <span>Team profile</span>
+                            <ArrowRight size={16} aria-hidden="true" />
+                          </span>
+                        </Link>
                       </div>
-                      <div className={styles.raceTag}>
-                        {team.race}{team.coach_name ? ` • ${t.coachPicker.label}: ${team.coach_name}` : ''}
-                      </div>
-                    </div>
-
-                  </Link>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </div>
+            </section>
         )}
       </div>
   );
