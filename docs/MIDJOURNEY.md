@@ -56,16 +56,18 @@ nella copertina (se manca il giocatore) e come filigrana nelle testate.
 Consigli: genera con `--sref` dello stadio, scegli la variante più leggibile anche piccola (deve funzionare a 50px),
 evita dettagli sottili sui bordi. Se Midjourney sbaglia la scritta, usa **Vary (Region)** solo sulla fascia del testo.
 
-Versione A, **con scritta** (consigliata):
+Soggetto: **solo un pallone da football macchiato di sangue**, nessuna razza o personaggio.
+
+Versione A, **pallone isolato** (consigliata, massima leggibilità anche piccola):
 
 ```
-hand-drawn sports team crest logo for a brutal fantasy football league, circular badge with a jagged spiked outer ring, center: a snarling armored orc head with horned helmet biting a spiked leather american football, bold curved banner across the bottom with the text "BLOOD BOWL", small crossed bones and rivets on the ring, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, crimson red, mustard gold, slate blue and bone white palette, gritty vintage print feel, front view, perfectly centered and symmetrical, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no photo, 3d render, gradient mesh, extra text, small text, watermark, signature
+hand-drawn logo icon of a single battered leather american football splattered with blood, three quarter view tilted diagonally, thick white laces, deep scratches and stitched tears in the leather, bold crimson blood splatter and drips running down one side, small blood droplets flying around, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, brown leather, crimson red, bone white and a touch of mustard gold highlight, gritty vintage print feel, simple bold silhouette readable at small size, centered, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no text, letters, numbers, characters, creatures, skull, helmet, photo, 3d render, watermark, signature
 ```
 
-Versione B, **senza scritta** (più pulita, il nome lo mette il sito accanto al logo):
+Versione B, **pallone su splash di sangue** (più "emblema", sempre senza personaggi):
 
 ```
-hand-drawn mascot emblem for a brutal fantasy football league, shield-shaped badge with spiked brass rim and rivets, center: a snarling orc head in a battered red horned football helmet, a spiked leather football and two crossed bones behind it, torn red and gold ribbon at the bottom without lettering, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, crimson red, mustard gold, slate blue and bone white palette, gritty vintage print feel, front view, perfectly centered and symmetrical, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no text, letters, numbers, photo, 3d render, watermark, signature
+hand-drawn emblem of a battered leather american football with thick white laces placed diagonally over a large crimson blood splatter burst, spiked brass studs along the seam, blood dripping from the ball, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, brown leather, crimson red, bone white and mustard gold accents, gritty vintage print feel, bold compact silhouette readable at small size, perfectly centered, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no text, letters, numbers, characters, creatures, skull, helmet, shield, frame, photo, 3d render, watermark, signature
 ```
 
 ## 4. Trofeo (podio della home, 1° posto)
