@@ -41,7 +41,7 @@ wide view of a ramshackle fantasy football stadium at night, towering wooden and
 
 ## 2. Giocatore della copertina (home, a destra)
 
-`art-src/hero-player.png` → `public/art/hero-player.png`
+`art-src/hero-player.png` → `public/art/hero-player.webp`
 
 ```
 full body heroic low angle shot of a massive orc blitzer charging forward with a spiked leather football tucked under his arm, crimson and gold armored shoulder pads with rivets, cracked helmet with horns, snarling tusks, mud and dust flying, dynamic action pose, gritty fantasy american football comic illustration, bold black ink linework, cel shading with painterly texture, crimson red, mustard gold and slate blue palette, isolated on a plain flat white background, no ground shadow --ar 3:4 --v 7 --style raw --no text, letters, logo, watermark, background scenery
@@ -49,7 +49,7 @@ full body heroic low angle shot of a massive orc blitzer charging forward with a
 
 ## 3. Logo: cuore dello stemma
 
-`art-src/logo-crest.png` → `public/art/logo-crest.png`
+`art-src/logo-crest.png` → `public/art/logo-crest.webp`
 
 Compare **al centro** dello stemma vettoriale (sostituisce il pallone con le iniziali), sopra il cerchio navy.
 Deve essere centrato e leggibile anche molto piccolo.
@@ -66,7 +66,7 @@ emblem illustration of a snarling horned skull wearing a battered red football h
 
 ## 4. Trofeo (podio della home, 1° posto)
 
-`art-src/trophy.png` → `public/art/trophy.png`
+`art-src/trophy.png` → `public/art/trophy.webp`
 
 ```
 ornate spiked golden championship cup trophy with brass skulls on the handles and a red ribbon, dented and battle worn, front view, centered, gritty fantasy american football comic illustration, bold black ink linework, cel shading with painterly texture, gold and crimson, isolated on a plain flat white background, no ground shadow --ar 1:1 --v 7 --style raw --no text, letters, engraving text, watermark
@@ -74,7 +74,7 @@ ornate spiked golden championship cup trophy with brass skulls on the handles an
 
 ## 5. Star player (home)
 
-`art-src/star-player.png` → `public/art/star-player.png`
+`art-src/star-player.png` → `public/art/star-player.webp`
 
 ```
 full body portrait of a cocky elf catcher striking a victory pose, one arm raised holding a football high, lean athletic build, slate blue and gold armor, long flowing hair, confident grin, three quarter view, gritty fantasy american football comic illustration, bold black ink linework, cel shading with painterly texture, crimson red, mustard gold and slate blue palette, isolated on a plain flat white background, no ground shadow --ar 3:4 --v 7 --style raw --no text, letters, logo, watermark, background scenery
@@ -123,8 +123,8 @@ seamless tileable texture of aged parchment paper, subtle stains, fibers and cre
 | File finale in `public/art/` | Dove compare |
 |---|---|
 | `stadium.jpg` | Copertina home (a colori) e sfondo di **tutte** le testate (duotono rosso/navy/ardesia) |
-| `hero-player.png` | Copertina home, a destra (al posto dello stemma grande) |
-| `logo-crest.png` | Centro dello stemma: navbar, menu mobile, copertina, `/brand` |
-| `trophy.png` | Podio della home, sopra la squadra prima in classifica |
-| `star-player.png` | Riquadro "Star Player" della home |
-| `header-*.png` | Testata della rispettiva pagina (sostituisce la filigrana dello stemma) |
+| `hero-player.webp` | Copertina home, a destra (al posto dello stemma grande) |
+| `logo-crest.webp` | Centro dello stemma: navbar, menu mobile, copertina, `/brand` |
+| `trophy.webp` | Podio della home, sopra la squadra prima in classifica |
+| `star-player.webp` | Riquadro "Star Player" della home |
+| `header-*.webp` | Testata della rispettiva pagina (sostituisce la filigrana dello stemma) |

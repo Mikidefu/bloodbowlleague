@@ -11,11 +11,11 @@
 /*  COPERTINA A TUTTA LARGHEZZA                                        */
 /* ================================================================== */
 .hero {
-  --gutter: max(1.5rem, calc(50vw - 620px));
+  --gutter: max(1.5rem, calc(50cqw - 620px));
   grid-column: 1 / -1;
   position: relative;
   isolation: isolate;
-  margin: -2.5rem calc(50% - 50vw) 3.5rem;
+  margin: -2.5rem calc(50% - 50cqw) 3.5rem;
   padding: 4.5rem var(--gutter) 0;
   overflow-x: clip;
   background-color: #151b28;
@@ -322,7 +322,7 @@
   grid-column: 1 / -1;
   display: flex;
   align-items: stretch;
-  margin: 0 calc(50% - 50vw);
+  margin: 0 calc(50% - 50cqw);
   background: linear-gradient(180deg, #11141a, #1b1f26);
   border-block: 2px solid transparent;
   border-image: var(--bb-brass) 1;
@@ -333,7 +333,7 @@
   flex: none;
   display: flex;
   align-items: center;
-  padding: 0.65rem 1.4rem 0.65rem max(1.5rem, calc(50vw - 620px));
+  padding: 0.65rem 1.4rem 0.65rem max(1.5rem, calc(50cqw - 620px));
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 900;
@@ -721,6 +721,10 @@
 /*  RESPONSIVE                                                         */
 /* ================================================================== */
 @media (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .podiumPanel,
   .starPanel {
     grid-column: 1 / -1;

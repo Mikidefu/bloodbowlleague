@@ -115,6 +115,11 @@ body {
   overflow-x: clip;
 }
 
+/* Le sezioni a tutta larghezza usano cqw: come vw ma senza la barra di scorrimento */
+body {
+  container-type: inline-size;
+}
+
 /* Vignettatura da stadio e grana di stampa sopra a tutto */
 body::before,
 body::after {
