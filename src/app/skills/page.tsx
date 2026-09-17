@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Book, ChevronDown, Search } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
 import styles from './Skills.module.css';
 import type { Skill } from '@/lib/types';
 
@@ -98,8 +99,13 @@ export default function SkillsPage() {
 
             <PageHeader title="SKILLS & ABILITIES" icon={<Book size={44} />} tone="navy" />
 
-            {/* BARRA DI RICERCA AUTOCOMPLETE + FILTRI */}
-            <section className={`panel-slate ${styles.toolbar}`}>
+            {/* BARRA DI RICERCA AUTOCOMPLETE + FILTRI (striscia scura smussata) */}
+            <section className={styles.toolbar}>
+                <div className={styles.toolbarMicro} aria-hidden="true">
+                    <span><i className={styles.microSquares} />{`Playbook // Search`}</span>
+                    <span className={styles.toolbarCount}>{`${skills.length} skills // ${skillTypes.length} types`}</span>
+                </div>
+
                 <div className={styles.searchContainer}>
                     <label htmlFor="skill-search" className={styles.searchLabel}>QUICK SEARCH PLAYBOOK</label>
                     <div className={styles.searchField}>
@@ -140,7 +146,7 @@ export default function SkillsPage() {
                     <div className={styles.filters} role="group" aria-label="Skill categories">
                         <button
                             type="button"
-                            className={`btn ${activeType === null ? 'btn-primary' : ''} ${styles.filterBtn}`}
+                            className={`btn ${activeType === null ? 'btn-primary' : 'btn-slate'} ${styles.filterBtn}`}
                             aria-pressed={activeType === null}
                             onClick={() => setActiveType(null)}
                         >
@@ -150,7 +156,7 @@ export default function SkillsPage() {
                             <button
                                 key={type}
                                 type="button"
-                                className={`btn ${activeType === type ? 'btn-primary' : ''} ${styles.filterBtn}`}
+                                className={`btn ${activeType === type ? 'btn-primary' : 'btn-slate'} ${styles.filterBtn}`}
                                 aria-pressed={activeType === type}
                                 onClick={() => setActiveType(activeType === type ? null : type)}
                             >
@@ -163,66 +169,79 @@ export default function SkillsPage() {
                 )}
             </section>
 
-            {/* CICLO DELLE CATEGORIE */}
-            {visibleTypes.map(type => (
-                <section key={type} className={`card ${styles.categoryBlock}`}>
+            {/* CICLO DELLE CATEGORIE: fasce alternate chiare e scure */}
+            {visibleTypes.map((type, i) => {
+                const index = String(skillTypes.indexOf(type) + 1).padStart(2, '0');
+                const light = i % 2 === 0;
+                const ghostWord = type.split(' ')[0];
 
-                    {/* TITOLO CATEGORIA */}
-                    <div className={styles.categoryTitleRow}>
-                        <h2 className={`title-slab ${styles.categoryTitle}`}>{type}</h2>
-                        <span className={`tag tag-navy ${styles.categoryCount}`}>{groupedSkills[type].length}</span>
-                    </div>
+                return (
+                    <section
+                        key={type}
+                        className={`bleed ${styles.categoryBand} ${light ? styles.bandLight : styles.bandDark}`}
+                    >
+                        <span className={`ghost-text ${light ? 'on-light' : ''} ${styles.ghostCategory}`} aria-hidden="true">{ghostWord}</span>
 
-                    {/* LISTA SKILL */}
-                    <div className={styles.skillsList}>
-                        {groupedSkills[type].map(skill => {
-                            const isExpanded = expandedId === skill.id;
+                        <div className={styles.inner}>
+                            <SectionTitle
+                                index={index}
+                                on={light ? 'light' : 'dark'}
+                                micro={`${groupedSkills[type].length} skills // Playbook`}
+                                title={type}
+                            />
 
-                            return (
-                                <article
-                                    id={`skill-${skill.id}`} // Ancora HTML per l'autoscroll
-                                    key={skill.id}
-                                    className={`${styles.skillEntry} ${isExpanded ? styles.expanded : ''}`}
-                                >
-                                    {/* INTESTAZIONE CLICCABILE */}
-                                    <h3 className={styles.skillHeading}>
-                                        <button
-                                            type="button"
-                                            className={styles.skillHeader}
-                                            onClick={() => toggleSkill(skill.id)}
-                                            aria-expanded={isExpanded}
+                            {/* LISTA SKILL */}
+                            <div className={styles.skillsList}>
+                                {groupedSkills[type].map(skill => {
+                                    const isExpanded = expandedId === skill.id;
+
+                                    return (
+                                        <article
+                                            id={`skill-${skill.id}`} // Ancora HTML per l'autoscroll
+                                            key={skill.id}
+                                            className={`chamfer ${styles.skillEntry} ${isExpanded ? styles.expanded : ''}`}
                                         >
-                                            <span className={styles.skillNameWrapper}>
-                                                <span className={styles.skillName}>
-                                                    {skill.name}
-                                                </span>
-                                                {skill.level && (
-                                                    <span className={styles.skillLevel}>
-                                                        ({skill.level})
+                                            {/* INTESTAZIONE CLICCABILE */}
+                                            <h3 className={styles.skillHeading}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.skillHeader}
+                                                    onClick={() => toggleSkill(skill.id)}
+                                                    aria-expanded={isExpanded}
+                                                >
+                                                    <span className={styles.skillNameWrapper}>
+                                                        <span className={styles.skillName}>
+                                                            {skill.name}
+                                                        </span>
+                                                        {skill.level && (
+                                                            <span className={styles.skillLevel}>
+                                                                ({skill.level})
+                                                            </span>
+                                                        )}
                                                     </span>
-                                                )}
-                                            </span>
 
-                                            <span className={styles.iconWrapper} aria-hidden="true">
-                                                <ChevronDown size={24} />
-                                            </span>
-                                        </button>
-                                    </h3>
+                                                    <span className={styles.iconWrapper} aria-hidden="true">
+                                                        <ChevronDown size={24} />
+                                                    </span>
+                                                </button>
+                                            </h3>
 
-                                    {/* CONTENUTO ESPANSO */}
-                                    {isExpanded && (
-                                        <div className={styles.skillContent}>
-                                            <p className={styles.description}>
-                                                {language === 'it' && skill.description_it ? skill.description_it : skill.description}
-                                            </p>
-                                        </div>
-                                    )}
-                                </article>
-                            );
-                        })}
-                    </div>
-                </section>
-            ))}
+                                            {/* CONTENUTO ESPANSO */}
+                                            {isExpanded && (
+                                                <div className={styles.skillContent}>
+                                                    <p className={styles.description}>
+                                                        {language === 'it' && skill.description_it ? skill.description_it : skill.description}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </section>
+                );
+            })}
         </div>
     );
 }

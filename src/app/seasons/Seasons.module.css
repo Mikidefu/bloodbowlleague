@@ -1,121 +1,20 @@
-/* src/app/seasons/Seasons.module.css */
+/* src/app/seasons/Seasons.module.css: stagioni (linguaggio editoriale v3) */
 
-/* ================================================================== */
-/*  Elenco stagioni (card pergamena)                                   */
-/* ================================================================== */
-.seasonList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-}
-
-.seasonCard {
+.page {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-  margin-bottom: 0;
-  padding: 1.75rem;
 }
 
-.seasonCardActive {
-  border-color: var(--bb-red);
-  outline-color: var(--bb-blood-800);
-}
-
-.cardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.seasonName {
-  font-family: var(--font-slab);
-  font-weight: 900;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-  line-height: 0.95;
-  color: var(--bb-blood-700);
-  padding-bottom: 0.35rem;
-  border-bottom: 2px solid currentColor;
-  overflow-wrap: anywhere;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
-  font-family: var(--font-data);
-  font-stretch: 85%;
-}
-
-.facts dt {
-  font-weight: 800;
-  font-stretch: 80%;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--bb-ink-soft);
-  align-self: center;
-}
-
-.facts dd {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--bb-ink);
-}
-
-/* Banda navy col campione (come il piede delle tabelle roster) */
-.champion {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.7rem 0.9rem;
-  color: var(--bb-parchment);
-  background: var(--bb-navy);
-  background-image: var(--tex-grain), linear-gradient(170deg, var(--bb-navy), var(--bb-navy-deep));
-  background-size: 240px, cover;
-}
-
-.championLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--bb-mustard);
-}
-
-.championTeam {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.45rem;
-  line-height: 1.1;
-  text-transform: uppercase;
-  color: var(--bb-parchment);
-  overflow-wrap: anywhere;
-}
-
-.championTeam:hover {
-  color: var(--bb-mustard);
-}
-
-.championCoach {
-  font-size: 0.9rem;
-  color: var(--bb-slate-300);
-}
-
-.cardActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: auto;
-  padding-top: 0.25rem;
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
 }
 
 .smallBtn {
@@ -135,11 +34,458 @@
   flex: 1 1 180px;
 }
 
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
 /* ================================================================== */
-/*  Procedura nuova stagione                                           */
+/*  STAGIONE IN CORSO (fascia in evidenza)                             */
+/* ================================================================== */
+.activeBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  padding-top: 6rem;
+  padding-bottom: 9rem;
+  color: var(--bb-parchment);
+  background: #101318;
+}
+
+.activeShards {
+  z-index: -1;
+}
+
+.ghostActive {
+  left: -2%;
+  bottom: 4.5rem;
+}
+
+.activeInner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 3rem;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.activeNumWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.activeNumLabel {
+  margin-bottom: -0.5rem;
+  padding-left: 0.6rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 3px 3px 0 rgba(58, 13, 15, 0.8);
+}
+
+.activeNum {
+  position: relative;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(10rem, 22vw, 20rem);
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  color: rgba(234, 178, 42, 0.1);
+  -webkit-text-stroke: 3px #f3d897;
+  filter: drop-shadow(8px 10px 0 rgba(10, 8, 6, 0.55));
+}
+
+.activeNum::after {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 38%;
+  bottom: -0.9rem;
+  height: 8px;
+  background: var(--bb-red);
+  transform: skewX(-20deg);
+}
+
+.activeContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+  padding: 2rem 2.2rem 2.2rem;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 100% 4px no-repeat,
+    linear-gradient(135deg, rgba(10, 12, 18, 0.88), rgba(26, 40, 82, 0.72));
+  backdrop-filter: blur(4px);
+  clip-path: polygon(28px 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%, 0 28px);
+}
+
+.activeMicro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.activeName {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.8rem, 5.5vw, 4.8rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 5px 6px 0 rgba(122, 26, 28, 0.9);
+  overflow-wrap: break-word;
+}
+
+/* Barra avanzamento partite */
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.meterHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.meterHead strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--bb-mustard);
+}
+
+.meterHead small {
+  font-size: 0.6em;
+  color: var(--bb-slate-300);
+}
+
+.meterTrack {
+  position: relative;
+  height: 14px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(16, 19, 24, 0.9) 22px 25px),
+    rgba(255, 255, 255, 0.08);
+  transform: skewX(-20deg);
+  overflow: hidden;
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(16, 19, 24, 0.9) 22px 25px),
+    linear-gradient(90deg, #c8252c, #eab22a);
+  box-shadow: 0 0 16px rgba(234, 178, 42, 0.5);
+}
+
+.activeFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2.5rem;
+  margin: 0;
+}
+
+.activeFacts div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.15rem;
+  padding-left: 0.8rem;
+  border-left: 3px solid var(--bb-red);
+}
+
+.activeFacts dt {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.activeFacts dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  font-variant-numeric: tabular-nums;
+}
+
+.activeBottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.activeBottom .champion {
+  flex: 1 1 260px;
+}
+
+.activeTape {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2.2rem;
+  z-index: 3;
+}
+
+/* ================================================================== */
+/*  CAMPIONE SU PLACCA D'OTTONE                                        */
+/* ================================================================== */
+.champion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.75rem 1.3rem 0.8rem;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.championLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #4a3210;
+}
+
+.championTeam {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #2a1a05;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  overflow-wrap: anywhere;
+}
+
+.championTeam:hover {
+  color: var(--bb-blood-800);
+}
+
+.championCoach {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #4a3210;
+}
+
+.championNone {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  color: rgba(42, 26, 5, 0.7);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ================================================================== */
+/*  STAGIONI CONCLUSE (card smussate)                                  */
+/* ================================================================== */
+.pastSection {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 4.5rem 0 2rem;
+}
+
+.ghostPast {
+  right: -4%;
+  top: 1.5rem;
+}
+
+.seasonList {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 2.25rem;
+  margin-bottom: 1rem;
+  padding: 0 10px 10px 0;
+}
+
+.seasonCard {
+  --cut: 24px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  min-width: 0;
+  padding: 1.5rem 1.5rem 1.6rem;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.seasonCard:hover {
+  transform: translate(-4px, -4px);
+}
+
+/* Numero stagione gigante a contorno */
+.cardNum {
+  position: absolute;
+  z-index: -1;
+  top: -0.6rem;
+  right: -0.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 9rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.28);
+  pointer-events: none;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-right: 5rem;
+}
+
+.cardMicro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.seasonName {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 3px 4px 0 rgba(122, 26, 28, 0.85);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.75rem 0;
+  border-block: 1px dashed rgba(243, 216, 151, 0.22);
+  font-family: var(--font-data);
+  font-stretch: 85%;
+}
+
+.facts dt {
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+  align-self: center;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-parchment);
+}
+
+.seasonCard .cardActions {
+  margin-top: auto;
+}
+
+/* ================================================================== */
+/*  PROCEDURA NUOVA STAGIONE                                           */
 /* ================================================================== */
 .wizard {
+  --cut: 28px;
+  position: relative;
+  z-index: 3;
   margin-bottom: 3rem;
+}
+
+.wizardMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bb-navy);
 }
 
 .wizardIntro {
@@ -150,51 +496,81 @@
 }
 
 .step + .step {
-  margin-top: 2.25rem;
+  margin-top: 2.5rem;
 }
 
+/* Intestazione del passo come SectionTitle: numero a contorno + micro-etichetta */
 .stepTitle {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.stepTitle label {
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
+  align-items: flex-end;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
 }
 
 .stepNum {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   flex: none;
-  width: 1.7rem;
-  height: 1.7rem;
   font-family: var(--font-display);
-  font-variant: normal;
   font-style: italic;
   font-weight: 900;
-  font-size: 1.1rem;
-  line-height: 1;
-  color: var(--bb-parchment);
-  background: var(--bb-red);
-  transform: skewX(-10deg);
+  font-size: clamp(3.4rem, 7vw, 5rem);
+  line-height: 0.72;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px #b8893f;
 }
 
-.input,
-.select {
-  width: 100%;
+.stepNum::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 30%;
+  bottom: -0.45rem;
+  height: 4px;
+  background: var(--bb-red);
+  transform: skewX(-20deg);
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   min-width: 0;
-  min-height: 44px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.stepText label {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
+.stepMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-data);
+  font-style: normal;
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.22em;
+  color: var(--bb-navy);
 }
 
 .bulk {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin: 0.75rem 0 1.25rem;
+  margin: 0 0 1.25rem;
 }
 
 .teamsTableWrapper {
@@ -276,11 +652,63 @@
 }
 
 /* ================================================================== */
-/*  Mobile: la tabella squadre diventa un elenco a schede              */
+/*  RESPONSIVE                                                         */
 /* ================================================================== */
+@media (max-width: 900px) {
+  .activeInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .activeNumWrap {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .activeNumLabel {
+    order: 2;
+    margin: 0 0 0.6rem;
+    padding: 0;
+  }
+
+  .activeNum {
+    font-size: 8rem;
+  }
+}
+
 @media (max-width: 640px) {
+  .activeBand {
+    margin-top: -1rem;
+    padding-top: 4rem;
+    padding-bottom: 8rem;
+  }
+
+  .ghostActive {
+    display: none;
+  }
+
+  .activeContent {
+    padding: 1.5rem 1.1rem 1.6rem;
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  }
+
+  .activeNum {
+    font-size: 6.5rem;
+    -webkit-text-stroke-width: 2px;
+  }
+
+  .activeBottom .champion,
+  .activeBottom .cardActions {
+    flex: 1 1 100%;
+  }
+
   .seasonCard {
-    padding: 1.4rem 1.2rem;
+    padding: 1.3rem 1.1rem 1.4rem;
+  }
+
+  .cardNum {
+    font-size: 7rem;
   }
 
   .cardActions :global(.btn),

@@ -7,6 +7,8 @@ import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices 
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
+import Shards from '@/components/brand/Shards';
 import styles from './TeamDetails.module.css';
 import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, skillsForCategories } from '@/lib/advancement';
 import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
@@ -346,13 +348,39 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const tier = levelUpPlayer ? ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)] : null;
   const choiceClass = (active: boolean) => `btn ${active ? 'btn-navy' : ''} ${styles.choiceBtn}`;
 
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  // Righe etichetta/valore della scheda profilo (stile scheda personaggio)
+  const profileRows: { label: string; value: React.ReactNode; wide?: boolean }[] = [
+    {
+      label: t.coachPicker.label,
+      value: team.coach_id
+          ? <Link href={`/coaches/${team.coach_id}`} className={styles.coachLink}>{team.coach_name}</Link>
+          : <span>—</span>,
+    },
+    { label: t.draft.race, value: team.race },
+    {
+      label: `${t.draft.primaryColor} / ${t.draft.secondaryColor}`,
+      value: (
+          <span className={styles.colours}>
+            <span className={styles.swatch} style={{ background: team.primary_color || undefined }} aria-label={team.primary_color || '-'} />
+            <span className={styles.swatch} style={{ background: team.secondary_color || undefined }} aria-label={team.secondary_color || '-'} />
+          </span>
+      ),
+    },
+    { label: 'Cheerleaders', value: team.cheerleaders || 0 },
+    { label: 'Assistant Coaches', value: team.assistant_coaches || 0 },
+    { label: 'Apothecary', value: team.apothecary ? 'Yes' : 'No' },
+  ];
+
   return (
       <div className={styles.page} style={teamAccent}>
 
         {/* MODALE DI CELEBRAZIONE SKILL CASUALE */}
         {celebrationSkill && (
             <div className={styles.overlay} role="dialog" aria-modal="true">
-              <div className={`panel-blood ${styles.celebration}`}>
+              <div className={`panel-blood chamfer ${styles.celebration}`}>
+                <span className={styles.modalMicro}><i className={styles.microSquares} aria-hidden="true" />Nuffle // Random roll</span>
                 <Dices size={64} className={styles.celebrationIcon} aria-hidden="true" />
                 <h2 className="title-spike">NUFFLE HAS SPOKEN!</h2>
                 <p className={styles.celebrationText}>The dice rolled in your favor...</p>
@@ -391,76 +419,83 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             ) : undefined}
         />
 
-        {/* PROFILO SQUADRA (Spike! Team Profile) */}
-        <section className={`panel-blood ${styles.profile}`}>
-          <div className={styles.profileInset}>
-            <dl className={styles.profileList}>
-              <div className={styles.profileRow}>
-                <dt>{t.coachPicker.label}:</dt>
-                <dd>
-                  {team.coach_id
-                      ? <Link href={`/coaches/${team.coach_id}`} className={styles.coachLink}>{team.coach_name}</Link>
-                      : <span>—</span>}
-                </dd>
-              </div>
-              {team.season_history.length > 0 && (
-                  <div className={styles.profileRow}>
-                    <dt>{t.seasons.season}:</dt>
-                    <dd className={styles.seasonHistory}>
-                      {team.season_history.map(h => (
-                          <span
-                              key={h.season_id}
-                              className={`${styles.historyChip} ${h.season_status === 'active' ? styles.historyChipActive : ''}`}
-                              title={h.season_status === 'active' ? t.seasons.active : t.seasons.completed}
-                          >
-                            {h.season_name}: {h.coach_name ?? '—'}
-                          </span>
-                      ))}
-                    </dd>
-                  </div>
-              )}
-              <div className={styles.profileRow}>
-                <dt>{t.draft.race}:</dt>
-                <dd>{team.race}</dd>
-              </div>
-              <div className={styles.profileRow}>
-                <dt>{t.draft.primaryColor} / {t.draft.secondaryColor}:</dt>
-                <dd className={styles.colours}>
-                  <span className={styles.swatch} style={{ background: team.primary_color || undefined }} aria-label={team.primary_color || '-'} />
-                  <span className={styles.swatch} style={{ background: team.secondary_color || undefined }} aria-label={team.secondary_color || '-'} />
-                </dd>
-              </div>
-              <div className={styles.profileRow}>
-                <dt>Cheerleaders:</dt>
-                <dd>{team.cheerleaders || 0}</dd>
-              </div>
-              <div className={styles.profileRow}>
-                <dt>Assistant Coaches:</dt>
-                <dd>{team.assistant_coaches || 0}</dd>
-              </div>
-              <div className={styles.profileRow}>
-                <dt>Apothecary:</dt>
-                <dd>{team.apothecary ? 'Yes' : 'No'}</dd>
-              </div>
-            </dl>
+        {/* PROFILO SQUADRA (scheda personaggio) */}
+        <section className={`bleed ${styles.profileBand}`} aria-labelledby="team-profile-name">
+          <Shards variant="header" className={styles.profileShards} />
+          <span className={`ghost-text ${styles.ghostRace}`} aria-hidden="true">{team.race}</span>
+
+          <div className={styles.profileInner}>
+            <div className={styles.portrait}>
+              <span className={styles.portraitShard} aria-hidden="true" />
+              <span className={styles.portraitCount} aria-hidden="true">{pad(activePlayers.length)}</span>
+              <span className={styles.portraitMicro} aria-hidden="true">{`Roster // ${activePlayers.length} of 16`}</span>
+
+              <span className={styles.badge}>
+                {team.logo_url ? (
+                    <img src={team.logo_url} alt={team.name} className={styles.badgeLogo} />
+                ) : (
+                    <ShieldAlert size={120} className={styles.badgeFallback} />
+                )}
+              </span>
+
+              <span className={`tag ${styles.portraitRace}`}>{team.race}</span>
+
+              <span className={`chamfer ${styles.portraitValue}`}>
+                <small>{t.teamDetail.teamValue}</small>
+                <strong>{totalValue.toLocaleString()} <em>GP</em></strong>
+              </span>
+            </div>
+
+            <div className={styles.dossier}>
+              <span className={styles.micro}>
+                <i className={styles.microSquares} aria-hidden="true" />
+                {`Team profile // ${team.race}`}
+              </span>
+              <h2 id="team-profile-name" className={styles.dossierName}>{team.name}</h2>
+
+              <dl className={styles.labelRows}>
+                {profileRows.map(row => (
+                    <div key={row.label} className={styles.labelRow}>
+                      <dt className={`chamfer ${styles.labelChip}`}>{row.label}</dt>
+                      <dd className={styles.labelValue}>{row.value}</dd>
+                    </div>
+                ))}
+                {team.season_history.length > 0 && (
+                    <div className={`${styles.labelRow} ${styles.labelRowWide}`}>
+                      <dt className={`chamfer ${styles.labelChip}`}>{t.seasons.season}</dt>
+                      <dd className={`${styles.labelValue} ${styles.seasonHistory}`}>
+                        {team.season_history.map(h => (
+                            <span
+                                key={h.season_id}
+                                className={`chamfer ${styles.historyChip} ${h.season_status === 'active' ? styles.historyChipActive : ''}`}
+                                title={h.season_status === 'active' ? t.seasons.active : t.seasons.completed}
+                            >
+                              {h.season_name}: {h.coach_name ?? '—'}
+                            </span>
+                        ))}
+                      </dd>
+                    </div>
+                )}
+              </dl>
+            </div>
           </div>
 
-          <ul className={styles.statStrip}>
-            <li className={styles.stat}>
-              <span className={styles.statValue}>{team.rerolls || 0}</span>
-              <span className={styles.statLabel}>Rerolls</span>
+          <ul className={styles.plates}>
+            <li className={`plate ${styles.plateItem}`}>
+              <span className={styles.plateValue}>{team.rerolls || 0}</span>
+              <span className={styles.plateLabel}>Rerolls</span>
             </li>
-            <li className={styles.stat}>
-              <span className={styles.statValue}>{team.fan_factor || 0}</span>
-              <span className={styles.statLabel}>Fans</span>
+            <li className={`plate ${styles.plateItem}`}>
+              <span className={styles.plateValue}>{team.fan_factor || 0}</span>
+              <span className={styles.plateLabel}>Fans</span>
             </li>
-            <li className={styles.stat}>
-              <span className={`${styles.statValue} ${styles.statGold}`}>{(team.treasury || 0).toLocaleString()}</span>
-              <span className={styles.statLabel}>Treasury (GP)</span>
+            <li className={`plate ${styles.plateItem}`}>
+              <span className={styles.plateValue}>{(team.treasury || 0).toLocaleString()}</span>
+              <span className={styles.plateLabel}>Treasury (GP)</span>
             </li>
-            <li className={styles.stat}>
-              <span className={`${styles.statValue} ${styles.statGold}`}>{(team.bank || 0).toLocaleString()}</span>
-              <span className={styles.statLabel}>Bank (GP)</span>
+            <li className={`plate ${styles.plateItem}`}>
+              <span className={styles.plateValue}>{(team.bank || 0).toLocaleString()}</span>
+              <span className={styles.plateLabel}>Bank (GP)</span>
             </li>
           </ul>
         </section>
@@ -468,7 +503,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         {/* MODALITÀ LEVEL UP (POPUP CENTRALE CON BOTTONI DISABILITABILI) */}
         {levelUpPlayer && tier && (
             <div className={styles.overlay} role="dialog" aria-modal="true">
-              <div className={`card ${styles.modal}`}>
+              <div className={`card chamfer ${styles.modal}`}>
+                <span className={`${styles.modalMicro} ${styles.modalMicroLight}`}><i className={styles.microSquares} aria-hidden="true" />SPP // Advancement</span>
                 <div className={styles.modalHeader}>
                   <h3 className={`subhead ${styles.modalTitle}`}>
                     SPP ADVANCEMENT: {levelUpPlayer.name}
@@ -476,7 +512,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <button onClick={() => { setLevelUpPlayer(null); setLevelUpChoice(''); setSelectedAdvancement(null); }} className={styles.iconBtn} title="Close" aria-label="Close"><X size={24}/></button>
                 </div>
 
-                <div className={styles.sppStrip}>
+                <div className={`chamfer ${styles.sppStrip}`}>
                   <span>CURRENT SPP: <strong className={styles.sppValue}>{levelUpPlayer.spp}</strong></span>
                   <span>ADVANCEMENTS: <strong>{levelUpPlayer.advancements || 0} / 6</strong></span>
                 </div>
@@ -544,7 +580,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
         {/* EDIT TEAM FORM */}
         {showEditTeam && (
-            <div className={`card ${styles.formCard}`}>
+            <div className={`card ${styles.formCard} ${styles.editCard}`}>
               <h3 className="subhead">UPDATE TEAM DOSSIER</h3>
               <form onSubmit={handleEditSubmit}>
                 <div className={styles.grid3Col}>
@@ -642,310 +678,324 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             </div>
         )}
 
-        {/* 3. ROSTER DELLA SQUADRA */}
-        <div className={styles.rosterHeader}>
-          <h2 className={`title-spike ${styles.rosterTitle}`}>ROSTER ({activePlayers.length} / 16)</h2>
-          {isAdmin && !showPlayerForm && activePlayers.length < 16 && (
-              <button className="btn btn-primary" onClick={() => setShowPlayerForm(true)}>
-                <Plus size={20} /><span>{t.teamDetail.hirePlayer}</span>
-              </button>
-          )}
-        </div>
+        {/* 01 · ROSTER DELLA SQUADRA (fascia chiara) */}
+        <section className={`bleed ${styles.rosterBand}`}>
+          <span className={`ghost-text on-light ${styles.ghostRoster}`} aria-hidden="true">Roster</span>
 
-        {/* ADD PLAYER FORM */}
-        {showPlayerForm && (
-            <div className={`card ${styles.formCard}`}>
-              <h3 className="subhead">NEW RECRUIT CONTRACT</h3>
-              <form onSubmit={handleAddPlayer}>
-                <div className={styles.grid4Col}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>N°</label>
-                    <input type="number" value={playerForm.jersey_number} onChange={e => setPlayerForm({...playerForm, jersey_number: e.target.value})} className={`${styles.inputField} ${styles.center}`} placeholder="##" />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>{t.teamDetail.name}</label>
-                    <input type="text" required value={playerForm.name} onChange={e => setPlayerForm({...playerForm, name: e.target.value})} className={styles.inputField} placeholder="Player Name" />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>{t.teamDetail.role}</label>
-                    <input type="text" required value={playerForm.role} onChange={e => setPlayerForm({...playerForm, role: e.target.value})} className={styles.inputField} placeholder="e.g. Blitzer" />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>{t.teamDetail.value}</label>
-                    <input type="number" required value={playerForm.value} onChange={e => setPlayerForm({...playerForm, value: Number(e.target.value)})} className={styles.inputField} />
-                  </div>
-                </div>
+          <div className={styles.inner}>
+            <SectionTitle
+                index="01"
+                on="light"
+                micro={`Roster sheet // ${activePlayers.length} of 16`}
+                title={`ROSTER (${activePlayers.length} / 16)`}
+                action={isAdmin && !showPlayerForm && activePlayers.length < 16 ? (
+                    <button className="btn btn-primary" onClick={() => setShowPlayerForm(true)}>
+                      <Plus size={20} /><span>{t.teamDetail.hirePlayer}</span>
+                    </button>
+                ) : undefined}
+            />
 
-                {/* GESTIONE CATEGORIE SKILL */}
-                <div className={styles.grid2Col}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>PRIMARY SKILLS (es. G, A)</label>
-                    <input type="text" required value={playerForm.primary_skills} onChange={e => setPlayerForm({...playerForm, primary_skills: e.target.value})} className={styles.inputField} placeholder="G, A" />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>SECONDARY SKILLS (es. S, P)</label>
-                    <input type="text" required value={playerForm.secondary_skills} onChange={e => setPlayerForm({...playerForm, secondary_skills: e.target.value})} className={styles.inputField} placeholder="S, P" />
-                  </div>
-                </div>
-
-                {/* GESTIONE SKILLS CON AUTOCOMPLETE E VALIDAZIONE */}
-                <div className={`${styles.inputGroup} ${styles.blockGap} ${styles.autocomplete}`}>
-                  <label className={styles.label}>STARTING SKILLS</label>
-
-                  {playerForm.skills.length > 0 && (
-                      <div className={styles.chipList}>
-                        {playerForm.skills.map(s => (
-                            <span key={s.id} className={styles.skillChip}>
-                              {formatSkillName(s.name)}
-                              <button type="button" onClick={() => removeSkillFromPlayer(s)} className={styles.chipRemove} aria-label={`Remove ${formatSkillName(s.name)}`}><X size={16}/></button>
-                            </span>
-                        ))}
+            {/* ADD PLAYER FORM */}
+            {showPlayerForm && (
+                <div className={`card ${styles.formCard}`}>
+                  <h3 className="subhead">NEW RECRUIT CONTRACT</h3>
+                  <form onSubmit={handleAddPlayer}>
+                    <div className={styles.grid4Col}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>N°</label>
+                        <input type="number" value={playerForm.jersey_number} onChange={e => setPlayerForm({...playerForm, jersey_number: e.target.value})} className={`${styles.inputField} ${styles.center}`} placeholder="##" />
                       </div>
-                  )}
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>{t.teamDetail.name}</label>
+                        <input type="text" required value={playerForm.name} onChange={e => setPlayerForm({...playerForm, name: e.target.value})} className={styles.inputField} placeholder="Player Name" />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>{t.teamDetail.role}</label>
+                        <input type="text" required value={playerForm.role} onChange={e => setPlayerForm({...playerForm, role: e.target.value})} className={styles.inputField} placeholder="e.g. Blitzer" />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>{t.teamDetail.value}</label>
+                        <input type="number" required value={playerForm.value} onChange={e => setPlayerForm({...playerForm, value: Number(e.target.value)})} className={styles.inputField} />
+                      </div>
+                    </div>
 
-                  <input
-                      type="text"
-                      value={skillInput}
-                      onChange={e => handleSkillInputChange(e.target.value)}
-                      onKeyDown={handleSkillKeyDown}
-                      className={styles.inputField}
-                      placeholder="Type skill and press Enter..."
-                      autoComplete="off"
-                  />
+                    {/* GESTIONE CATEGORIE SKILL */}
+                    <div className={styles.grid2Col}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>PRIMARY SKILLS (es. G, A)</label>
+                        <input type="text" required value={playerForm.primary_skills} onChange={e => setPlayerForm({...playerForm, primary_skills: e.target.value})} className={styles.inputField} placeholder="G, A" />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label}>SECONDARY SKILLS (es. S, P)</label>
+                        <input type="text" required value={playerForm.secondary_skills} onChange={e => setPlayerForm({...playerForm, secondary_skills: e.target.value})} className={styles.inputField} placeholder="S, P" />
+                      </div>
+                    </div>
 
-                  {/* Dropdown ingrandito (maxHeight 350px) */}
-                  {skillSuggestions.length > 0 && (
-                      <ul className={styles.suggestions}>
-                        {skillSuggestions.map(skill => (
-                            <li
-                                key={skill.id}
-                                onClick={() => addSkillToPlayer(skill)}
-                                className={styles.suggestion}
-                            >
-                              {formatSkillName(skill.name)} <span className={styles.suggestionType}>({skill.type})</span>
-                            </li>
-                        ))}
-                      </ul>
-                  )}
-                </div>
+                    {/* GESTIONE SKILLS CON AUTOCOMPLETE E VALIDAZIONE */}
+                    <div className={`${styles.inputGroup} ${styles.blockGap} ${styles.autocomplete}`}>
+                      <label className={styles.label}>STARTING SKILLS</label>
 
-                <div className={styles.gridStats}>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thMA}</label>
-                    <input type="number" required value={playerForm.ma} onChange={e => setPlayerForm({...playerForm, ma: Number(e.target.value)})} className={styles.statInput} />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thST}</label>
-                    <input type="number" required value={playerForm.st} onChange={e => setPlayerForm({...playerForm, st: Number(e.target.value)})} className={styles.statInput} />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAG}</label>
-                    <input type="text" required value={playerForm.ag} onChange={e => setPlayerForm({...playerForm, ag: e.target.value})} className={styles.statInput} />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thPA}</label>
-                    <input type="text" required value={playerForm.pa} onChange={e => setPlayerForm({...playerForm, pa: e.target.value})} className={styles.statInput} />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAV}</label>
-                    <input type="text" required value={playerForm.av} onChange={e => setPlayerForm({...playerForm, av: e.target.value})} className={styles.statInput} />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thSPP}</label>
-                    <input type="number" required value={playerForm.spp} onChange={e => setPlayerForm({...playerForm, spp: Number(e.target.value)})} className={styles.statInput} />
-                  </div>
-                </div>
-
-                <div className={styles.formActions}>
-                  <button type="button" className="btn" onClick={() => setShowPlayerForm(false)}><span>CANCEL</span></button>
-                  <button type="submit" className="btn btn-primary" disabled={isSubmitting}><span>SIGN CONTRACT</span></button>
-                </div>
-              </form>
-            </div>
-        )}
-
-        {/* TABELLA ROSTER (Rulebook Team Roster) */}
-        {team.players.length === 0 ? (
-            <div className={`card ${styles.empty}`}>
-              <p className={styles.emptyTitle}>NO PLAYERS HIRED YET</p>
-            </div>
-        ) : (
-            <div className={`table-container ${styles.rosterTable}`}>
-              <div className="stars-bar" />
-              <table className={`data-table ${styles.dataTable}`}>
-                <thead>
-                <tr>
-                  <th className="num">N°</th>
-                  <th>{t.teamDetail.thName}</th>
-                  <th>{t.teamDetail.thRole}</th>
-                  <th className="num">MA</th>
-                  <th className="num">ST</th>
-                  <th className="num">AG</th>
-                  <th className="num">PA</th>
-                  <th className="num">AV</th>
-                  <th className="num">SPP</th>
-                  <th className={styles.skillsCol}>{t.teamDetail.thSkills}</th>
-                  <th className={styles.right}>{t.teamDetail.thValue}</th>
-                  <th className="num">STATUS</th>
-                  {isAdmin && <th className="num">ACT</th>}
-                </tr>
-                </thead>
-                <tbody>
-                {sortedPlayers.map(player => {
-
-                  // RIGA IN MODALITÀ MODIFICA
-                  if (editingPlayerId === player.id) {
-                    return (
-                        <tr key={player.id} className={styles.editRow}>
-                          <td>
-                            <input type="number" value={editPlayerForm.jersey_number} onChange={e => setEditPlayerForm({...editPlayerForm, jersey_number: e.target.value})} className={styles.editInput} />
-                          </td>
-                          <td>
-                            <input type="text" value={editPlayerForm.name} onChange={e => setEditPlayerForm({...editPlayerForm, name: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
-                          </td>
-                          <td>
-                            <input type="text" value={editPlayerForm.role} onChange={e => setEditPlayerForm({...editPlayerForm, role: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
-                          </td>
-                          <td><input type="number" value={editPlayerForm.ma} onChange={e => setEditPlayerForm({...editPlayerForm, ma: Number(e.target.value)})} className={styles.editInput} /></td>
-                          <td><input type="number" value={editPlayerForm.st} onChange={e => setEditPlayerForm({...editPlayerForm, st: Number(e.target.value)})} className={styles.editInput} /></td>
-                          <td><input type="text" value={editPlayerForm.ag} onChange={e => setEditPlayerForm({...editPlayerForm, ag: e.target.value})} className={styles.editInput} /></td>
-                          <td><input type="text" value={editPlayerForm.pa} onChange={e => setEditPlayerForm({...editPlayerForm, pa: e.target.value})} className={styles.editInput} /></td>
-                          <td><input type="text" value={editPlayerForm.av} onChange={e => setEditPlayerForm({...editPlayerForm, av: e.target.value})} className={styles.editInput} /></td>
-
-                          {/* SPP BLOCCATI */}
-                          <td className={`num ${styles.statCell} ${styles.locked}`}>{player.spp}</td>
-
-                          {/* SKILLS BLOCCATE */}
-                          <td className={`${styles.skillsCol} ${styles.locked}`}>
-                            {player.skills && player.skills.map(s => formatSkillName(s.name)).join(', ')}
-                          </td>
-
-                          <td>
-                            <input type="number" value={editPlayerForm.value} onChange={e => setEditPlayerForm({...editPlayerForm, value: Number(e.target.value)})} className={`${styles.editInput} ${styles.editInputValue}`} />
-                          </td>
-
-                          {/* TOGGLE MNG E DEAD */}
-                          <td>
-                            <div className={styles.toggles}>
-                              <label className={styles.toggle}>
-                                <input type="checkbox" checked={editPlayerForm.mng} onChange={e => setEditPlayerForm({...editPlayerForm, mng: e.target.checked})} className={styles.checkbox} /> MNG
-                              </label>
-                              <label className={styles.toggle}>
-                                <input type="checkbox" checked={editPlayerForm.dead} onChange={e => setEditPlayerForm({...editPlayerForm, dead: e.target.checked})} className={styles.checkbox} /> RIP
-                              </label>
-                            </div>
-                          </td>
-
-                          <td>
-                            <div className={styles.rowActions}>
-                              <button onClick={() => handleSavePlayerEdit(player.id)} className={`${styles.iconBtn} ${styles.iconSave}`} title="Save" aria-label="Save"><Save size={20} /></button>
-                              <button onClick={() => setEditingPlayerId(null)} className={`${styles.iconBtn} ${styles.iconDanger}`} title="Cancel" aria-label="Cancel"><X size={20} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                    );
-                  }
-
-                  // RIGA STANDARD
-                  const isDead = player.dead === 1 || player.dead === true;
-                  const isMNG = player.mng === 1 || player.mng === true;
-
-                  const currentAdvancements = Math.min(player.advancements || 0, 5);
-                  const costOfNextLevel = ADVANCEMENT_TIERS[currentAdvancements].randomPrimary;
-                  const canLevelUp = !isDead && (player.advancements || 0) < MAX_ADVANCEMENTS && (player.spp >= costOfNextLevel);
-
-                  const totalSkills = player.skills?.length || 0;
-                  const earnedCount = player.advancements || 0;
-                  const startingCount = Math.max(0, totalSkills - earnedCount);
-
-                  return (
-                      <tr key={player.id} className={isDead ? styles.deadRow : undefined}>
-
-                        {/* NUMERO DI MAGLIA con filetto nel colore squadra */}
-                        <td className="num">
-                          <span className={styles.jersey}>{player.jersey_number || '-'}</span>
-                        </td>
-
-                        <td className={styles.playerName}>
-                          {player.name}
-                        </td>
-
-                        {/* RUOLO CON STELLE AVANZAMENTO */}
-                        <td className={styles.playerRole}>
-                          {player.role}
-                          {player.advancements > 0 && (
-                              <span className={styles.stars} aria-label={`${player.advancements} advancements`}>
-                                {'★'.repeat(player.advancements)}
-                              </span>
-                          )}
-                        </td>
-
-                        <td className={`num ${styles.statCell}`}>{player.ma ?? 6}</td>
-                        <td className={`num ${styles.statCell}`}>{player.st ?? 3}</td>
-                        <td className={`num ${styles.statCell}`}>{player.ag ?? '3+'}</td>
-                        <td className={`num ${styles.statCell}`}>{player.pa ?? '4+'}</td>
-                        <td className={`num ${styles.statCell}`}>{player.av ?? '8+'}</td>
-                        <td className={`num ${styles.statCell} ${styles.sppCell}`}>{player.spp ?? 0}</td>
-
-                        {/* VISUALIZZAZIONE SKILLS CON LINK ALLA PAGINA REGOLAMENTO */}
-                        <td className={styles.skillsCol}>
-                          {player.skills && Array.isArray(player.skills) && player.skills.map((s, i) => {
-                            const isEarned = i >= startingCount;
-
-                            return (
-                                <span key={s.id}>
-                                  {i > 0 && ', '}
-                                  <button
-                                      type="button"
-                                      onClick={() => router.push(`/skills?expandedId=${s.id}`)}
-                                      className={`${styles.skillLink} ${isEarned ? styles.skillEarned : ''}`}
-                                      title="Vedi dettagli abilità"
-                                  >
-                                    {formatSkillName(s.name)}
-                                  </button>
+                      {playerForm.skills.length > 0 && (
+                          <div className={styles.chipList}>
+                            {playerForm.skills.map(s => (
+                                <span key={s.id} className={styles.skillChip}>
+                                  {formatSkillName(s.name)}
+                                  <button type="button" onClick={() => removeSkillFromPlayer(s)} className={styles.chipRemove} aria-label={`Remove ${formatSkillName(s.name)}`}><X size={16}/></button>
                                 </span>
-                            );
-                          })}
-                        </td>
-
-                        <td className={`${styles.right} ${styles.valueCell}`}>{player.value.toLocaleString()}</td>
-
-                        {/* VISUALIZZAZIONE STATO */}
-                        <td className="num">
-                          {isDead ? (
-                              <span className={`tag tag-red ${styles.statusTag}`}><Skull size={14} aria-hidden="true" /> RIP</span>
-                          ) : isMNG ? (
-                              <span className={`tag tag-navy ${styles.statusTag}`}>MNG</span>
-                          ) : (
-                              <span className={styles.statusOk} aria-label="Active" />
-                          )}
-                        </td>
-
-                        {isAdmin && (
-                        <td>
-                          <div className={styles.rowActions}>
-                            {canLevelUp && (
-                                <button onClick={() => setLevelUpPlayer(player)} className={`${styles.iconBtn} ${styles.iconLevel}`} title="SPP Advancement" aria-label="SPP Advancement"><ArrowUpCircle size={22} /></button>
-                            )}
-                            <button onClick={() => startEditPlayer(player)} className={styles.iconBtn} title="Edit" aria-label="Edit"><Edit2 size={20} /></button>
-                            <button onClick={() => handleDeletePlayer(player.id, player.name)} className={`${styles.iconBtn} ${styles.iconDanger}`} title="Fire (Permanent Delete)" aria-label="Fire"><Trash2 size={20} /></button>
+                            ))}
                           </div>
-                        </td>
-                        )}
+                      )}
+
+                      <input
+                          type="text"
+                          value={skillInput}
+                          onChange={e => handleSkillInputChange(e.target.value)}
+                          onKeyDown={handleSkillKeyDown}
+                          className={styles.inputField}
+                          placeholder="Type skill and press Enter..."
+                          autoComplete="off"
+                      />
+
+                      {/* Dropdown ingrandito (maxHeight 350px) */}
+                      {skillSuggestions.length > 0 && (
+                          <ul className={styles.suggestions}>
+                            {skillSuggestions.map(skill => (
+                                <li
+                                    key={skill.id}
+                                    onClick={() => addSkillToPlayer(skill)}
+                                    className={styles.suggestion}
+                                >
+                                  {formatSkillName(skill.name)} <span className={styles.suggestionType}>({skill.type})</span>
+                                </li>
+                            ))}
+                          </ul>
+                      )}
+                    </div>
+
+                    <div className={styles.gridStats}>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thMA}</label>
+                        <input type="number" required value={playerForm.ma} onChange={e => setPlayerForm({...playerForm, ma: Number(e.target.value)})} className={styles.statInput} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thST}</label>
+                        <input type="number" required value={playerForm.st} onChange={e => setPlayerForm({...playerForm, st: Number(e.target.value)})} className={styles.statInput} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAG}</label>
+                        <input type="text" required value={playerForm.ag} onChange={e => setPlayerForm({...playerForm, ag: e.target.value})} className={styles.statInput} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thPA}</label>
+                        <input type="text" required value={playerForm.pa} onChange={e => setPlayerForm({...playerForm, pa: e.target.value})} className={styles.statInput} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAV}</label>
+                        <input type="text" required value={playerForm.av} onChange={e => setPlayerForm({...playerForm, av: e.target.value})} className={styles.statInput} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thSPP}</label>
+                        <input type="number" required value={playerForm.spp} onChange={e => setPlayerForm({...playerForm, spp: Number(e.target.value)})} className={styles.statInput} />
+                      </div>
+                    </div>
+
+                    <div className={styles.formActions}>
+                      <button type="button" className="btn" onClick={() => setShowPlayerForm(false)}><span>CANCEL</span></button>
+                      <button type="submit" className="btn btn-primary" disabled={isSubmitting}><span>SIGN CONTRACT</span></button>
+                    </div>
+                  </form>
+                </div>
+            )}
+
+            {/* TABELLA ROSTER (Rulebook Team Roster) */}
+            {team.players.length === 0 ? (
+                <div className={`chamfer ${styles.empty}`}>
+                  <p className={styles.emptyTitle}>NO PLAYERS HIRED YET</p>
+                </div>
+            ) : (
+                <div className={`offset-frame ${styles.rosterFrame}`}>
+                  <div className={`table-container chamfer ${styles.rosterTable}`}>
+                    <div className={styles.tableStrip} aria-hidden="true">
+                      <span><i className={styles.microSquares} />{team.name}</span>
+                      <span className={styles.tableStripMeta}>{`${team.race} // ${activePlayers.length} / 16`}</span>
+                    </div>
+                    <table className={`data-table ${styles.dataTable}`}>
+                      <thead>
+                      <tr>
+                        <th className="num">N°</th>
+                        <th>{t.teamDetail.thName}</th>
+                        <th>{t.teamDetail.thRole}</th>
+                        <th className="num">MA</th>
+                        <th className="num">ST</th>
+                        <th className="num">AG</th>
+                        <th className="num">PA</th>
+                        <th className="num">AV</th>
+                        <th className="num">SPP</th>
+                        <th className={styles.skillsCol}>{t.teamDetail.thSkills}</th>
+                        <th className={styles.right}>{t.teamDetail.thValue}</th>
+                        <th className="num">STATUS</th>
+                        {isAdmin && <th className="num">ACT</th>}
                       </tr>
-                  );
-                })}
-                </tbody>
-                <tfoot>
-                <tr>
-                  <td colSpan={10} className={styles.right}>{t.teamDetail.teamValue}</td>
-                  <td className={styles.right}>{totalValue.toLocaleString()}</td>
-                  <td colSpan={isAdmin ? 2 : 1} />
-                </tr>
-                </tfoot>
-              </table>
-            </div>
-        )}
+                      </thead>
+                      <tbody>
+                      {sortedPlayers.map(player => {
+
+                        // RIGA IN MODALITÀ MODIFICA
+                        if (editingPlayerId === player.id) {
+                          return (
+                              <tr key={player.id} className={styles.editRow}>
+                                <td>
+                                  <input type="number" value={editPlayerForm.jersey_number} onChange={e => setEditPlayerForm({...editPlayerForm, jersey_number: e.target.value})} className={styles.editInput} />
+                                </td>
+                                <td>
+                                  <input type="text" value={editPlayerForm.name} onChange={e => setEditPlayerForm({...editPlayerForm, name: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
+                                </td>
+                                <td>
+                                  <input type="text" value={editPlayerForm.role} onChange={e => setEditPlayerForm({...editPlayerForm, role: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
+                                </td>
+                                <td><input type="number" value={editPlayerForm.ma} onChange={e => setEditPlayerForm({...editPlayerForm, ma: Number(e.target.value)})} className={styles.editInput} /></td>
+                                <td><input type="number" value={editPlayerForm.st} onChange={e => setEditPlayerForm({...editPlayerForm, st: Number(e.target.value)})} className={styles.editInput} /></td>
+                                <td><input type="text" value={editPlayerForm.ag} onChange={e => setEditPlayerForm({...editPlayerForm, ag: e.target.value})} className={styles.editInput} /></td>
+                                <td><input type="text" value={editPlayerForm.pa} onChange={e => setEditPlayerForm({...editPlayerForm, pa: e.target.value})} className={styles.editInput} /></td>
+                                <td><input type="text" value={editPlayerForm.av} onChange={e => setEditPlayerForm({...editPlayerForm, av: e.target.value})} className={styles.editInput} /></td>
+
+                                {/* SPP BLOCCATI */}
+                                <td className={`num ${styles.statCell} ${styles.locked}`}>{player.spp}</td>
+
+                                {/* SKILLS BLOCCATE */}
+                                <td className={`${styles.skillsCol} ${styles.locked}`}>
+                                  {player.skills && player.skills.map(s => formatSkillName(s.name)).join(', ')}
+                                </td>
+
+                                <td>
+                                  <input type="number" value={editPlayerForm.value} onChange={e => setEditPlayerForm({...editPlayerForm, value: Number(e.target.value)})} className={`${styles.editInput} ${styles.editInputValue}`} />
+                                </td>
+
+                                {/* TOGGLE MNG E DEAD */}
+                                <td>
+                                  <div className={styles.toggles}>
+                                    <label className={styles.toggle}>
+                                      <input type="checkbox" checked={editPlayerForm.mng} onChange={e => setEditPlayerForm({...editPlayerForm, mng: e.target.checked})} className={styles.checkbox} /> MNG
+                                    </label>
+                                    <label className={styles.toggle}>
+                                      <input type="checkbox" checked={editPlayerForm.dead} onChange={e => setEditPlayerForm({...editPlayerForm, dead: e.target.checked})} className={styles.checkbox} /> RIP
+                                    </label>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <div className={styles.rowActions}>
+                                    <button onClick={() => handleSavePlayerEdit(player.id)} className={`${styles.iconBtn} ${styles.iconSave}`} title="Save" aria-label="Save"><Save size={20} /></button>
+                                    <button onClick={() => setEditingPlayerId(null)} className={`${styles.iconBtn} ${styles.iconDanger}`} title="Cancel" aria-label="Cancel"><X size={20} /></button>
+                                  </div>
+                                </td>
+                              </tr>
+                          );
+                        }
+
+                        // RIGA STANDARD
+                        const isDead = player.dead === 1 || player.dead === true;
+                        const isMNG = player.mng === 1 || player.mng === true;
+
+                        const currentAdvancements = Math.min(player.advancements || 0, 5);
+                        const costOfNextLevel = ADVANCEMENT_TIERS[currentAdvancements].randomPrimary;
+                        const canLevelUp = !isDead && (player.advancements || 0) < MAX_ADVANCEMENTS && (player.spp >= costOfNextLevel);
+
+                        const totalSkills = player.skills?.length || 0;
+                        const earnedCount = player.advancements || 0;
+                        const startingCount = Math.max(0, totalSkills - earnedCount);
+
+                        return (
+                            <tr key={player.id} className={isDead ? styles.deadRow : undefined}>
+
+                              {/* NUMERO DI MAGLIA con filetto nel colore squadra */}
+                              <td className="num">
+                                <span className={styles.jersey}>{player.jersey_number || '-'}</span>
+                              </td>
+
+                              <td className={styles.playerName}>
+                                {player.name}
+                              </td>
+
+                              {/* RUOLO CON STELLE AVANZAMENTO */}
+                              <td className={styles.playerRole}>
+                                {player.role}
+                                {player.advancements > 0 && (
+                                    <span className={styles.stars} aria-label={`${player.advancements} advancements`}>
+                                      {'★'.repeat(player.advancements)}
+                                    </span>
+                                )}
+                              </td>
+
+                              <td className={`num ${styles.statCell}`}>{player.ma ?? 6}</td>
+                              <td className={`num ${styles.statCell}`}>{player.st ?? 3}</td>
+                              <td className={`num ${styles.statCell}`}>{player.ag ?? '3+'}</td>
+                              <td className={`num ${styles.statCell}`}>{player.pa ?? '4+'}</td>
+                              <td className={`num ${styles.statCell}`}>{player.av ?? '8+'}</td>
+                              <td className={`num ${styles.statCell} ${styles.sppCell}`}>{player.spp ?? 0}</td>
+
+                              {/* VISUALIZZAZIONE SKILLS CON LINK ALLA PAGINA REGOLAMENTO */}
+                              <td className={styles.skillsCol}>
+                                {player.skills && Array.isArray(player.skills) && player.skills.map((s, i) => {
+                                  const isEarned = i >= startingCount;
+
+                                  return (
+                                      <span key={s.id}>
+                                        {i > 0 && ', '}
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push(`/skills?expandedId=${s.id}`)}
+                                            className={`${styles.skillLink} ${isEarned ? styles.skillEarned : ''}`}
+                                            title="Vedi dettagli abilità"
+                                        >
+                                          {formatSkillName(s.name)}
+                                        </button>
+                                      </span>
+                                  );
+                                })}
+                              </td>
+
+                              <td className={`${styles.right} ${styles.valueCell}`}>{player.value.toLocaleString()}</td>
+
+                              {/* VISUALIZZAZIONE STATO */}
+                              <td className="num">
+                                {isDead ? (
+                                    <span className={`tag tag-red ${styles.statusTag}`}><Skull size={14} aria-hidden="true" /> RIP</span>
+                                ) : isMNG ? (
+                                    <span className={`tag tag-navy ${styles.statusTag}`}>MNG</span>
+                                ) : (
+                                    <span className={styles.statusOk} aria-label="Active" />
+                                )}
+                              </td>
+
+                              {isAdmin && (
+                              <td>
+                                <div className={styles.rowActions}>
+                                  {canLevelUp && (
+                                      <button onClick={() => setLevelUpPlayer(player)} className={`${styles.iconBtn} ${styles.iconLevel}`} title="SPP Advancement" aria-label="SPP Advancement"><ArrowUpCircle size={22} /></button>
+                                  )}
+                                  <button onClick={() => startEditPlayer(player)} className={styles.iconBtn} title="Edit" aria-label="Edit"><Edit2 size={20} /></button>
+                                  <button onClick={() => handleDeletePlayer(player.id, player.name)} className={`${styles.iconBtn} ${styles.iconDanger}`} title="Fire (Permanent Delete)" aria-label="Fire"><Trash2 size={20} /></button>
+                                </div>
+                              </td>
+                              )}
+                            </tr>
+                        );
+                      })}
+                      </tbody>
+                      <tfoot>
+                      <tr>
+                        <td colSpan={10} className={styles.right}>{t.teamDetail.teamValue}</td>
+                        <td className={styles.right}>{totalValue.toLocaleString()}</td>
+                        <td colSpan={isAdmin ? 2 : 1} />
+                      </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+            )}
+          </div>
+        </section>
       </div>
   );
 }

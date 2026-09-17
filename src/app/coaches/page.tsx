@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, UserRound } from 'lucide-react';
+import { ArrowRight, Trophy, UserRound } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
 import styles from './Coaches.module.css';
 
 type CoachRow = {
@@ -15,6 +16,8 @@ type CoachRow = {
   };
   latest: { season_name: string; season_status: string; team_id: string; team_name: string } | null;
 };
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function CoachesPage() {
   const { t } = useLanguage();
@@ -34,62 +37,85 @@ export default function CoachesPage() {
       b.totals.titles - a.totals.titles || b.totals.points - a.totals.points || a.name.localeCompare(b.name));
 
   return (
-      <div>
+      <div className={styles.page}>
         <PageHeader title={t.coaches.title} icon={<UserRound size={44} />} />
 
         {loading ? (
             <p className="loading-state">...</p>
         ) : sorted.length === 0 ? (
-            <div className={`card ${styles.emptyCard}`}>
+            <div className={`chamfer ${styles.emptyCard}`}>
               <p className={styles.emptyText}>{t.coaches.noCoaches}</p>
             </div>
         ) : (
-            <div className={`table-container ${styles.tableWrap}`}>
-              <div className="stars-bar" aria-hidden="true" />
-              <table className={`data-table ${styles.roster}`}>
-                <thead>
-                <tr>
-                  <th>{t.coachPicker.label}</th>
-                  <th>{t.coaches.current}</th>
-                  <th className="num">{t.coaches.seasons}</th>
-                  <th className="num">{t.coaches.teams}</th>
-                  <th className="num">{t.coaches.record}</th>
-                  <th className="num">{t.coaches.winRate}</th>
-                  <th className="num">{t.coaches.points}</th>
-                  <th className="num">{t.coaches.finals}</th>
-                  <th className="num">{t.coaches.titles}</th>
-                </tr>
-                </thead>
-                <tbody>
-                {sorted.map(c => (
-                    <tr key={c.id}>
-                      <td>
-                        <Link href={`/coaches/${c.id}`} className={styles.nameLink}>{c.name}</Link>
-                      </td>
-                      <td>
-                        {c.latest ? (
-                            <>
-                              <Link href={`/teams/${c.latest.team_id}`} className={styles.subLink}>{c.latest.team_name}</Link>
-                              <span className={styles.muted}>{c.latest.season_name}</span>
-                            </>
-                        ) : '—'}
-                      </td>
-                      <td className="num">{c.totals.seasons}</td>
-                      <td className="num">{c.totals.teams}</td>
-                      <td className="num">{c.totals.wins}-{c.totals.draws}-{c.totals.losses}</td>
-                      <td className="num">{c.totals.played ? `${c.totals.win_rate}%` : '—'}</td>
-                      <td className={`num ${styles.big}`}>{c.totals.points}</td>
-                      <td className="num">{c.totals.finals}</td>
-                      <td className={`num ${styles.big}`}>
-                        {c.totals.titles > 0
-                            ? <span className={styles.titles}><Trophy size={18} aria-hidden="true" /> {c.totals.titles}</span>
-                            : 0}
-                      </td>
-                    </tr>
-                ))}
-                </tbody>
-              </table>
-            </div>
+            <section className={`bleed ${styles.rankBand}`}>
+              <span className={`ghost-text on-light ${styles.ghostRank}`} aria-hidden="true">Ranking</span>
+
+              <div className={styles.inner}>
+                <SectionTitle
+                    index="01"
+                    on="light"
+                    micro={`${sorted.length} ${t.coaches.title} // ${t.coaches.titles} > ${t.coaches.points}`}
+                    title={t.coaches.career}
+                />
+
+                <ol className={styles.rankList}>
+                  {sorted.map((c, i) => {
+                    const rank = i + 1;
+                    const stats = [
+                      { label: t.coaches.record, value: `${c.totals.wins}-${c.totals.draws}-${c.totals.losses}` },
+                      { label: t.coaches.winRate, value: c.totals.played ? `${c.totals.win_rate}%` : '—' },
+                      { label: t.coaches.seasons, value: c.totals.seasons },
+                      { label: t.coaches.teams, value: c.totals.teams },
+                      { label: t.coaches.finals, value: c.totals.finals },
+                    ];
+                    return (
+                        <li key={c.id} className={`${styles.rankItem} ${rank <= 3 ? styles.rankLead : ''} ${rank === 1 ? styles.rankFirst : ''}`}>
+                          <div className={`chamfer ${styles.rankCard}`}>
+                            <span className={styles.rankNum} aria-hidden="true">{pad(rank)}</span>
+
+                            <div className={styles.rankIdentity}>
+                              <span className={styles.rankMicro}>
+                                <i className={styles.microSquares} aria-hidden="true" />
+                                {c.latest ? `${t.coaches.current} // ${c.latest.season_name}` : `${t.coachPicker.label} // —`}
+                              </span>
+                              <Link href={`/coaches/${c.id}`} className={styles.rankName}>
+                                <span className="visually-hidden">{rank}. </span>{c.name}
+                              </Link>
+                              {c.latest ? (
+                                  <Link href={`/teams/${c.latest.team_id}`} className={styles.rankTeam}>{c.latest.team_name}</Link>
+                              ) : <span className={styles.rankTeamNone}>—</span>}
+                            </div>
+
+                            <dl className={styles.rankStats}>
+                              {stats.map(s => (
+                                  <div key={s.label} className={styles.rankStat}>
+                                    <dt>{s.label}</dt>
+                                    <dd>{s.value}</dd>
+                                  </div>
+                              ))}
+                            </dl>
+
+                            <div className={styles.rankScore}>
+                              <span className={`plate ${styles.rankPoints}`}>
+                                <strong>{c.totals.points}</strong>
+                                <small>{t.coaches.points}</small>
+                              </span>
+                              <span className={`${styles.rankTitles} ${c.totals.titles > 0 ? styles.rankTitlesWon : ''}`}>
+                                <Trophy size={18} aria-hidden="true" /> {c.totals.titles}
+                                <span className="visually-hidden"> {t.coaches.titles}</span>
+                              </span>
+                            </div>
+
+                            <Link href={`/coaches/${c.id}`} className={styles.rankGo} aria-hidden="true" tabIndex={-1}>
+                              <ArrowRight size={22} aria-hidden="true" />
+                            </Link>
+                          </div>
+                        </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            </section>
         )}
       </div>
   );

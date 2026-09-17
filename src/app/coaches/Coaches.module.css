@@ -1,7 +1,47 @@
-/* src/app/coaches/Coaches.module.css: lista allenatori e scheda carriera */
+/* src/app/coaches/Coaches.module.css: classifica allenatori e scheda carriera (linguaggio editoriale v3) */
+
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
+}
+
+.micro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
 
 .emptyCard {
+  --cut: 20px;
+  padding: 3rem 1.5rem;
   text-align: center;
+  background: linear-gradient(160deg, #2d323a, #16191e);
 }
 
 .emptyText {
@@ -11,14 +51,788 @@
   font-size: 1.35rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--bb-ink-soft);
+  color: var(--bb-parchment);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Tabella roster                                                     */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  CLASSIFICA ALLENATORI                                              */
+/* ================================================================== */
+.rankBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  margin-bottom: -4rem;
+  padding-top: 6rem;
+  padding-bottom: 7rem;
+  color: var(--bb-ink);
+  background:
+    var(--tex-grain),
+    radial-gradient(ellipse 55% 60% at 85% 20%, rgba(200, 37, 44, 0.08), transparent 70%),
+    linear-gradient(180deg, #f3ecdf, #e7dcc7);
+  background-size: 200px, cover, cover;
+  clip-path: polygon(0 1.6rem, 21% 0, 57% 2.2rem, 100% 0.3rem, 100% 100%, 0 100%);
+}
+
+.ghostRank {
+  right: -3%;
+  top: 2rem;
+}
+
+.rankList {
+  list-style: none;
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+}
+
+.rankItem {
+  position: relative;
+  min-width: 0;
+}
+
+.rankCard {
+  --cut: 18px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1.25fr) minmax(0, 1.6fr) auto 2.5rem;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem 1rem 1.5rem;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 5px 100% no-repeat,
+    var(--tex-grain),
+    linear-gradient(100deg, #16191e 0%, #22262d 55%, #2d323a 100%);
+  background-size: 5px 100%, 200px, cover;
+  transition: transform 0.25s var(--ease-out), background 0.25s ease;
+}
+
+.rankItem:hover .rankCard {
+  transform: translateX(6px);
+}
+
+/* Primi tre: più alti, con striscia d'ottone e tinta rossa */
+.rankLead .rankCard {
+  --cut: 26px;
+  padding-block: 1.5rem;
+  background:
+    var(--bb-brass) left top / 6px 100% no-repeat,
+    var(--tex-grain),
+    radial-gradient(ellipse 50% 120% at 0% 50%, rgba(200, 37, 44, 0.45), transparent 70%),
+    linear-gradient(100deg, #1b0d0f 0%, #22262d 50%, #1a2852 100%);
+  background-size: 6px 100%, 200px, cover, cover;
+}
+
+.rankNum {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 4.6rem;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.55);
+  text-align: center;
+}
+
+.rankLead .rankNum {
+  font-size: 6.4rem;
+  -webkit-text-stroke: 2px #d9b268;
+}
+
+.rankFirst .rankNum {
+  color: rgba(234, 178, 42, 0.18);
+  -webkit-text-stroke-color: #f3d897;
+}
+
+.rankIdentity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.rankMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.rankName {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.9rem;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: #fff6e6;
+  overflow-wrap: break-word;
+}
+
+.rankLead .rankName {
+  font-size: clamp(2rem, 3.2vw, 2.7rem);
+  text-shadow: 3px 4px 0 rgba(122, 26, 28, 0.85);
+}
+
+.rankName:hover {
+  color: var(--bb-mustard);
+}
+
+.rankTeam {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.rankTeam:hover {
+  color: #fff6e6;
+}
+
+.rankTeamNone {
+  color: var(--bb-slate-500);
+}
+
+.rankStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.rankStat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.2rem;
+  padding: 0.2rem 0 0.2rem 0.7rem;
+  border-left: 1px solid rgba(243, 216, 151, 0.2);
+  min-width: 0;
+}
+
+.rankStat dt {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rankStat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rankScore {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rankPoints {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 5.5rem;
+  padding: 0.5rem 1rem 0.45rem;
+  transform: skewX(-8deg);
+}
+
+.rankPoints > * {
+  transform: skewX(8deg);
+}
+
+.rankPoints strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2.2rem;
+  line-height: 0.9;
+  color: #2a1a05;
+}
+
+.rankPoints small {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #4a3210;
+}
+
+.rankTitles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: var(--bb-slate-500);
+}
+
+.rankTitlesWon {
+  color: var(--bb-mustard);
+}
+
+.rankGo {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--bb-mustard);
+  background: rgba(234, 178, 42, 0.1);
+  clip-path: polygon(0 0, 70% 0, 100% 50%, 70% 100%, 0 100%, 20% 50%);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.rankItem:hover .rankGo {
+  color: #1a1208;
+  background: var(--bb-mustard);
+}
+
+/* ================================================================== */
+/*  SCHEDA ALLENATORE: ritratto                                        */
+/* ================================================================== */
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.textInput {
+  min-height: 46px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.profileBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -1.5rem;
+  padding-top: 4.5rem;
+  padding-bottom: 6rem;
+  color: var(--bb-parchment);
+  background:
+    radial-gradient(ellipse 50% 70% at 22% 45%, color-mix(in srgb, var(--team-accent) 35%, transparent), transparent 70%),
+    var(--tex-grunge),
+    linear-gradient(180deg, #101318 0%, #1a1e25 55%, #111418 100%);
+  background-size: cover, 700px, cover;
+  clip-path: polygon(0 2.5rem, 18% 0, 47% 2rem, 78% 0.5rem, 100% 2.2rem, 100% calc(100% - 3rem), 82% 100%, 55% calc(100% - 2.2rem), 26% 100%, 0 calc(100% - 1.8rem));
+}
+
+.profileShards {
+  z-index: -1;
+  opacity: 0.75;
+}
+
+.ghostProfile {
+  right: -3%;
+  bottom: 5.5rem;
+}
+
+.profileInner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 3.5rem;
+  align-items: center;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 440px;
+  padding: 3rem 1rem 5.5rem;
+}
+
+.portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(135deg, #e0332f, #7a1a1c 70%);
+  clip-path: polygon(9% 4%, 58% 0, 100% 9%, 93% 58%, 100% 94%, 46% 100%, 0 90%, 5% 46%);
+  transform: translate(16px, 16px);
+  opacity: 0.9;
+}
+
+.portraitShard {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    var(--bb-brass) left 12% bottom 14% / 42% 3px no-repeat,
+    var(--tex-grain),
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(255, 240, 210, 0.22), transparent 70%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--team-accent) 92%, #fff 8%) 0%,
+      color-mix(in srgb, var(--team-accent) 62%, #16191e) 55%,
+      #0c0e12 100%);
+  background-size: 42% 3px, 200px, cover, cover;
+  clip-path: polygon(9% 4%, 58% 0, 100% 9%, 93% 58%, 100% 94%, 46% 100%, 0 90%, 5% 46%);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.45);
+}
+
+.portraitShard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bb-brass);
+  clip-path: polygon(58% 0, 100% 9%, 99.3% 14%, 58.2% 5%, 9% 8%, 9% 4%);
+}
+
+.portraitCount {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(6rem, 12vw, 10rem);
+  line-height: 0.75;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 246, 230, 0.55);
+  pointer-events: none;
+}
+
+.portraitMicro {
+  position: absolute;
+  top: 2.2rem;
+  left: 12%;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 230, 0.8);
+}
+
+.badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(260px, 66%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(160deg, #2d323a, #16191e);
+  box-shadow:
+    0 0 0 5px var(--team-accent),
+    0 0 0 14px #2a1a05,
+    0 0 0 16px #d9b268,
+    0 30px 50px -18px rgba(0, 0, 0, 0.9);
+  animation: bb-badge-in 0.9s var(--ease-out) backwards 0.15s;
+}
+
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 20deg, #f7e2ab, #8d6831, #f3d897, #b8893f, #f7e2ab, #8d6831, #d9b268, #f7e2ab);
+  -webkit-mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
+  mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
+}
+
+@keyframes bb-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) rotate(-8deg);
+  }
+}
+
+.badgeInitials {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(4.5rem, 9vw, 7rem);
+  line-height: 1;
+  padding-right: 0.08em;
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, 0.55));
+}
+
+.portraitTeam {
+  --cut: 12px;
+  position: absolute;
+  right: 4%;
+  bottom: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 88%;
+  min-height: 44px;
+  padding: 0.5rem 1.1rem 0.5rem 0.7rem;
+  color: #fff6e6;
+  background: rgba(10, 12, 18, 0.85);
+  border-right: 4px solid var(--bb-red);
+  backdrop-filter: blur(3px);
+}
+
+.portraitTeam:hover {
+  color: var(--bb-mustard);
+}
+
+.portraitTeamLogo {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  padding: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  box-shadow: 0 0 0 2px #d9b268;
+}
+
+.portraitTeam > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.portraitTeam small {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.portraitTeam strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.3rem;
+  line-height: 1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+/* --- Dossier --- */
+.dossier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.dossierName {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: #fff6e6;
+  text-shadow: 4px 5px 0 rgba(122, 26, 28, 0.9);
+  overflow-wrap: break-word;
+}
+
+.labelRows {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.labelRow {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 44px;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px dashed rgba(243, 216, 151, 0.18);
+}
+
+.labelChip {
+  --cut: 9px;
+  padding: 0.42rem 0.8rem 0.4rem 0.9rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff4f2;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(100deg, #e6475c 0%, #c8252c 55%, #9a2226 100%);
+}
+
+.labelValue {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
+}
+
+.labelTag {
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.profileLink {
+  font-style: italic;
+  color: var(--bb-mustard);
+  text-decoration: underline;
+  text-decoration-color: rgba(234, 178, 42, 0.45);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.profileLink:hover {
+  color: #fff6e6;
+  text-decoration-color: var(--bb-red);
+}
+
+.plates {
+  position: relative;
+  z-index: 2;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  max-width: 1240px;
+  margin: 2.5rem auto 0;
+  padding: 0;
+}
+
+.plateItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.9rem 1.4rem 0.8rem;
+  transform: skewX(-6deg);
+}
+
+.plateItem > * {
+  transform: skewX(6deg);
+}
+
+.plateValue {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 0.9;
+  color: #2a1a05;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.plateLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4a3210;
+}
+
+/* ================================================================== */
+/*  01 · CARRIERA                                                      */
+/* ================================================================== */
+.careerSection {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 4rem 0 7rem;
+}
+
+.ghostCareer {
+  right: -4%;
+  top: 1.5rem;
+}
+
+.careerHead {
+  position: relative;
+  z-index: 1;
+}
+
+.statGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.statTile {
+  --cut: 16px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 1rem 1.1rem 0.9rem;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 100% 3px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 3px, 200px, cover;
+}
+
+.statLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.statValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2.6rem;
+  line-height: 0.9;
+  color: #fff6e6;
+  font-variant-numeric: tabular-nums;
+}
+
+.statValue svg {
+  color: var(--bb-mustard);
+}
+
+/* ================================================================== */
+/*  02 · STAGIONE PER STAGIONE (fascia chiara)                         */
+/* ================================================================== */
+.seasonsBand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: -3rem;
+  margin-bottom: -4rem;
+  padding-top: 6rem;
+  padding-bottom: 7rem;
+  color: var(--bb-ink);
+  background:
+    var(--tex-grain),
+    radial-gradient(ellipse 55% 60% at 85% 20%, rgba(200, 37, 44, 0.08), transparent 70%),
+    linear-gradient(180deg, #f3ecdf, #e7dcc7);
+  background-size: 200px, cover, cover;
+  clip-path: polygon(0 0.4rem, 36% 2.2rem, 72% 0, 100% 1.8rem, 100% 100%, 0 100%);
+}
+
+.ghostSeasons {
+  right: -3%;
+  top: 2rem;
+}
+
+.seasonsBand .tableFrame::before {
+  inset: 10px -10px -10px 10px;
+  border: 2px solid rgba(154, 34, 38, 0.35);
+}
+
 .tableWrap {
-  margin-top: 0;
+  --cut: 22px;
+  margin: 0;
+  background: var(--bb-paper);
+}
+
+.tableStrip {
+  position: sticky;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem 0.7rem 2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+  background:
+    repeating-linear-gradient(-45deg, #eab22a 0 8px, transparent 8px 16px) bottom / 100% 4px no-repeat,
+    linear-gradient(100deg, #16191e 0%, #22262d 60%, var(--bb-navy-deep) 100%);
+}
+
+.tableStrip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableStripMeta {
+  flex: none;
+  font-family: var(--font-data);
+  font-style: normal;
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--bb-slate-300);
 }
 
 .roster {
@@ -47,15 +861,6 @@
   color: var(--bb-red);
 }
 
-.subLink {
-  font-weight: 700;
-  color: var(--bb-navy);
-}
-
-.subLink:hover {
-  color: var(--bb-red);
-}
-
 .muted {
   display: block;
   font-size: 0.82rem;
@@ -78,84 +883,8 @@
   color: var(--bb-blood-700);
 }
 
-.titles {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--bb-mustard-deep);
-}
-
 .positive { color: var(--bb-success); font-weight: 800; }
 .negative { color: var(--bb-red); font-weight: 800; }
-
-/* ------------------------------------------------------------------ */
-/*  Scheda allenatore                                                  */
-/* ------------------------------------------------------------------ */
-.inlineForm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.textInput {
-  min-height: 46px;
-  min-width: 0;
-  flex: 1 1 220px;
-}
-
-.profile {
-  margin-bottom: 2.5rem;
-  overflow: hidden;
-}
-
-.profileSplatter {
-  top: -1.5rem;
-  right: -1rem;
-  opacity: 0.35;
-}
-
-.statGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1.25rem 1.5rem;
-  margin-top: 1.5rem;
-}
-
-.statTile {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  padding-top: 0.5rem;
-  border-top: 2px solid rgba(239, 229, 210, 0.3);
-}
-
-.statLabel {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--bb-mustard);
-}
-
-.statValue {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 2.6rem;
-  line-height: 0.9;
-  color: var(--bb-parchment);
-  font-variant-numeric: tabular-nums;
-}
-
-.sectionHead {
-  margin-top: 1rem;
-}
 
 .teamCell {
   display: flex;
@@ -175,12 +904,13 @@
 
 .teamLogo {
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   padding: 3px;
-  background: var(--bb-paper);
-  border: 2px solid var(--team-color, var(--bb-tan-dark));
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  box-shadow: 0 0 0 2px var(--team-color, var(--bb-tan-dark)), 0 0 0 4px #d9b268;
 }
 
 .teamShield {
@@ -199,17 +929,145 @@
   color: var(--bb-ink-soft);
 }
 
-@media (max-width: 600px) {
-  .profile {
-    padding: 1.5rem 1.25rem;
+/* ================================================================== */
+/*  RESPONSIVE                                                         */
+/* ================================================================== */
+@media (max-width: 1100px) {
+  .rankCard {
+    grid-template-columns: 6rem minmax(0, 1fr) auto;
+    gap: 0.75rem 1.25rem;
+  }
+
+  .rankStats {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .rankGo {
+    display: none;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .profileInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .plates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .rankBand,
+  .seasonsBand {
+    padding-top: 5rem;
+    padding-bottom: 6rem;
+  }
+
+  .ghostRank,
+  .ghostProfile {
+    display: none;
+  }
+
+  .rankCard,
+  .rankLead .rankCard {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 1rem 1rem 1rem 1.1rem;
+  }
+
+  .rankNum,
+  .rankLead .rankNum {
+    font-size: 3.6rem;
+  }
+
+  .rankScore {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+  }
+
+  .rankStats {
+    grid-row: 3;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 0.6rem;
+  }
+
+  .rankName,
+  .rankLead .rankName {
+    font-size: 1.6rem;
+  }
+
+  .profileBand {
+    margin-top: -1rem;
+    padding-top: 3.5rem;
+    padding-bottom: 5rem;
+  }
+
+  .portrait {
+    min-height: 340px;
+    padding: 3rem 0.5rem 5.5rem;
+  }
+
+  .badge {
+    width: min(190px, 58%);
+  }
+
+  .portraitCount {
+    right: 0.75rem;
+    font-size: 5.5rem;
+  }
+
+  .portraitMicro {
+    display: none;
+  }
+
+  .profileShards {
+    opacity: 0.4;
+  }
+
+  .labelRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .labelChip {
+    justify-self: start;
+  }
+
+  .plates {
+    gap: 0.9rem;
+  }
+
+  .plateItem {
+    padding: 0.8rem 1rem 0.7rem;
+  }
+
+  .careerSection {
+    padding: 3rem 0 6rem;
   }
 
   .statGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .statValue {
     font-size: 2.1rem;
+  }
+
+  .seasonsBand .tableFrame::before {
+    inset: 6px -6px -6px 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    animation: none;
   }
 }
