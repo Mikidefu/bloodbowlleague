@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Users, Plus, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import PageHeader from '@/components/brand/PageHeader';
 import styles from './Teams.module.css';
 import type { Team } from '@/lib/types';
 
@@ -28,37 +29,25 @@ export default function TeamsPage() {
 
   return (
       <div>
-        {/* FILTRO SVG PER EFFETTO CARTA STRAPPATA */}
-        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-          <filter id="rough-edges">
-            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </svg>
-
-        <div className={styles.headerArea}>
-          <h1 className={styles.pageTitle}>
-            <Users size={48} color="var(--color-ink)" />
-            {t.teams.title}
-          </h1>
-          {isAdmin && (
-              <Link href="/teams/new" className="btn btn-primary">
-                <Plus size={24} />
-                {t.teams.draftBtn}
-              </Link>
-          )}
-        </div>
+        <PageHeader
+            title={t.teams.title}
+            icon={<Users size={48} />}
+            actions={isAdmin && (
+                <Link href="/teams/new" className="btn btn-gold">
+                  <Plus size={22} />
+                  {t.teams.draftBtn}
+                </Link>
+            )}
+        />
 
         {loading ? (
-            <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>
-              Opening archives...
-            </div>
+            <div className="loading-state">Opening archives...</div>
         ) : teams.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
-              <h2 className={styles.emptyTitle}>{t.teams.noTeamsTitle}</h2>
+            <div className={`card ${styles.emptyCard}`}>
+              <h2 className="title-slab">{t.teams.noTeamsTitle}</h2>
               <p>{t.teams.noTeamsDesc}</p>
               {isAdmin && (
-                  <Link href="/teams/new" className="btn btn-primary" style={{ marginTop: '2rem' }}>
+                  <Link href="/teams/new" className={`btn btn-primary ${styles.emptyAction}`}>
                     {t.teams.createFirstBtn}
                   </Link>
               )}
@@ -70,32 +59,22 @@ export default function TeamsPage() {
                       href={`/teams/${team.id}`}
                       key={team.id}
                       className={styles.teamCard}
+                      style={{ '--team-color': team.primary_color || 'var(--bb-blood-700)' } as React.CSSProperties}
                   >
-                    {/* Pezzetto di nastro adesivo in alto */}
-                    <div className={styles.tape}></div>
+                    <span className={styles.accentStripe} aria-hidden="true" />
 
-                    {/* LOGO GIGANTE CENTRALE */}
                     <div className={styles.logoWrapper}>
                       {team.logo_url ? (
                           <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
                       ) : (
-                          <ShieldAlert size={150} color={team.primary_color || '#333'} className={styles.teamLogo} />
+                          <ShieldAlert size={120} className={styles.fallbackLogo} aria-hidden="true" />
                       )}
                     </div>
 
-                    {/* ETICHETTE IN BASSO */}
                     <div className={styles.cardFooter}>
-                      <div
-                          className={styles.nameTag}
-                          style={{ backgroundColor: team.primary_color || '#111' }}
-                      >
-                        {team.name}
-                      </div>
-                      <div className={styles.raceTag}>
-                        {team.race}
-                      </div>
+                      <h2 className={styles.teamName}>{team.name}</h2>
+                      <span className="tag">{team.race}</span>
                     </div>
-
                   </Link>
               ))}
             </div>

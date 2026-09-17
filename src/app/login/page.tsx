@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import PageHeader from '@/components/brand/PageHeader';
+import Emblem from '@/components/brand/Emblem';
 import styles from './Login.module.css';
 
 export default function LoginPage() {
@@ -34,26 +36,30 @@ export default function LoginPage() {
   };
 
   return (
-      <div className={styles.loginCard}>
-        <h1 className={styles.title}><Lock size={40} /> {t.auth.title}</h1>
-        <p className={styles.subtitle}>{t.auth.subtitle}</p>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <label htmlFor="admin-password" className={styles.label}>{t.auth.password}</label>
-          <input
-              id="admin-password"
-              type="password"
-              required
-              autoFocus
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className={styles.input}
-          />
-          {error && <p className={styles.error}>{error}</p>}
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? '...' : t.auth.loginBtn}
-          </button>
-        </form>
+      <div>
+        <PageHeader title={t.auth.title} icon={<Lock size={44} />} tone="slate" />
+
+        <div className={`card ${styles.loginCard}`}>
+          <Emblem size={110} className={styles.emblem} />
+          <p className={styles.subtitle}>{t.auth.subtitle}</p>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <label htmlFor="admin-password" className={styles.label}>{t.auth.password}</label>
+            <input
+                id="admin-password"
+                type="password"
+                required
+                autoFocus
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className={styles.input}
+            />
+            {error && <p className={styles.error} role="alert">{error}</p>}
+            <button type="submit" className={`btn btn-primary ${styles.submit}`} disabled={submitting}>
+              {submitting ? '...' : t.auth.loginBtn}
+            </button>
+          </form>
+        </div>
       </div>
   );
 }
