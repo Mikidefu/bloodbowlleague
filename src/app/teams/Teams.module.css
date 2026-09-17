@@ -128,6 +128,24 @@
     overflow-wrap: anywhere;
 }
 
+/* Allenatore della stagione consultata */
+.coachLine {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--bb-ink);
+    overflow-wrap: anywhere;
+}
+
+.coachLabel {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bb-blood-700);
+}
+
 /* Mobile */
 @media (max-width: 768px) {
     .teamsGrid { gap: 1.5rem; }

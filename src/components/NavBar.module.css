@@ -332,12 +332,18 @@
 /* ================================================================== */
 /*  MEDIA QUERIES                                                      */
 /* ================================================================== */
-@media (max-width: 1180px) {
-  .navItem { font-size: 1.05rem; padding: 0.5rem 0.6rem; }
+@media (max-width: 1360px) {
+  .navItem { font-size: 1.05rem; padding: 0.5rem 0.55rem; gap: 0.35rem; }
+  .navItem svg { width: 16px; height: 16px; }
   .wordmarkTop { font-size: 1.5rem; }
+  .langContainer { margin-left: 0.4rem; padding-left: 0.6rem; }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1180px) {
+  .wordmark { display: none; }
+}
+
+@media (max-width: 1060px) {
   .navLinks { display: none; }
   .hamburgerBtn { display: block; }
   .mobileOverlay.open { display: block; }

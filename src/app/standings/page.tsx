@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Trophy, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Standings.module.css';
 import type { TeamStanding } from '@/lib/standings';
 
@@ -12,27 +13,33 @@ const diffClass = (value: number) =>
 
 export default function StandingsPage() {
     const { t } = useLanguage();
+    const { seasonQuery, seasonsLoading, selectedSeason } = useSeason();
     const [standings, setStandings] = useState<TeamStanding[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Classifica della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
+                if (cancelled) return;
                 setStandings(data.standings || []);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             });
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     if (loading) return <div className="loading-state">Computing league standings...</div>;
 
     return (
         <div className={styles.page}>
-            <PageHeader title={t.standings.title} icon={<Trophy size={44} />} />
+            <PageHeader title={t.standings.title} kicker={selectedSeason?.name} icon={<Trophy size={44} />} />
 
             {standings.length === 0 ? (
                 <div className={`card ${styles.emptyCard}`}>
@@ -91,7 +98,12 @@ export default function StandingsPage() {
                                                         <ShieldAlert size={20} color={team.primary_color || 'currentColor'} />
                                                     )}
                                                 </span>
-                                                <span className={styles.teamName}>{team.name}</span>
+                                                <span className={styles.teamText}>
+                                                    <span className={styles.teamName}>{team.name}</span>
+                                                    {team.coach_name && (
+                                                        <span className={styles.coachName}>{team.coach_name}</span>
+                                                    )}
+                                                </span>
                                             </Link>
                                         </td>
 

@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3 } from 'lucide-react';
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { SeasonProvider } from '@/lib/SeasonContext';
 import Emblem from '@/components/brand/Emblem';
+import SeasonBar from './SeasonBar';
 import styles from './NavBar.module.css';
 
 const NAV_LINKS = [
@@ -13,6 +15,7 @@ const NAV_LINKS = [
   { href: '/schedule', key: 'schedule', Icon: Calendar },
   { href: '/standings', key: 'standings', Icon: Trophy },
   { href: '/stats', key: 'stats', Icon: BarChart3 },
+  { href: '/coaches', key: 'coaches', Icon: UserRound },
   { href: '/skills', key: 'skills', Icon: Book },
 ] as const;
 
@@ -155,11 +158,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
       <LanguageProvider>
         <AuthProvider>
-          <NavBar />
-          <main className="container">
-            {children}
-          </main>
-          <SiteFooter />
+          <SeasonProvider>
+            <NavBar />
+            <SeasonBar />
+            <main className="container">
+              {children}
+            </main>
+            <SiteFooter />
+          </SeasonProvider>
         </AuthProvider>
       </LanguageProvider>
   );

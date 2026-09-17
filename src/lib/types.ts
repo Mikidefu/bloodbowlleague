@@ -52,7 +52,22 @@ export type Player = {
 };
 
 // GET /api/teams/[id]
-export type TeamWithPlayers = Team & { players: Player[] };
+export type TeamSeasonEntry = {
+  season_id: string;
+  season_number: number;
+  season_name: string;
+  season_status: 'active' | 'completed';
+  coach_id: string | null;
+  coach_name: string | null;
+};
+
+export type TeamWithPlayers = Team & {
+  players: Player[];
+  in_active_season: boolean;
+  coach_id: string | null;       // allenatore nella stagione attiva (o nell'ultima giocata)
+  coach_name: string | null;
+  season_history: TeamSeasonEntry[];
+};
 
 // GET /api/schedule (una riga per partita, con i dati essenziali delle squadre)
 export type Match = {
@@ -91,6 +106,8 @@ export type PlayerStatsRow = {
 
 // GET /api/schedule/[id]
 export type MatchDetails = Match & {
+  season_name: string | null;
+  season_status: 'active' | 'completed' | null;
   homePlayers: MatchPlayer[];
   awayPlayers: MatchPlayer[];
   stats: PlayerStatsRow[];
@@ -108,4 +125,28 @@ export type PlayerLeader = {
   total_spp?: number;
 };
 
-export const isTrue = (value: SqlBoolean | null | undefined) => value === true || value === 1;
+// GET /api/seasons
+export type SeasonSummary = {
+  id: string;
+  number: number;
+  name: string;
+  status: 'active' | 'completed';
+  started_at: string | null;
+  ended_at: string | null;
+  teams_count: number;
+  matches_total: number;
+  matches_played: number;
+  champion: { team_id: string; team_name: string; coach_name: string | null } | null;
+};
+
+export type Coach = { id: string; name: string };
+
+// GET /api/teams?scope=all
+export type TeamOverview = Team & {
+  last_coach_id: string | null;
+  last_coach_name: string | null;
+  last_season_name: string | null;
+  in_active_season: boolean;
+};
+
+export const isTrue =(value: SqlBoolean | null | undefined) => value === true || value === 1;

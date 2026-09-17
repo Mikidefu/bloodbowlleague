@@ -1,0 +1,359 @@
+/* src/app/seasons/Seasons.module.css */
+
+/* ================================================================== */
+/*  Elenco stagioni (card pergamena)                                   */
+/* ================================================================== */
+.seasonList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.seasonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 1.75rem;
+}
+
+.seasonCardActive {
+  border-color: var(--bb-red);
+  outline-color: var(--bb-blood-800);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.seasonName {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  line-height: 0.95;
+  color: var(--bb-blood-700);
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid currentColor;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+}
+
+.facts dt {
+  font-weight: 800;
+  font-stretch: 80%;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bb-ink-soft);
+  align-self: center;
+}
+
+.facts dd {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-ink);
+}
+
+/* Banda navy col campione (come il piede delle tabelle roster) */
+.champion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+  background-image: var(--tex-grain), linear-gradient(170deg, var(--bb-navy), var(--bb-navy-deep));
+  background-size: 240px, cover;
+}
+
+.championLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.championTeam {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
+}
+
+.championTeam:hover {
+  color: var(--bb-mustard);
+}
+
+.championCoach {
+  font-size: 0.9rem;
+  color: var(--bb-slate-300);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.smallBtn {
+  min-height: 44px;
+  font-size: 1.1rem;
+  padding: 0.45rem 1.1rem;
+}
+
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.inlineForm .input {
+  flex: 1 1 180px;
+}
+
+/* ================================================================== */
+/*  Procedura nuova stagione                                           */
+/* ================================================================== */
+.wizard {
+  margin-bottom: 3rem;
+}
+
+.wizardIntro {
+  max-width: 70ch;
+  margin-bottom: 2rem;
+  color: var(--bb-ink-soft);
+  font-weight: 600;
+}
+
+.step + .step {
+  margin-top: 2.25rem;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.stepTitle label {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  font-family: var(--font-display);
+  font-variant: normal;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  background: var(--bb-red);
+  transform: skewX(-10deg);
+}
+
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.teamsTableWrapper {
+  margin: 0;
+  border: 2px solid var(--bb-tan-dark);
+}
+
+.teamsTable td {
+  vertical-align: middle;
+}
+
+.colCheck {
+  width: 90px;
+}
+
+.colCoach {
+  width: 38%;
+}
+
+.cellCheck {
+  text-align: center;
+}
+
+.checkWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--bb-red);
+  cursor: pointer;
+}
+
+.rowOff td {
+  opacity: 0.5;
+}
+
+.rowOff td:first-child {
+  opacity: 1;
+}
+
+.teamName {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+}
+
+.muted {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--bb-ink-soft);
+}
+
+.note {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--bb-mustard-deep);
+  background: rgba(234, 178, 42, 0.18);
+  font-weight: 700;
+  color: var(--bb-ink);
+}
+
+.wizardActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* ================================================================== */
+/*  Mobile: la tabella squadre diventa un elenco a schede              */
+/* ================================================================== */
+@media (max-width: 640px) {
+  .seasonCard {
+    padding: 1.4rem 1.2rem;
+  }
+
+  .cardActions :global(.btn),
+  .wizardActions :global(.btn),
+  .bulk :global(.btn) {
+    flex: 1 1 auto;
+  }
+
+  .teamsTableWrapper {
+    overflow: visible;
+    border: 0;
+  }
+
+  .teamsTable,
+  .teamsTable tbody,
+  .teamsTable tr,
+  .teamsTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .teamsTable thead {
+    display: none;
+  }
+
+  .teamsTable tbody tr {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--bb-sky-2);
+  }
+
+  .teamsTable tbody tr td,
+  .teamsTable tbody tr:nth-child(even) td,
+  .teamsTable tbody tr:hover td {
+    background: transparent;
+    padding: 0.2rem 0;
+  }
+
+  .teamsTable tbody tr:nth-child(even) {
+    background: var(--bb-sky);
+  }
+
+  .cellCheck {
+    grid-row: 1 / span 3;
+    text-align: left;
+  }
+
+  .cellTeam,
+  .cellLast,
+  .cellCoach {
+    grid-column: 2;
+  }
+
+  .cellLast {
+    font-size: 0.9rem;
+  }
+
+  .cellLast::before {
+    content: attr(data-label) ': ';
+    font-weight: 800;
+    font-stretch: 80%;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--bb-ink-soft);
+  }
+
+  .cellCoach:empty {
+    display: none;
+  }
+
+  .wizardActions {
+    justify-content: stretch;
+  }
+}

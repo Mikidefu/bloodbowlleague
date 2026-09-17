@@ -4,18 +4,24 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import Emblem from '@/components/brand/Emblem';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Home.module.css';
 import { Users, Calendar, Trophy } from 'lucide-react';
 
 export default function Home() {
     const { t } = useLanguage();
     const { isAdmin } = useAuth();
+    const { seasonQuery, seasonsLoading, selectedSeason, isViewingActive } = useSeason();
     const [stats, setStats] = useState({ teams: 0, matches: 0, casualties: 0 });
 
+    // Riepilogo della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
+                if (cancelled) return;
                 setStats({
                     teams: data.totals?.teams || 0,
                     matches: data.totals?.matches_played || 0,
@@ -23,7 +29,8 @@ export default function Home() {
                 });
             })
             .catch(console.error);
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     const headlines = [
         { value: stats.teams, label: t.home.registeredTeams },
@@ -64,6 +71,7 @@ export default function Home() {
             {/* STATO DELLA LEGA: titoli a capolettera come in copertina */}
             <section className={styles.statusPanel}>
                 <h2 className="title-spike">{t.home.leagueStatus}</h2>
+                {selectedSeason && <span className={`tag ${styles.seasonTag}`}>{selectedSeason.name}</span>}
                 <ul className={styles.headlineList}>
                     {headlines.map(item => (
                         <li key={item.label} className={styles.headline}>
@@ -80,7 +88,7 @@ export default function Home() {
             <section className={`card ${styles.actionsCard}`}>
                 <h2 className="title-slab">{t.home.quickActions}</h2>
                 <div className={styles.actionGrid}>
-                    {isAdmin && (
+                    {isAdmin && isViewingActive && (
                         <Link href="/teams/new" className="btn btn-primary">
                             <Users size={20} /> {t.home.draftNewTeam}
                         </Link>

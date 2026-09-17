@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
+import { getActiveSeason, seasonReadOnly } from '@/lib/seasons';
 
+// Elimina una giornata della stagione attiva (i numeri di giornata si ripetono in ogni stagione)
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ round: string }> }
@@ -9,17 +11,20 @@ export async function DELETE(
     try {
         const { round } = await params;
 
+        const season = await getActiveSeason();
+        if (!season) return seasonReadOnly(null);
+
         // 1. Troviamo tutti i match di questa giornata
         const { rows: matches } = await db.execute({
-            sql: 'SELECT id FROM matches WHERE round = ?',
-            args: [round]
+            sql: 'SELECT id FROM matches WHERE round = ? AND season_id = ?',
+            args: [round, season.id]
         });
 
         if (matches.length === 0) {
             return NextResponse.json({ success: true }); // Niente da cancellare
         }
 
-        const matchIds = matches.map(m => m.id);
+        const matchIds = matches.map(m => String(m.id));
         const matchIdsPlaceholders = matchIds.map(() => '?').join(',');
 
         // 2. Troviamo tutti i giocatori che hanno statistiche in queste partite
@@ -28,24 +33,14 @@ export async function DELETE(
             args: matchIds
         });
 
-        const statements = [];
-
-        // 3. Eliminiamo tutte le stats di queste partite
-        statements.push({
-            sql: `DELETE FROM player_stats WHERE match_id IN (${matchIdsPlaceholders})`,
-            args: matchIds
-        });
-
-        // 4. Eliminiamo i match
-        statements.push({
-            sql: 'DELETE FROM matches WHERE round = ?',
-            args: [round]
-        });
-
-        // 5. Ricalcoliamo gli SPP per tutti i giocatori coinvolti
-        for (const p of playersToRecalc) {
-            statements.push(recalcSppStatement(String(p.player_id)));
-        }
+        const statements = [
+            // 3. Eliminiamo tutte le stats di queste partite
+            { sql: `DELETE FROM player_stats WHERE match_id IN (${matchIdsPlaceholders})`, args: matchIds },
+            // 4. Eliminiamo i match
+            { sql: `DELETE FROM matches WHERE id IN (${matchIdsPlaceholders})`, args: matchIds },
+            // 5. Ricalcoliamo gli SPP per tutti i giocatori coinvolti
+            ...playersToRecalc.map(p => recalcSppStatement(String(p.player_id))),
+        ];
 
         // Eseguiamo in blocco
         await db.batch(statements, 'write');

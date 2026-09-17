@@ -1,0 +1,215 @@
+/* src/app/coaches/Coaches.module.css: lista allenatori e scheda carriera */
+
+.emptyCard {
+  text-align: center;
+}
+
+.emptyText {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bb-ink-soft);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tabella roster                                                     */
+/* ------------------------------------------------------------------ */
+.tableWrap {
+  margin-top: 0;
+}
+
+.roster {
+  min-width: 760px;
+}
+
+.roster td {
+  vertical-align: middle;
+}
+
+.nameLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.nameLink:hover {
+  color: var(--bb-red);
+}
+
+.subLink {
+  font-weight: 700;
+  color: var(--bb-navy);
+}
+
+.subLink:hover {
+  color: var(--bb-red);
+}
+
+.muted {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--bb-ink-soft);
+}
+
+.inlineMuted {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--bb-ink-soft);
+  margin-left: 0.2rem;
+}
+
+.big {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--bb-blood-700);
+}
+
+.titles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--bb-mustard-deep);
+}
+
+.positive { color: var(--bb-success); font-weight: 800; }
+.negative { color: var(--bb-red); font-weight: 800; }
+
+/* ------------------------------------------------------------------ */
+/*  Scheda allenatore                                                  */
+/* ------------------------------------------------------------------ */
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.textInput {
+  min-height: 46px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.profile {
+  margin-bottom: 2.5rem;
+  overflow: hidden;
+}
+
+.profileSplatter {
+  top: -1.5rem;
+  right: -1rem;
+  opacity: 0.35;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.25rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid rgba(239, 229, 210, 0.3);
+}
+
+.statLabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.statValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.6rem;
+  line-height: 0.9;
+  color: var(--bb-parchment);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionHead {
+  margin-top: 1rem;
+}
+
+.teamCell {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  color: var(--bb-ink);
+}
+
+.teamCell:hover {
+  color: var(--bb-blood-700);
+}
+
+.teamName {
+  font-weight: 700;
+}
+
+.teamLogo {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  padding: 3px;
+  background: var(--bb-paper);
+  border: 2px solid var(--team-color, var(--bb-tan-dark));
+}
+
+.teamShield {
+  flex: none;
+  color: var(--team-color, var(--bb-slate-500));
+}
+
+.finishTag {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.finishPlain {
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--bb-ink-soft);
+}
+
+@media (max-width: 600px) {
+  .profile {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .statValue {
+    font-size: 2.1rem;
+  }
+}

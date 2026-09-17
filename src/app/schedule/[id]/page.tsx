@@ -187,6 +187,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // Le partite delle stagioni concluse restano consultabili ma non modificabili
+  const canEdit = isAdmin && match?.season_status === 'active';
+
   if (loading || !match) return <div className="loading-state">Loading Graphics...</div>;
 
   const toggleTeam = (teamId: string) => {
@@ -325,7 +328,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         <PageHeader
             kicker="BLOODBOWL LEAGUE"
             title={`${displayMatchType(match.match_type)} - ROUND ${match.round}`}
-            actions={isAdmin ? (
+            subtitle={match.season_name ?? undefined}
+            actions={canEdit ? (
                 <>
                   <button type="button" className="btn btn-slate" onClick={handleSaveDate} disabled={saving}>
                     <Clock size={20} /> {t.match.saveDateOnly}
@@ -338,7 +342,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         />
 
         {/* Per i non-admin tutti i campi sono in sola lettura */}
-        <fieldset disabled={!isAdmin} className={styles.fieldset}>
+        <fieldset disabled={!canEdit} className={styles.fieldset}>
           {/* TABELLONE DELLA PARTITA */}
           <section className={`panel-slate ${styles.scoreboard}`}>
             <span className={`splatter ${styles.splatter}`} aria-hidden="true" />

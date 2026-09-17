@@ -1,13 +1,15 @@
 'use client';
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
 import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
 import styles from './TeamDetails.module.css';
 import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, skillsForCategories } from '@/lib/advancement';
-import { isTrue, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
+import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
 
 export default function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -29,6 +31,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     rerolls: 0, reroll_cost: 50000, cheerleaders: 0, assistant_coaches: 0, fan_factor: 0, apothecary: false,
     treasury: 0, bank: 0
   });
+  // Allenatore nella stagione attiva (modificabile solo se la squadra partecipa)
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [coachChoice, setCoachChoice] = useState(emptyCoachChoice());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -202,6 +207,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       rerolls: team.rerolls || 0, reroll_cost: team.reroll_cost || 50000, cheerleaders: team.cheerleaders || 0, assistant_coaches: team.assistant_coaches || 0,
       fan_factor: team.fan_factor || 0, apothecary: isTrue(team.apothecary), treasury: team.treasury || 0, bank: team.bank || 0
     });
+    setCoachChoice(emptyCoachChoice(team.in_active_season ? team.coach_id ?? '' : ''));
+    fetch('/api/coaches?summary=0')
+        .then(res => res.json())
+        .then(data => setCoaches(Array.isArray(data) ? data : []))
+        .catch(() => setCoaches([]));
     setLogoFile(null); setLogoPreview(null); setShowEditTeam(true);
   };
 
@@ -220,13 +230,24 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       submitData.append('assistant_coaches', editForm.assistant_coaches.toString()); submitData.append('fan_factor', editForm.fan_factor.toString()); submitData.append('apothecary', editForm.apothecary.toString());
       submitData.append('treasury', editForm.treasury.toString()); submitData.append('bank', editForm.bank.toString());
 
+      // Il cambio allenatore si invia solo se la squadra partecipa alla stagione attiva
+      if (team?.in_active_season) {
+        if (coachChoice.isNew && !isCoachChoiceComplete(coachChoice)) { alert(t.coachPicker.newCoachName); return; }
+        const coachFields = coachChoicePayload(coachChoice);
+        if (coachFields.new_coach_name) submitData.append('new_coach_name', coachFields.new_coach_name);
+        else submitData.append('coach_id', coachFields.coach_id ?? '');
+      }
+
       if (logoFile) submitData.append('logo_file', logoFile);
       else if (editForm.logo_url) submitData.append('logo_url', editForm.logo_url);
       else submitData.append('logo_url', '');
 
       const res = await fetch(`/api/teams/${id}`, { method: 'PUT', body: submitData });
       if (res.ok) { setShowEditTeam(false); fetchTeamAndSkills(); }
-      else alert('Failed to update team');
+      else {
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Failed to update team');
+      }
     } catch { alert('Error updating team'); }
     finally { setIsEditingTeam(false); }
   };
@@ -375,6 +396,30 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           <div className={styles.profileInset}>
             <dl className={styles.profileList}>
               <div className={styles.profileRow}>
+                <dt>{t.coachPicker.label}:</dt>
+                <dd>
+                  {team.coach_id
+                      ? <Link href={`/coaches/${team.coach_id}`} className={styles.coachLink}>{team.coach_name}</Link>
+                      : <span>—</span>}
+                </dd>
+              </div>
+              {team.season_history.length > 0 && (
+                  <div className={styles.profileRow}>
+                    <dt>{t.seasons.season}:</dt>
+                    <dd className={styles.seasonHistory}>
+                      {team.season_history.map(h => (
+                          <span
+                              key={h.season_id}
+                              className={`${styles.historyChip} ${h.season_status === 'active' ? styles.historyChipActive : ''}`}
+                              title={h.season_status === 'active' ? t.seasons.active : t.seasons.completed}
+                          >
+                            {h.season_name}: {h.coach_name ?? '—'}
+                          </span>
+                      ))}
+                    </dd>
+                  </div>
+              )}
+              <div className={styles.profileRow}>
                 <dt>{t.draft.race}:</dt>
                 <dd>{team.race}</dd>
               </div>
@@ -390,7 +435,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 <dd>{team.cheerleaders || 0}</dd>
               </div>
               <div className={styles.profileRow}>
-                <dt>Coaches:</dt>
+                <dt>Assistant Coaches:</dt>
                 <dd>{team.assistant_coaches || 0}</dd>
               </div>
               <div className={styles.profileRow}>
@@ -531,7 +576,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     <input type="number" min="0" max="16" value={editForm.cheerleaders} onChange={e => setEditForm({...editForm, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
                   </div>
                   <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>COACHES</label>
+                    <label className={`${styles.label} ${styles.labelCenter}`}>ASST. COACHES</label>
                     <input type="number" min="0" max="16" value={editForm.assistant_coaches} onChange={e => setEditForm({...editForm, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
                   </div>
                   <div className={styles.inputGroup}>
@@ -556,6 +601,21 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     <input type="number" min="0" step="10000" value={editForm.bank} onChange={e => setEditForm({...editForm, bank: parseInt(e.target.value) || 0})} className={styles.inputField} />
                   </div>
                 </div>
+
+                {team.in_active_season && (
+                    <div className={`${styles.inputGroup} ${styles.blockGap}`}>
+                      <label className={styles.label} htmlFor="team-coach-select">{t.coachPicker.label}</label>
+                      <CoachPicker
+                          idPrefix="team-coach"
+                          coaches={coaches}
+                          value={coachChoice}
+                          onChange={setCoachChoice}
+                          allowNone
+                          selectClassName={styles.inputField}
+                          inputClassName={styles.inputField}
+                      />
+                    </div>
+                )}
 
                 <div className={`${styles.inputGroup} ${styles.blockGap}`}>
                   <label className={styles.label}>{t.draft.logoUrl}</label>

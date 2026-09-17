@@ -88,6 +88,50 @@
   color: var(--bb-parchment);
 }
 
+/* Allenatore (link alla scheda carriera) e storico stagioni */
+.coachLink {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  text-decoration: underline;
+  text-decoration-color: var(--bb-mustard);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.coachLink:hover,
+.coachLink:focus-visible {
+  color: var(--bb-mustard);
+}
+
+.seasonHistory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.historyChip {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+  border-radius: var(--radius);
+}
+
+.historyChipActive {
+  background: var(--bb-success);
+}
+
 .colours {
   display: inline-flex;
   gap: 0.5rem;

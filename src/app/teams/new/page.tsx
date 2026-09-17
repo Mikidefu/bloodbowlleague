@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
@@ -7,12 +7,26 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
 import styles from './NewTeam.module.css';
+import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
+import { useSeason } from '@/lib/SeasonContext';
+import type { Coach } from '@/lib/types';
 
 export default function NewTeamPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin, authLoading } = useAuth();
+  const { activeSeason } = useSeason();
   const [loading, setLoading] = useState(false);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [coachChoice, setCoachChoice] = useState(emptyCoachChoice());
+
+  // Allenatori già presenti nel database, per sceglierne uno o crearne uno nuovo
+  useEffect(() => {
+    fetch('/api/coaches?summary=0')
+        .then(res => res.json())
+        .then(data => setCoaches(Array.isArray(data) ? data : []))
+        .catch(() => setCoaches([]));
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     race: 'Amazons',
@@ -52,12 +66,19 @@ export default function NewTeamPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCoachChoiceComplete(coachChoice)) {
+      alert(t.coachPicker.choose);
+      return;
+    }
     setLoading(true);
 
     try {
       const submitData = new FormData();
       submitData.append('name', formData.name);
       submitData.append('race', formData.race);
+      for (const [key, value] of Object.entries(coachChoicePayload(coachChoice))) {
+        if (value) submitData.append(key, value);
+      }
       submitData.append('primary_color', formData.primary_color);
       submitData.append('secondary_color', formData.secondary_color);
       submitData.append('rerolls', formData.rerolls.toString());
@@ -84,7 +105,8 @@ export default function NewTeamPage() {
         const team = await res.json();
         router.push(`/teams/${team.id}`);
       } else {
-        alert('Failed to create team');
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Failed to create team');
       }
     } catch (err) {
       console.error(err);
@@ -110,7 +132,11 @@ export default function NewTeamPage() {
 
   return (
       <div>
-        <PageHeader title={t.draft.title} icon={<Plus size={44} />} />
+        <PageHeader
+            title={t.draft.title}
+            icon={<Plus size={44} />}
+            subtitle={activeSeason ? `${t.seasons.season}: ${activeSeason.name}` : undefined}
+        />
 
         <form onSubmit={handleSubmit} className={styles.form}>
 
@@ -141,6 +167,19 @@ export default function NewTeamPage() {
                 >
                   {RACES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
+              </div>
+
+              {/* Allenatore della squadra nella stagione in corso */}
+              <div className={`${styles.inputGroup} ${styles.coachGroup}`}>
+                <label htmlFor="coach-select" className={styles.label}>{t.coachPicker.label}</label>
+                <CoachPicker
+                    coaches={coaches}
+                    value={coachChoice}
+                    onChange={setCoachChoice}
+                    required
+                    selectClassName={styles.inputField}
+                    inputClassName={styles.inputField}
+                />
               </div>
             </div>
           </section>
@@ -221,7 +260,7 @@ export default function NewTeamPage() {
                 <input id="stat-cheerleaders" type="number" min="0" max="16" value={formData.cheerleaders} onChange={e => setFormData({...formData, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
               </div>
               <div className={styles.statInputGroup}>
-                <label htmlFor="stat-coaches" className={styles.statLabel}>COACHES</label>
+                <label htmlFor="stat-coaches" className={styles.statLabel}>ASST. COACHES</label>
                 <input id="stat-coaches" type="number" min="0" max="16" value={formData.assistant_coaches} onChange={e => setFormData({...formData, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
               </div>
 

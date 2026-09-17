@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
 import { uploadTeamLogo, UploadError } from '@/lib/upload';
+import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
+import { getActiveSeason } from '@/lib/seasons';
 
 export async function GET(
     request: Request,
@@ -46,7 +48,29 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({ ...team, players: mappedPlayers });
+    // Storico partecipazioni: stagione e allenatore (la prima riga è la più recente)
+    const { rows: history } = await db.execute({
+      sql: `
+        SELECT s.id AS season_id, s.number AS season_number, s.name AS season_name, s.status AS season_status,
+               st.coach_id, c.name AS coach_name
+        FROM season_teams st
+        JOIN seasons s ON s.id = st.season_id
+        LEFT JOIN coaches c ON c.id = st.coach_id
+        WHERE st.team_id = ?
+        ORDER BY s.number DESC
+      `,
+      args: [id]
+    });
+    const activeEntry = history.find(h => h.season_status === 'active');
+
+    return NextResponse.json({
+      ...team,
+      players: mappedPlayers,
+      in_active_season: !!activeEntry,
+      coach_id: activeEntry?.coach_id ?? history[0]?.coach_id ?? null,
+      coach_name: activeEntry?.coach_name ?? history[0]?.coach_name ?? null,
+      season_history: history
+    });
   } catch (error) {
     console.error('Error fetching team:', error);
     return NextResponse.json({ error: 'Failed to fetch team details' }, { status: 500 });
@@ -82,7 +106,28 @@ export async function PUT(
       logo_url = await uploadTeamLogo(logoFile);
     }
 
-    await db.execute({
+    // Cambio allenatore: vale per la stagione attiva (le stagioni concluse mantengono il loro allenatore)
+    const statements = [];
+    if (formData.has('coach_id') || formData.has('new_coach_name')) {
+      const activeSeason = await getActiveSeason();
+      const { rows: [enrollment] } = activeSeason
+        ? await db.execute({ sql: 'SELECT 1 FROM season_teams WHERE season_id = ? AND team_id = ?', args: [activeSeason.id, id] })
+        : { rows: [] };
+      if (!activeSeason || !enrollment) {
+        return NextResponse.json({ error: 'The team is not taking part in the active season: its coach cannot be changed.' }, { status: 409 });
+      }
+      const coach = await resolveCoachInput({
+        coach_id: formData.get('coach_id')?.toString(),
+        new_coach_name: formData.get('new_coach_name')?.toString(),
+      });
+      if (coach.statement) statements.push(coach.statement);
+      statements.push({
+        sql: 'UPDATE season_teams SET coach_id = ? WHERE season_id = ? AND team_id = ?',
+        args: [coach.coachId, activeSeason.id, id]
+      });
+    }
+
+    statements.push({
       sql: `
         UPDATE teams
         SET name = COALESCE(?, name),
@@ -105,6 +150,7 @@ export async function PUT(
         id
       ]
     });
+    await db.batch(statements, 'write');
 
     const { rows: updatedTeamRows } = await db.execute({
       sql: 'SELECT * FROM teams WHERE id = ?',
@@ -113,7 +159,7 @@ export async function PUT(
 
     return NextResponse.json(updatedTeamRows[0]);
   } catch (error) {
-    if (error instanceof UploadError) {
+    if (error instanceof UploadError || error instanceof CoachInputError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Error updating team:', error);

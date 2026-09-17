@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { useSeason } from '@/lib/SeasonContext';
 import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
 import type { Match, Team } from '@/lib/types';
 import PageHeader from '@/components/brand/PageHeader';
@@ -23,6 +24,9 @@ export default function SchedulePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
+  const { seasonQuery, seasonsLoading, isViewingActive } = useSeason();
+  // Le stagioni concluse sono in sola lettura anche per l'admin
+  const canEdit = isAdmin && isViewingActive;
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,11 +63,13 @@ export default function SchedulePage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchData = async () => {
+  // Partite e squadre della stagione consultata
+  const fetchData = useCallback(async () => {
+    if (seasonsLoading) return;
     try {
       const [matchesRes, teamsRes] = await Promise.all([
-        fetch('/api/schedule'),
-        fetch('/api/teams')
+        fetch(`/api/schedule${seasonQuery}`),
+        fetch(`/api/teams${seasonQuery}`)
       ]);
       const matchesData = await matchesRes.json();
       const teamsData = await teamsRes.json();
@@ -74,11 +80,11 @@ export default function SchedulePage() {
       console.error('Error fetching data', err);
       setLoading(false);
     }
-  };
+  }, [seasonQuery, seasonsLoading]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // --- RIVALRY CHECKER LOGIC ---
   // Andata e ritorno riguardano solo il campionato: amichevoli e playoff non contano
@@ -302,13 +308,13 @@ export default function SchedulePage() {
                 <button
                     type="button"
                     onClick={() => router.push(`/schedule/${match.id}`)}
-                    className={`btn ${match.is_played ? 'btn-navy' : isAdmin ? 'btn-primary' : 'btn-slate'} ${styles.fixtureMain}`}
+                    className={`btn ${match.is_played ? 'btn-navy' : canEdit ? 'btn-primary' : 'btn-slate'} ${styles.fixtureMain}`}
                 >
                   {match.is_played
                       ? (isMobile ? 'REPORT' : 'MATCH REPORT')
-                      : isAdmin ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
+                      : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
                 </button>
-                {isAdmin && (
+                {canEdit && (
                     <button
                         type="button"
                         onClick={() => deleteMatch(match.id)}
@@ -330,7 +336,7 @@ export default function SchedulePage() {
         <PageHeader
             title={t.schedule.title}
             icon={<Calendar size={44} />}
-            actions={isAdmin ? (
+            actions={canEdit ? (
                 <>
                   {(canStartPlayoffs || canGenerateFinals) && (
                       <button
@@ -498,7 +504,7 @@ export default function SchedulePage() {
                     <span className={styles.roundNumber}>{currentRound}</span>
                   </h2>
 
-                  {isAdmin && (
+                  {canEdit && (
                       <button
                           type="button"
                           onClick={() => handleDeleteRound(currentRound)}

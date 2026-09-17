@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Skull, Star, Trophy, Target } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Stats.module.css';
 import type { PlayerLeader } from '@/lib/types';
 
@@ -25,21 +26,27 @@ const STAT_COLUMNS: { key: SortKey; label: string; value: (p: PlayerLeader) => n
 
 export default function StatsPage() {
     const { t } = useLanguage();
+    const { seasonQuery, seasonsLoading, selectedSeason } = useSeason();
     const [stats, setStats] = useState<PlayerStatsBoard | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Statistiche della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
-                setStats(data.playerStats);
+                if (cancelled) return;
+                setStats(data.playerStats ?? null);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             });
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     if (loading) return <div className="loading-state">Scouting player stats...</div>;
 
@@ -138,7 +145,7 @@ export default function StatsPage() {
 
     return (
         <div className={styles.page}>
-            <PageHeader title={t.stats.title} icon={<Target size={44} />} tone="slate" />
+            <PageHeader title={t.stats.title} kicker={selectedSeason?.name} icon={<Target size={44} />} tone="slate" />
 
             {!stats || (!stats.scorers.length && !stats.killers.length) ? (
                 <div className={`card ${styles.emptyCard}`}>

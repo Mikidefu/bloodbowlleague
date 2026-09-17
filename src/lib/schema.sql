@@ -4,6 +4,27 @@
 -- Per un database esistente usare gli script in scripts/ (es. migrate-spp.mjs).
 -- Le foreign key sono attive (PRAGMA foreign_keys = 1).
 
+-- Stagioni: al massimo una attiva, le concluse sono in sola lettura
+CREATE TABLE IF NOT EXISTS seasons (
+    id TEXT PRIMARY KEY,
+    number INTEGER NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ended_at DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seasons_single_active ON seasons(status) WHERE status = 'active';
+
+-- Allenatori: persistono tra le stagioni e possono cambiare squadra
+CREATE TABLE IF NOT EXISTS coaches (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_name ON coaches(name COLLATE NOCASE);
+
 CREATE TABLE IF NOT EXISTS teams (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -63,10 +84,27 @@ CREATE TABLE IF NOT EXISTS matches (
     match_type TEXT DEFAULT 'League',
     match_date TEXT,                        -- data/ora pianificata (datetime-local)
     played_at DATETIME,
+    season_id TEXT,                         -- stagione di appartenenza (partite e numeri di giornata sono per stagione)
     -- Nessun CASCADE: eliminare una squadra richiede prima di eliminarne le partite (vedi DELETE /api/teams/[id])
     FOREIGN KEY(home_team_id) REFERENCES teams(id),
-    FOREIGN KEY(away_team_id) REFERENCES teams(id)
+    FOREIGN KEY(away_team_id) REFERENCES teams(id),
+    FOREIGN KEY(season_id) REFERENCES seasons(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_matches_season ON matches(season_id);
+
+-- Partecipazione: quali squadre giocano una stagione e con quale allenatore
+CREATE TABLE IF NOT EXISTS season_teams (
+    season_id TEXT NOT NULL,
+    team_id TEXT NOT NULL,
+    coach_id TEXT,
+    PRIMARY KEY (season_id, team_id),
+    FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    FOREIGN KEY (coach_id) REFERENCES coaches(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_season_teams_coach ON season_teams(coach_id);
 
 CREATE TABLE IF NOT EXISTS player_stats (
     id TEXT PRIMARY KEY,

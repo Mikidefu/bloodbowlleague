@@ -1,0 +1,114 @@
+/* src/components/SeasonBar.module.css */
+
+/* Striscia sotto la navbar: stagione consultata (occhiello da giornale) */
+.seasonBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  padding: 0.55rem 1.5rem;
+  color: var(--bb-parchment);
+  background-color: var(--bb-slate-700);
+  background-image: var(--tex-grain);
+  border-bottom: 2px solid var(--bb-slate-950);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.seasonBar .select {
+  max-width: 100%;
+  min-height: 38px;
+  padding: 0.25rem 0.6rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.65rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: skewX(-10deg);
+}
+
+.badgeActive {
+  color: var(--bb-parchment);
+  background: var(--bb-success);
+}
+
+.badgeCompleted {
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+}
+
+.manageLink {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  min-height: 38px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+}
+
+.manageLink:hover {
+  color: var(--bb-mustard);
+}
+
+/* Stagione chiusa: nastro "sola lettura" a strisce senape */
+.readOnlyBanner {
+  padding: 0.45rem 1rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  background: repeating-linear-gradient(-45deg, var(--bb-mustard), var(--bb-mustard) 14px, var(--bb-mustard-deep) 14px, var(--bb-mustard-deep) 28px);
+  border-bottom: 2px solid var(--bb-slate-950);
+}
+
+.manageText {
+  display: inline;
+}
+
+@media (max-width: 1100px) {
+  .seasonBar { padding: 0.5rem 1rem; gap: 0.6rem; }
+}
+
+/* Telefono: una sola riga, etichetta e testo del link nascosti visivamente */
+@media (max-width: 600px) {
+  .seasonBar { flex-wrap: nowrap; }
+  .label,
+  .manageText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .seasonBar .select { flex: 1; min-width: 0; font-size: 0.95rem; }
+  .manageLink { margin-left: 0; min-width: 44px; justify-content: center; }
+}

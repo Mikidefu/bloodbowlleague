@@ -59,6 +59,10 @@
     min-height: 46px;
 }
 
+.coachGroup {
+    grid-column: 1 / -1;
+}
+
 select.inputField {
     cursor: pointer;
 }

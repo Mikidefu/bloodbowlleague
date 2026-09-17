@@ -1,0 +1,16 @@
+/* src/components/CoachPicker.module.css */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Specificità zero: le classi passate dalle pagine hanno la precedenza */
+:where(.picker) > :where(select, input) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
