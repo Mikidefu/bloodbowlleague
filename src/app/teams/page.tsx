@@ -4,27 +4,39 @@ import Link from 'next/link';
 import { Users, Plus, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Teams.module.css';
 import type { Team } from '@/lib/types';
+
+type SeasonTeam = Team & { coach_id: string | null; coach_name: string | null };
 
 export default function TeamsPage() {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const [teams, setTeams] = useState<Team[]>([]);
+  const { seasonQuery, seasonsLoading, isViewingActive } = useSeason();
+  const [teams, setTeams] = useState<SeasonTeam[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Squadre iscritte alla stagione consultata
   useEffect(() => {
-    fetch('/api/teams')
+    if (seasonsLoading) return;
+    let cancelled = false;
+    fetch(`/api/teams${seasonQuery}`)
         .then(res => res.json())
         .then(data => {
-          setTeams(data);
+          if (cancelled) return;
+          setTeams(Array.isArray(data) ? data : []);
           setLoading(false);
         })
         .catch(err => {
           console.error('Error loading teams', err);
-          setLoading(false);
+          if (!cancelled) setLoading(false);
         });
-  }, []);
+    return () => { cancelled = true; };
+  }, [seasonQuery, seasonsLoading]);
+
+  // Le squadre nuove entrano sempre nella stagione in corso
+  const canDraft = isAdmin && isViewingActive;
 
   return (
       <div>
@@ -41,7 +53,7 @@ export default function TeamsPage() {
             <Users size={48} color="var(--color-ink)" />
             {t.teams.title}
           </h1>
-          {isAdmin && (
+          {canDraft && (
               <Link href="/teams/new" className="btn btn-primary">
                 <Plus size={24} />
                 {t.teams.draftBtn}
@@ -57,7 +69,7 @@ export default function TeamsPage() {
             <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
               <h2 className={styles.emptyTitle}>{t.teams.noTeamsTitle}</h2>
               <p>{t.teams.noTeamsDesc}</p>
-              {isAdmin && (
+              {canDraft && (
                   <Link href="/teams/new" className="btn btn-primary" style={{ marginTop: '2rem' }}>
                     {t.teams.createFirstBtn}
                   </Link>
@@ -92,7 +104,7 @@ export default function TeamsPage() {
                         {team.name}
                       </div>
                       <div className={styles.raceTag}>
-                        {team.race}
+                        {team.race}{team.coach_name ? ` • ${t.coachPicker.label}: ${team.coach_name}` : ''}
                       </div>
                     </div>
 

@@ -1,9 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut } from 'lucide-react'; // Rimossa l'icona Skull
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, UserRound } from 'lucide-react'; // Rimossa l'icona Skull
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { SeasonProvider } from '@/lib/SeasonContext';
+import SeasonBar from './SeasonBar';
 import styles from './NavBar.module.css';
 
 function NavBar() {
@@ -49,6 +51,7 @@ function NavBar() {
             <Link href="/schedule" className={styles.navItem}><Calendar size={20} />{t.nav.schedule}</Link>
             <Link href="/standings" className={styles.navItem}><Trophy size={20} />{t.nav.standings}</Link>
             <Link href="/stats" className={styles.navItem}><Trophy size={20} />{t.nav.stats}</Link>
+            <Link href="/coaches" className={styles.navItem}><UserRound size={20} />{t.nav.coaches}</Link>
             <Link href="/skills" className={styles.navItem}><Book size={20} />{t.nav.skills}</Link>
             {authLink}
 
@@ -103,6 +106,9 @@ function NavBar() {
             <Link href="/skills" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
               <Book size={28} />{t.nav.skills}
             </Link>
+            <Link href="/coaches" className={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
+              <UserRound size={28} />{t.nav.coaches}
+            </Link>
             {isAdmin ? (
                 <button onClick={handleLogout} className={styles.mobileNavItem} style={{ cursor: 'pointer', width: '100%' }}>
                   <LogOut size={28} />{t.nav.logout}
@@ -140,10 +146,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
       <LanguageProvider>
         <AuthProvider>
-          <NavBar />
-          <main className="container">
-            {children}
-          </main>
+          <SeasonProvider>
+            <NavBar />
+            <SeasonBar />
+            <main className="container">
+              {children}
+            </main>
+          </SeasonProvider>
         </AuthProvider>
       </LanguageProvider>
   );

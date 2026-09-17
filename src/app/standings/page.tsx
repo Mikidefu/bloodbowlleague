@@ -3,26 +3,33 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trophy, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Standings.module.css';
 import type { TeamStanding } from '@/lib/standings';
 
 export default function StandingsPage() {
     const { t } = useLanguage();
+    const { seasonQuery, seasonsLoading } = useSeason();
     const [standings, setStandings] = useState<TeamStanding[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Classifica della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
+                if (cancelled) return;
                 setStandings(data.standings || []);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             });
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem', color: '#fff' }}>Computing league standings...</div>;
 
@@ -85,7 +92,12 @@ export default function StandingsPage() {
                                                         <ShieldAlert size={24} color={team.primary_color || '#fff'} />
                                                     )}
                                                 </div>
-                                                {team.name}
+                                                <span>
+                                                    {team.name}
+                                                    {team.coach_name && (
+                                                        <span className={styles.coachName}>{team.coach_name}</span>
+                                                    )}
+                                                </span>
                                             </Link>
                                         </td>
 

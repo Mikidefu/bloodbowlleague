@@ -93,6 +93,39 @@
 }
 
 /* Statistiche del Management */
+.coachLine {
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    color: #ddd;
+    margin: 0.4rem 0 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.8rem;
+}
+
+.coachLink {
+    color: var(--color-gold);
+    font-family: var(--font-impact);
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+}
+
+.coachLink:hover { color: var(--color-blood-bright); }
+
+.seasonHistory {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.historyChip {
+    font-size: 0.8rem;
+    color: #bbb;
+    border: 1px dashed #666;
+    padding: 0.05rem 0.45rem;
+}
+
 .managementBadges {
     display: flex;
     flex-wrap: wrap;

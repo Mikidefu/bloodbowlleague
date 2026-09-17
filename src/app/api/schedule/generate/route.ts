@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
 import { LEAGUE_MATCH_TYPES, MATCH_TYPES, sqlIn } from '@/lib/matchTypes';
+import { getActiveSeason, seasonReadOnly } from '@/lib/seasons';
 
 const pairKey = (a: string, b: string) => [a, b].sort().join('|');
 
+// Genera il girone all'italiana della stagione attiva, tra le squadre iscritte
 export async function POST(request: Request) {
     try {
         const body = await request.json().catch(() => ({}));
@@ -14,16 +16,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Start round must be a positive integer' }, { status: 400 });
         }
 
+        const season = await getActiveSeason();
+        if (!season) return seasonReadOnly(null);
+
         // Ordine stabile: generando in due momenti diversi si ottiene lo stesso tabellone
-        const { rows: teams } = await db.execute('SELECT id, name FROM teams ORDER BY created_at ASC, id ASC');
+        const { rows: teams } = await db.execute({
+            sql: `SELECT t.id, t.name FROM season_teams st JOIN teams t ON t.id = st.team_id
+                  WHERE st.season_id = ? ORDER BY t.created_at ASC, t.id ASC`,
+            args: [season.id]
+        });
         if (teams.length < 2) {
-            return NextResponse.json({ error: 'Not enough teams to generate schedule' }, { status: 400 });
+            return NextResponse.json({ error: `Not enough teams in ${season.name} to generate a schedule` }, { status: 400 });
         }
         const teamNames = new Map(teams.map(t => [String(t.id), String(t.name)]));
 
-        const { rows: existingLeague } = await db.execute(
-            `SELECT home_team_id, away_team_id, round FROM matches WHERE match_type IN ${sqlIn(LEAGUE_MATCH_TYPES)}`
-        );
+        const { rows: existingLeague } = await db.execute({
+            sql: `SELECT home_team_id, away_team_id, round FROM matches
+                  WHERE season_id = ? AND match_type IN ${sqlIn(LEAGUE_MATCH_TYPES)}`,
+            args: [season.id]
+        });
 
         // 1. Non generare sopra giornate di campionato già presenti
         const occupiedRounds = [...new Set(existingLeague.map(m => Number(m.round)).filter(r => r >= startRound))].sort((a, b) => a - b);
@@ -86,8 +97,8 @@ export async function POST(request: Request) {
 
         if (fixtures.length > 0) {
             await db.batch(fixtures.map(f => ({
-                sql: 'INSERT INTO matches (id, home_team_id, away_team_id, round, match_type, is_played) VALUES (?, ?, ?, ?, ?, 0)',
-                args: [crypto.randomUUID(), f.home, f.away, f.round, MATCH_TYPES.league]
+                sql: 'INSERT INTO matches (id, season_id, home_team_id, away_team_id, round, match_type, is_played) VALUES (?, ?, ?, ?, ?, ?, 0)',
+                args: [crypto.randomUUID(), season.id, f.home, f.away, f.round, MATCH_TYPES.league]
             })), 'write');
         }
 

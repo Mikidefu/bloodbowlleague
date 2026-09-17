@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { useSeason } from '@/lib/SeasonContext';
 import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
 import type { Match, Team } from '@/lib/types';
 
@@ -17,6 +18,9 @@ export default function SchedulePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
+  const { seasonQuery, seasonsLoading, isViewingActive } = useSeason();
+  // Le stagioni concluse sono in sola lettura anche per l'admin
+  const canEdit = isAdmin && isViewingActive;
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,11 +57,13 @@ export default function SchedulePage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchData = async () => {
+  // Partite e squadre della stagione consultata
+  const fetchData = useCallback(async () => {
+    if (seasonsLoading) return;
     try {
       const [matchesRes, teamsRes] = await Promise.all([
-        fetch('/api/schedule'),
-        fetch('/api/teams')
+        fetch(`/api/schedule${seasonQuery}`),
+        fetch(`/api/teams${seasonQuery}`)
       ]);
       const matchesData = await matchesRes.json();
       const teamsData = await teamsRes.json();
@@ -68,11 +74,11 @@ export default function SchedulePage() {
       console.error('Error fetching data', err);
       setLoading(false);
     }
-  };
+  }, [seasonQuery, seasonsLoading]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // --- RIVALRY CHECKER LOGIC ---
   // Andata e ritorno riguardano solo il campionato: amichevoli e playoff non contano
@@ -268,7 +274,7 @@ export default function SchedulePage() {
               SEASON SCHEDULE
             </h1>
           </div>
-          {isAdmin && (
+          {canEdit && (
           <div style={{ display: 'flex', gap: '0.5rem', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
             {(canStartPlayoffs || canGenerateFinals) && (
                 <button
@@ -481,7 +487,7 @@ export default function SchedulePage() {
                     DAY <span style={{ color: 'var(--color-blood-bright)', fontSize: isMobile ? '2.4rem' : '3.5rem' }}>{currentRound}</span>
                   </h2>
 
-                  {isAdmin && (
+                  {canEdit && (
                   <button
                       onClick={() => handleDeleteRound(currentRound)}
                       style={{
@@ -566,12 +572,12 @@ export default function SchedulePage() {
                       </div>
 
                       <div style={{ display: 'flex', borderTop: '2px solid var(--color-ink)' }}>
-                        <button onClick={() => router.push(`/schedule/${match.id}`)} style={{ flex: 1, padding: isMobile ? '0.8rem 0.4rem' : '1rem', background: 'transparent', border: 'none', borderRight: isAdmin ? '2px solid var(--color-ink)' : 'none', fontFamily: 'var(--font-impact)', fontSize: isMobile ? '0.9rem' : '1.1rem', color: 'var(--color-ink)', cursor: 'pointer' }}>
+                        <button onClick={() => router.push(`/schedule/${match.id}`)} style={{ flex: 1, padding: isMobile ? '0.8rem 0.4rem' : '1rem', background: 'transparent', border: 'none', borderRight: canEdit ? '2px solid var(--color-ink)' : 'none', fontFamily: 'var(--font-impact)', fontSize: isMobile ? '0.9rem' : '1.1rem', color: 'var(--color-ink)', cursor: 'pointer' }}>
                           {match.is_played
                               ? (isMobile ? 'REPORT' : 'MATCH REPORT')
-                              : isAdmin ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
+                              : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
                         </button>
-                        {isAdmin && (
+                        {canEdit && (
                             <button onClick={() => deleteMatch(match.id)} style={{ padding: '0.8rem', background: 'transparent', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer' }}>
                               <Trash2 size={isMobile ? 20 : 24} />
                             </button>

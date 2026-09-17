@@ -1,0 +1,93 @@
+/* src/components/SeasonBar.module.css */
+
+.seasonBar {
+    background: #1a1a1a;
+    border-bottom: 3px solid #000;
+    color: #fff;
+    padding: 0.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-family: var(--font-typewriter);
+}
+
+.label {
+    font-family: var(--font-impact);
+    letter-spacing: 2px;
+    color: var(--color-gold);
+    font-size: 1rem;
+}
+
+.select {
+    font-family: var(--font-impact);
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.6rem;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 2px solid var(--color-ink);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    max-width: 100%;
+}
+
+.badge {
+    font-family: var(--font-impact);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    padding: 0.1rem 0.5rem;
+    border: 2px solid currentColor;
+}
+
+.badgeActive { color: #4ade80; }
+.badgeCompleted { color: #aaa; }
+
+.manageLink {
+    margin-left: auto;
+    color: #ddd;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.manageLink:hover { color: var(--color-blood-bright); }
+
+.readOnlyBanner {
+    background: repeating-linear-gradient(-45deg, #b8860b, #b8860b 12px, #a07508 12px, #a07508 24px);
+    color: #111;
+    text-align: center;
+    font-family: var(--font-typewriter);
+    font-weight: bold;
+    padding: 0.4rem 1rem;
+    border-bottom: 3px solid #000;
+}
+
+.manageText { display: inline; }
+
+@media (max-width: 1100px) {
+    .seasonBar { padding: 0.5rem 1rem; gap: 0.6rem; }
+}
+
+/* Telefono: una sola riga, non fissa, etichetta e testo del link nascosti visivamente */
+@media (max-width: 600px) {
+    .seasonBar { flex-wrap: nowrap; }
+    .label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    .select { flex: 1; min-width: 0; font-size: 0.95rem; }
+    .manageLink { margin-left: 0; }
+    .manageText {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+}

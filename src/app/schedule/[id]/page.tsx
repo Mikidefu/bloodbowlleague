@@ -174,6 +174,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // Le partite delle stagioni concluse restano consultabili ma non modificabili
+  const canEdit = isAdmin && match?.season_status === 'active';
+
   if (loading || !match) return <div style={{ fontFamily: 'var(--font-typewriter)', color: 'var(--color-ink)', textShadow: '1px 1px 0 #fff' }}>Loading Graphics...</div>;
 
   const toggleTeam = (teamId: string) => {
@@ -276,9 +279,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       <div style={{ width: '100%', overflowX: 'hidden', padding: '1rem' }}>
         <div className={styles.reportHeader}>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '2.5rem', color: 'var(--color-ink)', textShadow: '2px 2px 0 var(--color-paper), -1px -1px 0 var(--color-paper), 1px -1px 0 var(--color-paper), -1px 1px 0 var(--color-paper), 1px 1px 0 var(--color-paper)', fontFamily: 'var(--font-impact)', letterSpacing: '2px', textTransform: 'uppercase' }}>
-            {displayMatchType(match.match_type)} - ROUND {match.round}
+            {displayMatchType(match.match_type)} - ROUND {match.round}{match.season_name ? ` · ${match.season_name}` : ''}
           </h1>
-          {isAdmin && (
+          {canEdit && (
               <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
                 <button className="btn" onClick={handleSaveDate} disabled={saving} style={{ fontFamily: 'var(--font-impact)', letterSpacing: '1px', fontSize: '1.2rem', padding: '0.5rem 1.5rem', boxShadow: '4px 4px 0 var(--color-ink)', background: '#fff' }}>
                   <Clock size={20} /> {t.match.saveDateOnly}
@@ -291,7 +294,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Per i non-admin tutti i campi sono in sola lettura */}
-        <fieldset disabled={!isAdmin} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <fieldset disabled={!canEdit} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         {/* GRAFICA MODERNA MATCHDAY CON EFFETTO GRUNGE */}
         <div className={styles.matchdayGraphic}>
 

@@ -3,18 +3,24 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Home.module.css';
 import { Users, Calendar } from 'lucide-react';
 
 export default function Home() {
     const { t } = useLanguage();
     const { isAdmin } = useAuth();
+    const { seasonQuery, seasonsLoading, selectedSeason, isViewingActive } = useSeason();
     const [stats, setStats] = useState({ teams: 0, matches: 0, casualties: 0 });
 
+    // Riepilogo della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
+                if (cancelled) return;
                 setStats({
                     teams: data.totals?.teams || 0,
                     matches: data.totals?.matches_played || 0,
@@ -22,7 +28,8 @@ export default function Home() {
                 });
             })
             .catch(console.error);
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     return (
         <div className={styles.dashboard}>
@@ -48,7 +55,7 @@ export default function Home() {
 
             {/* LEAGUE STATUS (Note Card) */}
             <div className={styles.noteCard}>
-                <h2 className={styles.cardTitle}>{t.home.leagueStatus}</h2>
+                <h2 className={styles.cardTitle}>{t.home.leagueStatus}{selectedSeason ? ` — ${selectedSeason.name}` : ''}</h2>
                 <ul className={styles.statList}>
                     <li className={styles.statItem}>
                         <span className={styles.statLabel}>{t.home.registeredTeams}</span>
@@ -69,7 +76,7 @@ export default function Home() {
             <div className={styles.noteCard}>
                 <h2 className={styles.cardTitle}>{t.home.quickActions}</h2>
                 <div className={styles.actionGrid}>
-                    {isAdmin && (
+                    {isAdmin && isViewingActive && (
                         <Link href="/teams/new" className="btn btn-primary" style={{ width: '100%' }}>
                             <Users size={20} style={{marginRight: '10px'}} /> {t.home.draftNewTeam}
                         </Link>

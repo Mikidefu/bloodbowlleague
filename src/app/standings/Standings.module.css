@@ -146,6 +146,16 @@
     transform: translateX(5px);
 }
 
+.coachName {
+    display: block;
+    font-family: var(--font-typewriter);
+    font-size: 0.85rem;
+    color: #999;
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.1;
+}
+
 .logoWrapper {
     width: 45px;
     height: 45px;

@@ -1,72 +1,53 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { computeStandings } from '@/lib/standings';
+import { resolveSeason, seasonNotFound } from '@/lib/seasons';
 
-export async function GET() {
+// Classifica e statistiche di una stagione (?season=<id>, default: stagione attiva)
+export async function GET(request: Request) {
   try {
+    const season = await resolveSeason(request);
+    if (!season) return seasonNotFound();
+
+    // Migliori giocatori della stagione per una statistica (solo partite di quella stagione)
+    const leaders = (column: string, alias: string) => db.execute({
+      sql: `
+        SELECT p.id, p.name, t.name as team_name, t.primary_color, SUM(s.${column}) as ${alias}
+        FROM player_stats s
+        JOIN matches m ON m.id = s.match_id AND m.season_id = ?
+        JOIN players p ON p.id = s.player_id
+        JOIN teams t ON p.team_id = t.id
+        GROUP BY p.id
+        HAVING ${alias} > 0
+        ORDER BY ${alias} DESC
+        LIMIT 10
+      `,
+      args: [season.id]
+    });
+
     // Eseguiamo tutte le query simultaneamente per abbattere i tempi di caricamento
     const [teamStandings, scorersRes, killersRes, mvpsRes, sppRes, totalsRes] = await Promise.all([
       // 1. Team Standings (solo partite di campionato)
-      computeStandings(),
-
-      // 2. Top Scorers (TDs)
-      db.execute(`
-        SELECT p.id, p.name, t.name as team_name, t.primary_color, SUM(s.touchdowns) as total_td
-        FROM players p
-        JOIN teams t ON p.team_id = t.id
-        JOIN player_stats s ON p.id = s.player_id
-        GROUP BY p.id
-        HAVING total_td > 0
-        ORDER BY total_td DESC
-        LIMIT 10
-      `),
-
-      // 3. Top Killers (CAS)
-      db.execute(`
-        SELECT p.id, p.name, t.name as team_name, t.primary_color, SUM(s.casualties) as total_cas
-        FROM players p
-        JOIN teams t ON p.team_id = t.id
-        JOIN player_stats s ON p.id = s.player_id
-        GROUP BY p.id
-        HAVING total_cas > 0
-        ORDER BY total_cas DESC
-        LIMIT 10
-      `),
-
-      // 4. Most MVPs
-      db.execute(`
-        SELECT p.id, p.name, t.name as team_name, t.primary_color, SUM(s.mvp) as total_mvp
-        FROM players p
-        JOIN teams t ON p.team_id = t.id
-        JOIN player_stats s ON p.id = s.player_id
-        GROUP BY p.id
-        HAVING total_mvp > 0
-        ORDER BY total_mvp DESC
-        LIMIT 10
-      `),
-
-      // 5. Most SPP (Experience)
-      db.execute(`
-        SELECT p.id, p.name, t.name as team_name, t.primary_color, SUM(s.spp_earned) as total_spp
-        FROM players p
-        JOIN teams t ON p.team_id = t.id
-        JOIN player_stats s ON p.id = s.player_id
-        GROUP BY p.id
-        HAVING total_spp > 0
-        ORDER BY total_spp DESC
-        LIMIT 10
-      `),
-
-      // 6. Totali di lega (tutte le partite giocate, di qualsiasi tipo)
-      db.execute(`
-        SELECT COUNT(*) AS matches_played,
-               COALESCE(SUM(home_casualties + away_casualties), 0) AS casualties
-        FROM matches
-        WHERE is_played = 1
-      `)
+      computeStandings(season.id),
+      // 2-5. Top Scorers (TD), Top Killers (CAS), Most MVPs, Most SPP
+      leaders('touchdowns', 'total_td'),
+      leaders('casualties', 'total_cas'),
+      leaders('mvp', 'total_mvp'),
+      leaders('spp_earned', 'total_spp'),
+      // 6. Totali della stagione (tutte le partite giocate, di qualsiasi tipo)
+      db.execute({
+        sql: `
+          SELECT COUNT(*) AS matches_played,
+                 COALESCE(SUM(home_casualties + away_casualties), 0) AS casualties
+          FROM matches
+          WHERE is_played = 1 AND season_id = ?
+        `,
+        args: [season.id]
+      })
     ]);
 
     return NextResponse.json({
+      season,
       standings: teamStandings,
       totals: {
         teams: teamStandings.length,

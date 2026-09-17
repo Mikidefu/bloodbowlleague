@@ -1,6 +1,6 @@
 # Blood Bowl League Manager
 
-Web app per gestire una lega di Blood Bowl: squadre e roster, calendario, referti partita, classifica, statistiche giocatori, avanzamenti SPP e playoff (Final Four).
+Web app per gestire una lega di Blood Bowl su più stagioni: squadre e roster, allenatori, calendario, referti partita, classifica, statistiche giocatori e allenatori, avanzamenti SPP e playoff (Final Four).
 
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Turso/libSQL · Vercel Blob (loghi) · deploy su Vercel.
 
@@ -46,7 +46,17 @@ Le modifiche a un database esistente passano da script in `scripts/`, eseguibili
 ```bash
 node --env-file=.env.local scripts/migrate-spp.mjs          # anteprima
 node --env-file=.env.local scripts/migrate-spp.mjs --apply  # applica (salva un backup in backups/)
+node --env-file=.env.local scripts/migrate-seasons.mjs --apply
 ```
+
+### Stagioni e allenatori
+
+- Esiste al massimo **una stagione attiva**; avviandone una nuova (pagina *Stagioni*) quella in corso viene chiusa e diventa di sola lettura.
+- Le squadre partecipano alle stagioni tramite `season_teams`, che registra anche **l'allenatore di quella stagione**: una squadra può proseguire (con roster e SPP) cambiando allenatore, e un allenatore può guidare squadre diverse nel tempo.
+- Partite, calendario, classifica, statistiche e playoff sono per stagione; le API accettano `?season=<id>` e senza parametro usano la stagione attiva.
+- Le squadre nuove entrano sempre nella stagione attiva e richiedono un allenatore (esistente o nuovo; i nomi non si duplicano).
+- La carriera degli allenatori (`src/lib/coaches.ts`) somma, stagione per stagione, piazzamento in campionato, risultati e piazzamento nei playoff.
+- L'interfaccia ricorda nel browser la stagione consultata (`src/lib/SeasonContext.tsx`).
 
 ### Regole importanti
 

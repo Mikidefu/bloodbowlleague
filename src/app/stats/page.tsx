@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Skull, Star, Trophy, Target } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useSeason } from '@/lib/SeasonContext';
 import styles from './Stats.module.css';
 import type { PlayerLeader } from '@/lib/types';
 
@@ -14,21 +15,27 @@ type PlayerStatsBoard = {
 
 export default function StatsPage() {
     const { t } = useLanguage();
+    const { seasonQuery, seasonsLoading } = useSeason();
     const [stats, setStats] = useState<PlayerStatsBoard | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Statistiche della stagione consultata
     useEffect(() => {
-        fetch('/api/stats')
+        if (seasonsLoading) return;
+        let cancelled = false;
+        fetch(`/api/stats${seasonQuery}`)
             .then(res => res.json())
             .then(data => {
-                setStats(data.playerStats);
+                if (cancelled) return;
+                setStats(data.playerStats ?? null);
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             });
-    }, []);
+        return () => { cancelled = true; };
+    }, [seasonQuery, seasonsLoading]);
 
     if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Scouting player stats...</div>;
 

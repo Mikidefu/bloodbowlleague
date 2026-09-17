@@ -3,6 +3,20 @@ import db from '@/lib/db';
 import crypto from 'crypto';
 import { recalcSppStatement } from '@/lib/spp';
 
+// Risultati e partite si modificano solo nella stagione attiva.
+// Restituisce la risposta d'errore da inviare, oppure null se la partita è modificabile.
+async function lockedMatchResponse(matchId: string) {
+  const { rows: [row] } = await db.execute({
+    sql: 'SELECT s.name, s.status FROM matches m LEFT JOIN seasons s ON s.id = m.season_id WHERE m.id = ?',
+    args: [matchId]
+  });
+  if (!row) return NextResponse.json({ error: 'Match not found' }, { status: 404 });
+  if (row.status !== 'active') {
+    return NextResponse.json({ error: `${row.name ?? 'This season'} is completed: its matches are read-only.` }, { status: 409 });
+  }
+  return null;
+}
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -15,10 +29,12 @@ export async function GET(
       sql: `
         SELECT m.*,
                th.name as home_name, th.logo_url as home_logo, th.primary_color as home_color,
-               ta.name as away_name, ta.logo_url as away_logo, ta.primary_color as away_color
+               ta.name as away_name, ta.logo_url as away_logo, ta.primary_color as away_color,
+               s.name as season_name, s.status as season_status
         FROM matches m
                JOIN teams th ON m.home_team_id = th.id
                JOIN teams ta ON m.away_team_id = ta.id
+               LEFT JOIN seasons s ON s.id = m.season_id
         WHERE m.id = ?
       `,
       args: [id]
@@ -56,6 +72,9 @@ export async function PUT(
     const body = await request.json();
     const { home_score, away_score, home_casualties, away_casualties, match_date, date_only } = body;
     const playerStats = Array.isArray(body.playerStats) ? body.playerStats : [];
+
+    const locked = await lockedMatchResponse(id);
+    if (locked) return locked;
 
     // Cambio della sola data: non tocca risultato, statistiche né stato "giocata"
     if (date_only) {
@@ -123,6 +142,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    const locked = await lockedMatchResponse(id);
+    if (locked) return locked;
 
     // 1. Troviamo i giocatori coinvolti prima di cancellare
     const { rows: playersToRecalc } = await db.execute({
