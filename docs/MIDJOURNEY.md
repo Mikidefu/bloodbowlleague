@@ -49,7 +49,7 @@ full body heroic low angle shot of a massive orc blitzer charging forward with a
 
 ## 3. Logo della lega (completo)
 
-`art-src/logo.png` → `public/art/logo.webp` (+ favicon `src/app/icon.png` generata in automatico)
+`art-src/logo.png` → `public/art/logo.webp` (+ favicon `src/app/favicon.ico`, `icon.png` e `apple-icon.png` generate in automatico)
 
 Il logo è **solo illustrazione**: niente più stemma vettoriale. Compare nella navbar, nel menu mobile, nel login,
 nella copertina (se manca il giocatore) e come filigrana nelle testate.
@@ -131,6 +131,7 @@ seamless tileable texture of aged parchment paper, subtle stains, fibers and cre
 | `stadium.jpg` | Copertina home (a colori) e sfondo di **tutte** le testate (duotono rosso/navy/ardesia) |
 | `hero-player.webp` | Copertina home, a destra (al posto dello stemma grande) |
 | `logo.webp` | Logo della lega: navbar, menu mobile, login, copertina, filigrana testate, `/brand`, favicon |
+| `trivium.webp` | Logo dello sponsor/organizzatore nella copertina della home ("Trivium presenta:"). Nero su trasparente, schiarito via CSS |
 | `trophy.webp` | Podio della home, sopra la squadra prima in classifica |
 | `star-player.webp` | Riquadro "Star Player" della home |
 | `header-*.webp` | Testata della rispettiva pagina (sostituisce la filigrana dello stemma) |

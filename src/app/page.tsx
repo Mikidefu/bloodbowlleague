@@ -113,6 +113,10 @@ export default function Home() {
                 />
                 <Shards variant="hero" className={styles.heroShards} />
 
+                <div className={styles.heroPresents}>
+                    <img src={ART.trivium} alt="Trivium" className={styles.triviumLogo} />
+                    <span className={styles.presentsText}>{t.home.presents}:</span>
+                </div>
                 <div className={styles.heroGiant} aria-hidden="true">Blood Bowl</div>
 
                 <div className={styles.heroStage}>

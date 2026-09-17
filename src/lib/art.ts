@@ -2,7 +2,7 @@
 // Ogni slot è facoltativo: se il file non esiste in public/art il sito usa la grafica vettoriale.
 export const ART = {
   logo: '/art/logo.webp',
-  crest: '/art/logo-crest.webp',
+  trivium: '/art/trivium.webp',
   stadium: '/art/stadium.jpg',
   heroPlayer: '/art/hero-player.webp',
   trophy: '/art/trophy.webp',

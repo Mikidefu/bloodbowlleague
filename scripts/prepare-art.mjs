@@ -2,7 +2,7 @@
 // Uso: metti i file grezzi in art-src/ con i nomi di docs/MIDJOURNEY.md, poi `npm run art`.
 // - "cutout": rimuove lo sfondo piatto (anche le zone chiuse, es. tra braccia e gambe), ritaglia e salva WebP trasparente
 // - "photo": ridimensiona e salva JPG ottimizzato
-import { readdir, mkdir, rm } from 'node:fs/promises';
+import { readdir, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -13,7 +13,7 @@ const JOBS = {
   'stadium': { type: 'photo', width: 2400 },
   'texture-parchment': { type: 'photo', width: 1600 },
   'logo': { type: 'cutout', height: 700 },
-  'logo-crest': { type: 'cutout', height: 600 },
+  'trivium': { type: 'cutout', height: 240 },
   'hero-player': { type: 'cutout', height: 1200 },
   'trophy': { type: 'cutout', height: 500 },
   'star-player': { type: 'cutout', height: 800 },
@@ -110,6 +110,44 @@ async function removeBackground(input) {
   return { image: sharp(data, { raw: info }), holes };
 }
 
+// Favicon da un'immagine trasparente: icon.png (512), apple-icon.png (180, fondo scuro) e favicon.ico (16/32/48)
+async function writeFavicons(source) {
+  const square = size => sharp(source)
+    .trim({ threshold: 1 })
+    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+
+  await sharp(await square(512)).toFile('src/app/icon.png');
+  await sharp(await square(160))
+    .extend({ top: 10, bottom: 10, left: 10, right: 10, background: '#16191e' })
+    .flatten({ background: '#16191e' })
+    .png()
+    .toFile('src/app/apple-icon.png');
+
+  // ICO con immagini PNG incorporate
+  const sizes = [16, 32, 48];
+  const images = await Promise.all(sizes.map(square));
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(sizes.length, 4);
+  let offset = 6 + 16 * sizes.length;
+  const entries = sizes.map((size, i) => {
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(size, 0);
+    entry.writeUInt8(size, 1);
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(images[i].length, 8);
+    entry.writeUInt32LE(offset, 12);
+    offset += images[i].length;
+    return entry;
+  });
+  await writeFile('src/app/favicon.ico', Buffer.concat([header, ...entries, ...images]));
+  console.log('  ↳ favicon aggiornate: src/app/favicon.ico, icon.png, apple-icon.png');
+}
+
 async function run() {
   await mkdir(OUT, { recursive: true });
   let files;
@@ -151,12 +189,7 @@ async function run() {
       console.log(`✓ ${file} → ${OUT}/${name}.webp${holes ? ` (${holes} zone chiuse rimosse)` : ''}`);
       // Il logo diventa anche la favicon del sito
       if (name === 'logo') {
-        await sharp(cut)
-          .trim({ threshold: 1 })
-          .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .png()
-          .toFile('src/app/icon.png');
-        console.log('  ↳ favicon aggiornata: src/app/icon.png');
+        await writeFavicons(cut);
       }
     }
     done++;
