@@ -3,10 +3,18 @@ import { useState, useEffect } from 'react';
 import { Skull, Star, Trophy, Target } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import styles from './Stats.module.css';
+import type { PlayerLeader } from '@/lib/types';
+
+type PlayerStatsBoard = {
+    scorers: PlayerLeader[];
+    killers: PlayerLeader[];
+    mvps: PlayerLeader[];
+    spp: PlayerLeader[];
+};
 
 export default function StatsPage() {
     const { t } = useLanguage();
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<PlayerStatsBoard | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -25,7 +33,7 @@ export default function StatsPage() {
     if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Scouting player stats...</div>;
 
     // Renderizzatore intelligente delle tabelle
-    const renderPlayerTable = (players: any[], sortKey: string, highlightColor: string) => (
+    const renderPlayerTable = (players: PlayerLeader[], sortKey: string, highlightColor: string) => (
         <div className={styles.tableWrapper}>
             <table className={styles.dataTable}>
                 <thead className={styles.tableHead}>

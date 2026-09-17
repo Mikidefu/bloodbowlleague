@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import styles from './Home.module.css';
-import { Users, Calendar, ShieldAlert } from 'lucide-react';
+import { Users, Calendar } from 'lucide-react';
 
 export default function Home() {
     const { t } = useLanguage();

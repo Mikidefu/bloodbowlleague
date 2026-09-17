@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Plus, ShieldAlert, Clock, Settings, ArrowRightLeft, AlertTriangle, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
+import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
+import type { Match, Team } from '@/lib/types';
 
 // Messaggio d'errore restituito dall'API, se presente
 const errorMessage = async (res: Response, fallback: string) => {
@@ -16,8 +17,8 @@ export default function SchedulePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const [matches, setMatches] = useState<any[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
   // --- STATO PER RESPONSIVE ---
@@ -41,7 +42,8 @@ export default function SchedulePage() {
 
   // --- STATI PER FILTRO E PAGINAZIONE ---
   const [selectedTeamFilter, setSelectedTeamFilter] = useState('');
-  const [currentRound, setCurrentRound] = useState<number | null>(null);
+  // Giornata scelta con le frecce; null = scegli automaticamente la prima da giocare
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   // Listener per le dimensioni della finestra
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function SchedulePage() {
       } else {
         alert(await errorMessage(res, "Failed to add match"));
       }
-    } catch (err) {
+    } catch {
       alert("Error adding match");
     } finally {
       setIsSubmitting(false);
@@ -141,7 +143,7 @@ export default function SchedulePage() {
       } else {
         alert(await errorMessage(res, "Failed to generate schedule"));
       }
-    } catch (err) {
+    } catch {
       alert("Error generating schedule");
     } finally {
       setIsGenerating(false);
@@ -176,7 +178,7 @@ export default function SchedulePage() {
       }
 
       if (res.ok) {
-        setCurrentRound(null); // torna alla prima giornata da giocare, cioè quella appena creata
+        setSelectedRound(null); // torna alla prima giornata da giocare, cioè quella appena creata
         fetchData();
       } else {
         alert(await errorMessage(res, 'Failed to generate playoffs'));
@@ -191,9 +193,10 @@ export default function SchedulePage() {
   const deleteMatch = async (id: string) => {
     if (!confirm("Delete this match? Stats will be lost.")) return;
     try {
-      await fetch(`/api/schedule/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/schedule/${id}`, { method: 'DELETE' });
+      if (!res.ok) alert(await errorMessage(res, "Failed to delete match"));
       fetchData();
-    } catch (err) {
+    } catch {
       alert("Error deleting match");
     }
   };
@@ -201,15 +204,16 @@ export default function SchedulePage() {
   const handleDeleteRound = async (round: number) => {
     if (!confirm(`ATTENZIONE! Vuoi davvero eliminare l'intero MATCHDAY ${round}?\nTutte le partite e le statistiche guadagnate dai giocatori in questo round andranno perdute per sempre.`)) return;
     try {
-      await fetch(`/api/schedule/round/${round}`, { method: 'DELETE' });
-      setCurrentRound(null);
+      const res = await fetch(`/api/schedule/round/${round}`, { method: 'DELETE' });
+      if (!res.ok) alert(await errorMessage(res, "Failed to delete matchday"));
+      setSelectedRound(null);
       fetchData();
-    } catch (err) {
+    } catch {
       alert("Error deleting matchday");
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
     const date = new Date(dateString);
     return date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -219,7 +223,7 @@ export default function SchedulePage() {
       selectedTeamFilter ? (m.home_team_id === selectedTeamFilter || m.away_team_id === selectedTeamFilter) : true
   );
 
-  const groupedMatches = filteredMatches.reduce((acc: any, match) => {
+  const groupedMatches = filteredMatches.reduce((acc: Record<number, Match[]>, match) => {
     const round = match.round || 0;
     if (!acc[round]) acc[round] = [];
     acc[round].push(match);
@@ -228,16 +232,10 @@ export default function SchedulePage() {
 
   const rounds = Object.keys(groupedMatches).map(Number).sort((a, b) => a - b);
 
-  useEffect(() => {
-    if (rounds.length > 0) {
-      if (currentRound === null || !rounds.includes(currentRound)) {
-        const firstIncomplete = rounds.find(r => groupedMatches[r].some((m: any) => !m.is_played));
-        setCurrentRound(firstIncomplete !== undefined ? firstIncomplete : rounds[0]);
-      }
-    } else {
-      setCurrentRound(null);
-    }
-  }, [matches, selectedTeamFilter]);
+  const firstIncompleteRound = rounds.find(r => groupedMatches[r].some(m => !m.is_played));
+  const currentRound: number | null = selectedRound !== null && rounds.includes(selectedRound)
+      ? selectedRound
+      : (firstIncompleteRound ?? rounds[0] ?? null);
 
   const currentRoundIndex = currentRound !== null ? rounds.indexOf(currentRound) : -1;
 
@@ -465,7 +463,7 @@ export default function SchedulePage() {
                 boxShadow: '4px 4px 0 rgba(0,0,0,0.3)'
               }}>
                 <button
-                    onClick={() => setCurrentRound(rounds[currentRoundIndex - 1])}
+                    onClick={() => setSelectedRound(rounds[currentRoundIndex - 1])}
                     disabled={currentRoundIndex <= 0}
                     style={{
                       background: 'transparent', border: 'none', color: currentRoundIndex <= 0 ? '#555' : '#fff',
@@ -499,7 +497,7 @@ export default function SchedulePage() {
                 </div>
 
                 <button
-                    onClick={() => setCurrentRound(rounds[currentRoundIndex + 1])}
+                    onClick={() => setSelectedRound(rounds[currentRoundIndex + 1])}
                     disabled={currentRoundIndex >= rounds.length - 1}
                     style={{
                       background: 'transparent', border: 'none', color: currentRoundIndex >= rounds.length - 1 ? '#555' : '#fff',
@@ -516,7 +514,7 @@ export default function SchedulePage() {
                 gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))',
                 gap: isMobile ? '1rem' : '2rem'
               }}>
-                {groupedMatches[currentRound]?.map((match: any) => (
+                {groupedMatches[currentRound]?.map(match => (
                     <div key={match.id} style={{
                       background: 'var(--color-paper)', border: '4px solid var(--color-ink)',
                       boxShadow: '6px 6px 0 var(--color-ink)', position: 'relative', overflow: 'hidden',
@@ -541,7 +539,7 @@ export default function SchedulePage() {
                         {/* HOME TEAM */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '38%' }}>
                           <div style={{ width: isMobile ? '50px' : '70px', height: isMobile ? '50px' : '70px', border: `3px solid ${match.home_color || '#111'}`, padding: '5px', background: '#fff', marginBottom: '0.4rem', transform: 'rotate(-3deg)' }}>
-                            {match.home_logo ? <img src={match.home_logo} alt="H" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.home_color} />}
+                            {match.home_logo ? <img src={match.home_logo} alt="H" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.home_color ?? undefined} />}
                           </div>
                           <span style={{ fontFamily: 'var(--font-varsity)', fontSize: isMobile ? '0.85rem' : '1.1rem', textAlign: 'center', color: 'var(--color-ink)', lineHeight: 1, wordBreak: 'break-word' }}>{match.home_name}</span>
                         </div>
@@ -560,7 +558,7 @@ export default function SchedulePage() {
                         {/* AWAY TEAM */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '38%' }}>
                           <div style={{ width: isMobile ? '50px' : '70px', height: isMobile ? '50px' : '70px', border: `3px solid ${match.away_color || '#111'}`, padding: '5px', background: '#fff', marginBottom: '0.4rem', transform: 'rotate(3deg)' }}>
-                            {match.away_logo ? <img src={match.away_logo} alt="A" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.away_color} />}
+                            {match.away_logo ? <img src={match.away_logo} alt="A" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <ShieldAlert size={isMobile ? 30 : 45} color={match.away_color ?? undefined} />}
                           </div>
                           <span style={{ fontFamily: 'var(--font-varsity)', fontSize: isMobile ? '0.85rem' : '1.1rem', textAlign: 'center', color: 'var(--color-ink)', lineHeight: 1, wordBreak: 'break-word' }}>{match.away_name}</span>
                         </div>

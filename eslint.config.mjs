@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // I loghi arrivano da URL arbitrari inseriti dall'admin (oltre a Vercel Blob):
+      // next/image richiederebbe di elencare in anticipo tutti i domini ammessi.
+      "@next/next/no-img-element": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

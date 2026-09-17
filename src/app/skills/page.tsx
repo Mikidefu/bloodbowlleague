@@ -3,16 +3,17 @@ import { useState, useEffect } from 'react';
 import { Book, ChevronDown, Search } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import styles from './Skills.module.css';
+import type { Skill } from '@/lib/types';
 
 export default function SkillsPage() {
     const { language } = useLanguage();
-    const [skills, setSkills] = useState<any[]>([]);
+    const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     // --- AUTOCOMPLETE STATE ---
     const [searchInput, setSearchInput] = useState('');
-    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<Skill[]>([]);
 
     useEffect(() => {
         fetch('/api/skills')
@@ -74,7 +75,7 @@ export default function SkillsPage() {
     if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Consulting the Playbook...</div>;
 
     // Raggruppiamo le skill per tipo
-    const groupedSkills = skills.reduce((acc: any, skill) => {
+    const groupedSkills = skills.reduce((acc: Record<string, Skill[]>, skill) => {
         if (!acc[skill.type]) acc[skill.type] = [];
         acc[skill.type].push(skill);
         return acc;
@@ -142,7 +143,7 @@ export default function SkillsPage() {
 
                     {/* LISTA SKILL */}
                     <div className={styles.skillsList}>
-                        {groupedSkills[type].map((skill: any) => {
+                        {groupedSkills[type].map(skill => {
                             const isExpanded = expandedId === skill.id;
 
                             return (

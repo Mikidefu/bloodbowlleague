@@ -6,6 +6,22 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { displayMatchType } from '@/lib/matchTypes';
 import styles from './MatchDetails.module.css';
+import { isTrue, type MatchDetails } from '@/lib/types';
+
+// Valore di un campo numerico mentre l'utente scrive: '' = campo svuotato
+type NumericInput = number | '';
+type StatField = 'td' | 'cas' | 'int' | 'comp' | 'mvp';
+type PlayerStatDraft = {
+  player_id: string;
+  jersey_number: number | null;
+  name: string;
+  team_id: string;
+  status: string;
+} & Record<StatField, NumericInput>;
+
+const toNumericInput = (value: string): NumericInput => (value === '' ? '' : Math.max(0, parseInt(value, 10) || 0));
+// Lo zero si mostra come campo vuoto con placeholder "0", così si può scrivere subito sopra
+const zeroAsEmpty = (value: NumericInput) => (value === 0 ? '' : value);
 
 export default function MatchDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -13,26 +29,25 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
 
-  const [match, setMatch] = useState<any>(null);
+  const [match, setMatch] = useState<MatchDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
 
-  // Usiamo any (o string|number) così da poter accettare la stringa vuota '' senza errori
-  const [homeScore, setHomeScore] = useState<any>(0);
-  const [awayScore, setAwayScore] = useState<any>(0);
-  const [homeCas, setHomeCas] = useState<any>(0);
-  const [awayCas, setAwayCas] = useState<any>(0);
+  const [homeScore, setHomeScore] = useState<NumericInput>(0);
+  const [awayScore, setAwayScore] = useState<NumericInput>(0);
+  const [homeCas, setHomeCas] = useState<NumericInput>(0);
+  const [awayCas, setAwayCas] = useState<NumericInput>(0);
 
   // STATO PER LA DATA
   const [matchDate, setMatchDate] = useState('');
 
-  const [playerStats, setPlayerStats] = useState<any[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerStatDraft[]>([]);
 
   useEffect(() => {
     fetch(`/api/schedule/${id}`)
         .then(res => res.json())
-        .then(data => {
+        .then((data: MatchDetails) => {
           setMatch(data);
           setHomeScore(data.home_score || 0);
           setAwayScore(data.away_score || 0);
@@ -40,12 +55,12 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           setAwayCas(data.away_casualties || 0);
           setMatchDate(data.match_date || ''); // IMPOSTA LA DATA
 
-          const initialStats = [...data.homePlayers, ...data.awayPlayers].map((p: any) => {
-            const existing = data.stats.find((s: any) => s.player_id === p.id);
+          const initialStats = [...data.homePlayers, ...data.awayPlayers].map((p): PlayerStatDraft => {
+            const existing = data.stats.find(s => s.player_id === p.id);
 
             let currentStatus = 'Active';
-            if (p.dead === 1 || p.dead === true) currentStatus = 'Dead';
-            else if (p.mng === 1 || p.mng === true) currentStatus = 'Injured';
+            if (isTrue(p.dead)) currentStatus = 'Dead';
+            else if (isTrue(p.mng)) currentStatus = 'Injured';
 
             return {
               player_id: p.id,
@@ -67,10 +82,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           console.error(err);
           router.push('/schedule');
         });
-  }, [id]);
+  }, [id, router]);
 
   // Ora accetta stringhe vuote
-  const handleStatChange = (playerId: string, field: string, value: number | string) => {
+  const handleStatChange = (playerId: string, field: StatField, value: NumericInput) => {
     setPlayerStats(prev => {
       const updatedStats = prev.map(p => p.player_id === playerId ? { ...p, [field]: value } : p);
 
@@ -78,7 +93,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         let hScore = 0, aScore = 0, hCas = 0, aCas = 0;
 
         updatedStats.forEach(p => {
-          const isHome = match.homePlayers.some((h: any) => h.id === p.player_id);
+          const isHome = match?.homePlayers.some(h => h.id === p.player_id);
           if (isHome) {
             hScore += Number(p.td) || 0; // Somma forzando a numero (se vuoto diventa 0)
             hCas += Number(p.cas) || 0;
@@ -152,7 +167,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       } else {
         alert('Failed to save match results');
       }
-    } catch (e) {
+    } catch {
       alert('Error saving match');
     } finally {
       setSaving(false);
@@ -165,17 +180,17 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     setExpandedTeams(prev => ({ ...prev, [teamId]: !prev[teamId] }));
   };
 
-  const renderTeamStats = (teamName: string, players: any[], teamId: string, teamColor: string) => {
+  const renderTeamStats = (teamName: string, teamId: string, teamColor: string | null) => {
     const isExpanded = !!expandedTeams[teamId];
 
     return (
-        <div className={styles.folderTab} style={{ borderTop: `8px solid ${teamColor}` }}>
+        <div className={styles.folderTab} style={{ borderTop: `8px solid ${teamColor || '#333'}` }}>
           <div
               onClick={() => toggleTeam(teamId)}
               style={{ padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
           >
             <h3 style={{ margin: 0, color: 'var(--color-paper)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.8rem', fontFamily: 'var(--font-impact)', letterSpacing: '1px' }}>
-              {isExpanded ? <ChevronDown size={28} color={teamColor} /> : <ChevronRight size={28} color={teamColor} />}
+              {isExpanded ? <ChevronDown size={28} color={teamColor || undefined} /> : <ChevronRight size={28} color={teamColor || undefined} />}
               {teamName} {t.match.players}
             </h3>
           </div>
@@ -196,7 +211,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   </tr>
                   </thead>
                   <tbody>
-                  {playerStats.filter(p => match.homePlayers.find((h: any) => h.id === p.player_id && h.team_id === teamId) || match.awayPlayers.find((a: any) => a.id === p.player_id && a.team_id === teamId)).map((stat) => (
+                  {playerStats.filter(p => p.team_id === teamId).map((stat) => (
                       <tr key={stat.player_id} className={styles.playerRow} style={{ opacity: stat.status === 'Dead' ? 0.5 : 1 }}>
 
                         {/* ICONA MAGLIETTA CON NUMERO */}
@@ -218,19 +233,19 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
                         <td style={{ textAlign: 'center', padding: '1rem' }}>
                           {/* e.target.value === '' evita lo zero bloccato */}
-                          <input type="number" min="0" value={stat.td === 0 && stat.td !== '0' ? '' : stat.td} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'td', e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
+                          <input type="number" min="0" value={zeroAsEmpty(stat.td)} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'td', toNumericInput(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
                         </td>
                         <td style={{ textAlign: 'center', padding: '1rem' }}>
-                          <input type="number" min="0" value={stat.cas === 0 && stat.cas !== '0' ? '' : stat.cas} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'cas', e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
+                          <input type="number" min="0" value={zeroAsEmpty(stat.cas)} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'cas', toNumericInput(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
                         </td>
                         <td style={{ textAlign: 'center', padding: '1rem' }}>
-                          <input type="number" min="0" value={stat.int === 0 && stat.int !== '0' ? '' : stat.int} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'int', e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
+                          <input type="number" min="0" value={zeroAsEmpty(stat.int)} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'int', toNumericInput(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
                         </td>
                         <td style={{ textAlign: 'center', padding: '1rem' }}>
-                          <input type="number" min="0" value={stat.comp === 0 && stat.comp !== '0' ? '' : stat.comp} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'comp', e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
+                          <input type="number" min="0" value={zeroAsEmpty(stat.comp)} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'comp', toNumericInput(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
                         </td>
                         <td style={{ textAlign: 'center', padding: '1rem' }}>
-                          <input type="number" min="0" max="1" value={stat.mvp === 0 && stat.mvp !== '0' ? '' : stat.mvp} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'mvp', e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
+                          <input type="number" min="0" max="1" value={zeroAsEmpty(stat.mvp)} placeholder="0" onChange={e => handleStatChange(stat.player_id, 'mvp', toNumericInput(e.target.value))} className={styles.statsInput} disabled={stat.status === 'Dead'} />
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <select
@@ -290,10 +305,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           <div className={styles.grungeOverlay}></div>
 
           <div className={`${styles.shard} ${styles.shardHomeDark}`}></div>
-          <div className={`${styles.shard} ${styles.shardHomeColor}`} style={{ background: match.home_color }}></div>
+          <div className={`${styles.shard} ${styles.shardHomeColor}`} style={{ background: match.home_color ?? undefined }}></div>
 
           <div className={`${styles.shard} ${styles.shardAwayDark}`}></div>
-          <div className={`${styles.shard} ${styles.shardAwayColor}`} style={{ background: match.away_color }}></div>
+          <div className={`${styles.shard} ${styles.shardAwayColor}`} style={{ background: match.away_color ?? undefined }}></div>
 
           <div className={styles.titleContainer}>
             <div className={styles.leagueTitle}>BLOODBOWL LEAGUE</div>
@@ -323,10 +338,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           <div className={styles.showcaseArea}>
             {/* HOME */}
             <div className={styles.teamSide}>
-              <div className={`${styles.cursiveName} ${styles.cursiveHome}`} style={{ color: match.home_color }}>
+              <div className={`${styles.cursiveName} ${styles.cursiveHome}`} style={{ color: match.home_color ?? undefined }}>
                 {match.home_name}
               </div>
-              <div className={`${styles.logoBox} ${styles.logoBoxHome}`} style={{ backgroundColor: match.home_color }}>
+              <div className={`${styles.logoBox} ${styles.logoBoxHome}`} style={{ backgroundColor: match.home_color ?? undefined }}>
                 {match.home_logo ? (
                     <img src={match.home_logo} alt="Home Logo" className={styles.logoImage} />
                 ) : (
@@ -340,10 +355,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
             {/* AWAY */}
             <div className={styles.teamSide}>
-              <div className={`${styles.cursiveName} ${styles.cursiveAway}`} style={{ color: match.away_color }}>
+              <div className={`${styles.cursiveName} ${styles.cursiveAway}`} style={{ color: match.away_color ?? undefined }}>
                 {match.away_name}
               </div>
-              <div className={`${styles.logoBox} ${styles.logoBoxAway}`} style={{ backgroundColor: match.away_color }}>
+              <div className={`${styles.logoBox} ${styles.logoBoxAway}`} style={{ backgroundColor: match.away_color ?? undefined }}>
                 {match.away_logo ? (
                     <img src={match.away_logo} alt="Away Logo" className={styles.logoImage} />
                 ) : (
@@ -360,11 +375,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
             <div className={styles.scoreGroup}>
               <div className={styles.statItem}>
                 <label className={styles.label}>TD</label>
-                <input type="number" min="0" value={homeScore === 0 && homeScore !== '0' ? '' : homeScore} placeholder="0" onChange={e => setHomeScore(e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.scoreInput} style={{ color: match.home_color }} />
+                <input type="number" min="0" value={zeroAsEmpty(homeScore)} placeholder="0" onChange={e => setHomeScore(toNumericInput(e.target.value))} className={styles.scoreInput} style={{ color: match.home_color || undefined }} />
               </div>
               <div className={styles.statItem}>
                 <label className={styles.label}>CAS</label>
-                <input type="number" min="0" value={homeCas === 0 && homeCas !== '0' ? '' : homeCas} placeholder="0" onChange={e => setHomeCas(e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.casInput} />
+                <input type="number" min="0" value={zeroAsEmpty(homeCas)} placeholder="0" onChange={e => setHomeCas(toNumericInput(e.target.value))} className={styles.casInput} />
               </div>
             </div>
 
@@ -372,11 +387,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
             <div className={styles.scoreGroup}>
               <div className={styles.statItem}>
                 <label className={styles.label}>TD</label>
-                <input type="number" min="0" value={awayScore === 0 && awayScore !== '0' ? '' : awayScore} placeholder="0" onChange={e => setAwayScore(e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.scoreInput} style={{ color: match.away_color }} />
+                <input type="number" min="0" value={zeroAsEmpty(awayScore)} placeholder="0" onChange={e => setAwayScore(toNumericInput(e.target.value))} className={styles.scoreInput} style={{ color: match.away_color || undefined }} />
               </div>
               <div className={styles.statItem}>
                 <label className={styles.label}>CAS</label>
-                <input type="number" min="0" value={awayCas === 0 && awayCas !== '0' ? '' : awayCas} placeholder="0" onChange={e => setAwayCas(e.target.value === '' ? '' : parseInt(e.target.value))} className={styles.casInput} />
+                <input type="number" min="0" value={zeroAsEmpty(awayCas)} placeholder="0" onChange={e => setAwayCas(toNumericInput(e.target.value))} className={styles.casInput} />
               </div>
             </div>
           </div>
@@ -388,8 +403,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           {t.match.postMatchReports}
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {renderTeamStats(match.home_name, match.homePlayers, match.home_team_id, match.home_color)}
-          {renderTeamStats(match.away_name, match.awayPlayers, match.away_team_id, match.away_color)}
+          {renderTeamStats(match.home_name, match.home_team_id, match.home_color)}
+          {renderTeamStats(match.away_name, match.away_team_id, match.away_color)}
         </div>
         </fieldset>
 

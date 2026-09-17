@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import styles from './TeamDetails.module.css';
 import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, skillsForCategories } from '@/lib/advancement';
+import { isTrue, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
 
 export default function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -13,11 +14,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
 
-  const [team, setTeam] = useState<any>(null);
+  const [team, setTeam] = useState<TeamWithPlayers | null>(null);
   const [loading, setLoading] = useState(true);
 
   // STATO GLOBALE DELLE SKILL (Dizionario)
-  const [availableSkills, setAvailableSkills] = useState<any[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
 
   // Team edit form
   const [showEditTeam, setShowEditTeam] = useState(false);
@@ -36,32 +37,32 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
 
   // Level Up State
-  const [levelUpPlayer, setLevelUpPlayer] = useState<any>(null);
+  const [levelUpPlayer, setLevelUpPlayer] = useState<Player | null>(null);
   const [levelUpChoice, setLevelUpChoice] = useState<string>('');
-  const [selectedAdvancement, setSelectedAdvancement] = useState<any>(null);
+  const [selectedAdvancement, setSelectedAdvancement] = useState<Skill | null>(null);
 
   // NUOVO STATO: Modale Celebrazione Skill Random
-  const [celebrationSkill, setCelebrationSkill] = useState<any>(null);
+  const [celebrationSkill, setCelebrationSkill] = useState<Skill | null>(null);
 
   // Autocomplete State (Solo per la Creazione)
   const [skillInput, setSkillInput] = useState('');
-  const [skillSuggestions, setSkillSuggestions] = useState<any[]>([]);
+  const [skillSuggestions, setSkillSuggestions] = useState<Skill[]>([]);
 
   const [editPlayerForm, setEditPlayerForm] = useState({
     jersey_number: '', name: '', role: '', value: 0,
     primary_skills: '', secondary_skills: '', advancements: 0,
-    skills: [] as any[],
+    skills: [] as Skill[],
     ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', spp: 0,
     mng: false, dead: false
   });
 
   const [playerForm, setPlayerForm] = useState({
-    jersey_number: '', name: '', role: 'Lineman', value: 50000, skills: [] as any[],
+    jersey_number: '', name: '', role: 'Lineman', value: 50000, skills: [] as Skill[],
     primary_skills: 'G', secondary_skills: 'A', // Default per non lasciarlo vuoto
     ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', spp: 0
   });
 
-  const fetchTeamAndSkills = async () => {
+  const fetchTeamAndSkills = useCallback(async () => {
     try {
       const [teamRes, skillsRes] = await Promise.all([
         fetch(`/api/teams/${id}`),
@@ -80,11 +81,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       console.error(err);
       router.push('/teams');
     }
-  };
+  }, [id, router]);
 
   useEffect(() => {
     fetchTeamAndSkills();
-  }, [id]);
+  }, [fetchTeamAndSkills]);
 
   const formatSkillName = (str: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -98,7 +99,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
     const filtered = availableSkills.filter(skill =>
         skill.name.toLowerCase().includes(input.toLowerCase()) &&
-        !playerForm.skills.some((s: any) => s.id === skill.id)
+        !playerForm.skills.some(s => s.id === skill.id)
     );
     setSkillSuggestions(filtered);
   };
@@ -111,23 +112,23 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
       const exactMatch = availableSkills.find(s => s.name.toLowerCase() === inputVal.trim().toLowerCase());
       if (!exactMatch) return alert(`ATTENZIONE: La skill "${inputVal}" non esiste nel regolamento!`);
-      if (playerForm.skills.some((s: any) => s.id === exactMatch.id)) return alert(`Già posseduta.`);
+      if (playerForm.skills.some(s => s.id === exactMatch.id)) return alert(`Già posseduta.`);
 
       addSkillToPlayer(exactMatch);
     }
   };
 
-  const addSkillToPlayer = (skill: any) => {
-    if (!playerForm.skills.some((s: any) => s.id === skill.id)) {
+  const addSkillToPlayer = (skill: Skill) => {
+    if (!playerForm.skills.some(s => s.id === skill.id)) {
       setPlayerForm({ ...playerForm, skills: [...playerForm.skills, skill] });
     }
     setSkillInput('');
     setSkillSuggestions([]);
   };
 
-  const removeSkillFromPlayer = (skill: any) => {
+  const removeSkillFromPlayer = (skill: Skill) => {
     if (!confirm(`Rimuovere "${formatSkillName(skill.name)}"?`)) return;
-    setPlayerForm({ ...playerForm, skills: playerForm.skills.filter((s: any) => s.id !== skill.id) });
+    setPlayerForm({ ...playerForm, skills: playerForm.skills.filter(s => s.id !== skill.id) });
   };
   // -----------------------------------
 
@@ -138,12 +139,13 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     return skillsForCategories(
         availableSkills,
         type === 'primary' ? levelUpPlayer.primary_skills : levelUpPlayer.secondary_skills,
-        levelUpPlayer.skills.map((ps: any) => ps.id)
+        levelUpPlayer.skills.map(ps => ps.id)
     );
   };
 
   // Costi, limiti e valori sono calcolati dal server (/api/players/[id]/advance)
   const requestAdvancement = async (payload: Record<string, string>) => {
+    if (!levelUpPlayer) return null;
     try {
       const res = await fetch(`/api/players/${levelUpPlayer.id}/advance`, {
         method: 'POST',
@@ -184,18 +186,20 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   // -----------------------
 
   const handleDeleteTeam = async () => {
-    if (!confirm(t.teamDetail.confirmDisband.replace('{teamName}', team.name))) return;
+    if (!team || !confirm(t.teamDetail.confirmDisband.replace('{teamName}', team.name))) return;
     try {
-      await fetch(`/api/teams/${id}`, { method: 'DELETE' });
-      router.push('/teams');
-    } catch (e) { alert('Failed to delete team'); }
+      const res = await fetch(`/api/teams/${id}`, { method: 'DELETE' });
+      if (res.ok) router.push('/teams');
+      else alert('Failed to delete team');
+    } catch { alert('Failed to delete team'); }
   };
 
   const openEditTeam = () => {
+    if (!team) return;
     setEditForm({
-      name: team.name, primary_color: team.primary_color, secondary_color: team.secondary_color, logo_url: team.logo_url || '',
+      name: team.name, primary_color: team.primary_color || '#000000', secondary_color: team.secondary_color || '#000000', logo_url: team.logo_url || '',
       rerolls: team.rerolls || 0, reroll_cost: team.reroll_cost || 50000, cheerleaders: team.cheerleaders || 0, assistant_coaches: team.assistant_coaches || 0,
-      fan_factor: team.fan_factor || 0, apothecary: team.apothecary === 1 || team.apothecary === true, treasury: team.treasury || 0, bank: team.bank || 0
+      fan_factor: team.fan_factor || 0, apothecary: isTrue(team.apothecary), treasury: team.treasury || 0, bank: team.bank || 0
     });
     setLogoFile(null); setLogoPreview(null); setShowEditTeam(true);
   };
@@ -222,14 +226,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       const res = await fetch(`/api/teams/${id}`, { method: 'PUT', body: submitData });
       if (res.ok) { setShowEditTeam(false); fetchTeamAndSkills(); }
       else alert('Failed to update team');
-    } catch (err) { alert('Error updating team'); }
+    } catch { alert('Error updating team'); }
     finally { setIsEditingTeam(false); }
   };
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const skillIds = playerForm.skills.map((s: any) => s.id);
+    const skillIds = playerForm.skills.map(s => s.id);
 
     try {
       const res = await fetch('/api/players', {
@@ -249,24 +253,27 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         setShowPlayerForm(false);
         fetchTeamAndSkills();
       } else { alert('Failed to hire player'); }
-    } catch (e) { alert('Error hiring player'); }
+    } catch { alert('Error hiring player'); }
     finally { setIsSubmitting(false); }
   };
 
   const handleDeletePlayer = async (playerId: string, name: string) => {
     if (!confirm(t.teamDetail.confirmFire.replace('{playerName}', name))) return;
-    try { await fetch(`/api/players/${playerId}`, { method: 'DELETE' }); fetchTeamAndSkills(); }
-    catch (e) { alert('Failed to fire player'); }
+    try {
+      const res = await fetch(`/api/players/${playerId}`, { method: 'DELETE' });
+      if (!res.ok) alert('Failed to fire player');
+      fetchTeamAndSkills();
+    } catch { alert('Failed to fire player'); }
   };
 
-  const startEditPlayer = (player: any) => {
+  const startEditPlayer = (player: Player) => {
     setEditingPlayerId(player.id);
     setEditPlayerForm({
-      jersey_number: player.jersey_number || '', name: player.name, role: player.role, value: player.value,
+      jersey_number: player.jersey_number != null ? String(player.jersey_number) : '', name: player.name, role: player.role, value: player.value,
       primary_skills: player.primary_skills || '', secondary_skills: player.secondary_skills || '', advancements: player.advancements || 0,
       skills: player.skills || [], // Le skills originali (non verranno modificate dalla UI)
       ma: player.ma ?? 6, st: player.st ?? 3, ag: player.ag ?? '3+', pa: player.pa ?? '4+', av: player.av ?? '8+',
-      spp: player.spp ?? 0, mng: player.mng === 1 || player.mng === true, dead: player.dead === 1 || player.dead === true
+      spp: player.spp ?? 0, mng: isTrue(player.mng), dead: isTrue(player.dead)
     });
   };
 
@@ -287,12 +294,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
       if (res.ok) { setEditingPlayerId(null); fetchTeamAndSkills(); }
       else { alert('Failed to update player'); }
-    } catch (e) { alert('Error updating player'); }
+    } catch { alert('Error updating player'); }
   };
 
   if (loading || !team) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Loading locker room...</div>;
 
-  const activePlayers = team.players.filter((p: any) => p.dead !== 1 && p.dead !== true);
+  const activePlayers = team.players.filter(p => !isTrue(p.dead));
 
   const staffValue =
       ((team.rerolls || 0) * (team.reroll_cost || 50000)) +
@@ -301,11 +308,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       ((team.fan_factor || 0) * 10000) +
       (team.apothecary ? 50000 : 0);
 
-  const totalValue = activePlayers.reduce((sum: number, p: any) => sum + p.value, 0) + staffValue;
+  const totalValue = activePlayers.reduce((sum, p) => sum + p.value, 0) + staffValue;
 
   const sortedPlayers = [...team.players].sort((a, b) => {
-    const aDead = a.dead === 1 || a.dead === true;
-    const bDead = b.dead === 1 || b.dead === true;
+    const aDead = isTrue(a.dead);
+    const bDead = isTrue(b.dead);
     if (aDead && !bDead) return 1;
     if (!aDead && bDead) return -1;
     return (a.jersey_number || 99) - (b.jersey_number || 99);
@@ -353,11 +360,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
         {/* TEAM IDENTITY BANNER */}
         <div className={styles.teamIdentityBanner}>
-          <div className={styles.logoSection} style={{ borderLeftColor: team.primary_color }}>
+          <div className={styles.logoSection} style={{ borderLeftColor: team.primary_color ?? undefined }}>
             {team.logo_url ? (
                 <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
             ) : (
-                <ShieldAlert size={100} color={team.primary_color} className={styles.teamLogo} />
+                <ShieldAlert size={100} color={team.primary_color ?? undefined} className={styles.teamLogo} />
             )}
           </div>
 
@@ -446,7 +453,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {(levelUpChoice === 'choosePrimary' || levelUpChoice === 'chooseSecondary') && (
-                    <select onChange={(e) => setSelectedAdvancement(availableSkills.find(s => s.id === e.target.value))} className={styles.inputField} style={{ marginBottom: '2rem' }}>
+                    <select onChange={(e) => setSelectedAdvancement(availableSkills.find(s => s.id === e.target.value) ?? null)} className={styles.inputField} style={{ marginBottom: '2rem' }}>
                       <option value="">Select a skill...</option>
                       {getFilteredSkillsForLevelUp(levelUpChoice === 'choosePrimary' ? 'primary' : 'secondary').map(s => (
                           <option key={s.id} value={s.id}>{formatSkillName(s.name)} ({s.type})</option>
@@ -612,7 +619,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <label className={styles.label}>STARTING SKILLS</label>
 
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                    {playerForm.skills.map((s: any) => (
+                    {playerForm.skills.map(s => (
                         <span key={s.id} style={{ background: 'var(--color-ink)', color: '#fff', padding: '0.3rem 0.6rem', fontFamily: 'var(--font-impact)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {formatSkillName(s.name)}
                           <button type="button" onClick={() => removeSkillFromPlayer(s)} style={{ background: 'none', border: 'none', color: 'var(--color-blood-bright)', cursor: 'pointer', padding: 0 }}><X size={14}/></button>
@@ -709,7 +716,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 </tr>
                 </thead>
                 <tbody>
-                {sortedPlayers.map((player: any) => {
+                {sortedPlayers.map(player => {
 
                   // RIGA IN MODALITÀ MODIFICA
                   if (editingPlayerId === player.id) {
@@ -736,7 +743,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                           {/* SKILLS BLOCCATE */}
                           <td className={styles.leftAlign}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem' }}>
-                              {player.skills && player.skills.map((s: any) => (
+                              {player.skills && player.skills.map(s => (
                                   <span key={s.id} style={{ background: '#555', color: '#fff', padding: '0.2rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
                                   {formatSkillName(s.name)}
                                 </span>
@@ -823,7 +830,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                         {/* VISUALIZZAZIONE SKILLS CON LINK ALLA PAGINA REGOLAMENTO */}
                         <td className={styles.leftAlign}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                            {player.skills && Array.isArray(player.skills) && player.skills.map((s: any, i: number) => {
+                            {player.skills && Array.isArray(player.skills) && player.skills.map((s, i) => {
                               const isEarned = i >= startingCount;
                               const bg = isDead ? '#888' : (isEarned ? 'var(--color-gold)' : 'var(--color-ink)');
                               const color = isEarned ? '#111' : '#fff';

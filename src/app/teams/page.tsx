@@ -5,11 +5,12 @@ import { Users, Plus, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import styles from './Teams.module.css';
+import type { Team } from '@/lib/types';
 
 export default function TeamsPage() {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
-  const [teams, setTeams] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

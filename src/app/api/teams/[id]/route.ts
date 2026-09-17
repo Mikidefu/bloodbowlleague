@@ -34,9 +34,9 @@ export async function GET(
     });
 
     // 3. Mappiamo i giocatori assegnando a ciascuno le proprie skill REALI (come oggetti)
-    const mappedPlayers = playersRes.rows.map((p: any) => {
+    const mappedPlayers = playersRes.rows.map(p => {
       // Filtriamo l'array globale delle skill per prendere solo quelle di questo giocatore
-      const playerSkills = skillsRes.rows.filter((s: any) => s.player_id === p.id);
+      const playerSkills = skillsRes.rows.filter(s => s.player_id === p.id);
 
       return {
         ...p,

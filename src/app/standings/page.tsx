@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { Trophy, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import styles from './Standings.module.css';
+import type { TeamStanding } from '@/lib/standings';
 
 export default function StandingsPage() {
     const { t } = useLanguage();
-    const [standings, setStandings] = useState<any[]>([]);
+    const [standings, setStandings] = useState<TeamStanding[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -90,9 +91,9 @@ export default function StandingsPage() {
 
                                         {/* STATISTICHE (Partite) - Aggiunti Fallback Sicuri */}
                                         <td className={styles.statCell} style={{ color: '#fff' }}>{team.played ?? 0}</td>
-                                        <td className={styles.statCell}>{team.wins ?? team.won ?? 0}</td>
-                                        <td className={styles.statCell}>{team.draws ?? team.drawn ?? 0}</td>
-                                        <td className={styles.statCell}>{team.losses ?? team.lost ?? 0}</td>
+                                        <td className={styles.statCell}>{team.wins}</td>
+                                        <td className={styles.statCell}>{team.draws}</td>
+                                        <td className={styles.statCell}>{team.losses}</td>
 
                                         {/* STATISTICHE (Touchdown) */}
                                         <td className={styles.statCell}>{team.td_for ?? 0}</td>

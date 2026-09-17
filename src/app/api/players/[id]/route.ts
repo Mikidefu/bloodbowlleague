@@ -20,6 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       dead: !!existing.dead
     });
   } catch (error) {
+    console.error('Error fetching player:', error);
     return NextResponse.json({ error: 'Failed to fetch player' }, { status: 500 });
   }
 }
@@ -57,6 +58,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Error updating player:', error);
     return NextResponse.json({ error: 'Failed to update player' }, { status: 500 });
   }
 }
@@ -67,6 +69,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await db.execute({ sql: 'DELETE FROM players WHERE id = ?', args: [id] });
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Error deleting player:', error);
     return NextResponse.json({ error: 'Failed to delete player' }, { status: 500 });
   }
 }
