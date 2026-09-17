@@ -1,0 +1,148 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.emblemRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem;
+  background: var(--bb-slate-900);
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 0.85rem;
+}
+
+.swatch strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.swatch code {
+  color: var(--bb-slate-300);
+}
+
+.chip {
+  height: 64px;
+  margin-bottom: 0.5rem;
+  border: 2px solid rgba(239, 229, 210, 0.2);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  align-items: start;
+}
+
+.twoCol > :global(.card) {
+  margin-bottom: 0;
+}
+
+.sampleDisplay {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--bb-navy);
+}
+
+.sampleSlab {
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+  margin-bottom: 1rem;
+}
+
+.intro {
+  margin: 1.25rem 0;
+}
+
+.buttons,
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.splatter {
+  right: 1.25rem;
+  bottom: 1.25rem;
+}
+
+.assets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.asset {
+  display: flex;
+  flex-direction: column;
+  background: var(--bb-slate-900);
+}
+
+.assetPreview {
+  height: 150px;
+  padding: 1rem;
+  overflow: hidden;
+  background: var(--bb-parchment);
+}
+
+.assetPreview img {
+  display: block;
+  width: 100%;
+  height: 118px;
+  object-fit: contain;
+}
+
+.asset figcaption {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.asset figcaption strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+}
+
+.asset code {
+  color: var(--bb-slate-300);
+}
+
+.chain {
+  margin-top: 1rem;
+}

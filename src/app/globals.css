@@ -346,23 +346,11 @@ img {
 }
 
 .stars-bar {
-  height: 34px;
-  background: url('/brand/stars-bar.svg') center bottom / auto 100% no-repeat;
-  position: relative;
+  height: 36px;
+  background:
+    url('/brand/stars-bar.svg') center bottom / 140px 36px no-repeat,
+    linear-gradient(var(--bb-navy), var(--bb-navy)) left bottom / 100% 10px no-repeat;
 }
-
-.stars-bar::before,
-.stars-bar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  height: 12px;
-  width: calc(50% - 300px);
-  background: var(--bb-navy);
-}
-
-.stars-bar::before { left: 0; }
-.stars-bar::after { right: 0; }
 
 .data-table {
   width: 100%;
@@ -410,7 +398,8 @@ img {
   text-transform: uppercase;
 }
 
-.num {
+.num,
+.data-table .num {
   font-variant-numeric: tabular-nums;
   text-align: center;
 }

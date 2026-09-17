@@ -43,7 +43,7 @@ export default function Emblem({
     >
       <defs>
         <path id={`${id}-top`} d="M 78 200 A 122 122 0 0 1 322 200" />
-        <path id={`${id}-bottom`} d="M 64 200 A 136 136 0 0 0 336 200" />
+        <path id={`${id}-bottom`} d="M 88 200 A 112 112 0 0 0 312 200" />
         <clipPath id={`${id}-core`}>
           <circle cx="200" cy="200" r="100" />
         </clipPath>
