@@ -1,0 +1,303 @@
+/* Elementi decorativi condivisi: schegge, nastri, titoli numerati, hotspot */
+
+/* ================================================================== */
+/*  SCHEGGE                                                            */
+/* ================================================================== */
+.shards {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ================================================================== */
+/*  NASTRO DIAGONALE                                                   */
+/* ================================================================== */
+.tape {
+  --tape-bg: #eab22a;
+  --tape-fg: #1a1208;
+  --tape-edge: #1a1208;
+  position: relative;
+  width: 112%;
+  margin-left: -6%;
+  overflow: hidden;
+  transform: rotate(var(--tape-angle, -3deg));
+  background:
+    repeating-linear-gradient(-45deg, var(--tape-edge) 0 8px, transparent 8px 16px) top / 100% 6px no-repeat,
+    repeating-linear-gradient(-45deg, var(--tape-edge) 0 8px, transparent 8px 16px) bottom / 100% 6px no-repeat,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 45%, rgba(0, 0, 0, 0.12)),
+    var(--tape-bg);
+  box-shadow: 0 14px 26px -12px rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+}
+
+.tape_red {
+  --tape-bg: #c8252c;
+  --tape-fg: #fff4e0;
+  --tape-edge: #3a0d0f;
+}
+
+.tape_ink {
+  --tape-bg: #16191e;
+  --tape-fg: #eab22a;
+  --tape-edge: #eab22a;
+}
+
+.tapeTrack {
+  display: flex;
+  width: max-content;
+}
+
+.tapeMoving {
+  animation: bb-tape 60s linear infinite;
+}
+
+.tapeReverse {
+  animation-direction: reverse;
+}
+
+.tape:hover .tapeMoving,
+.tape:focus-within .tapeMoving {
+  animation-play-state: paused;
+}
+
+@keyframes bb-tape {
+  to { transform: translateX(-50%); }
+}
+
+.tapeList {
+  display: flex;
+  list-style: none;
+}
+
+.tapeItem {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 0 0.7rem 1.25rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tape-fg);
+}
+
+.tapeItem a {
+  color: inherit;
+}
+
+.tapeItem a:hover {
+  text-decoration: underline;
+}
+
+.tapeSep {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+/* ================================================================== */
+/*  TITOLO DI SEZIONE NUMERATO                                         */
+/* ================================================================== */
+.sectionTitle {
+  --st-title: var(--bb-parchment);
+  --st-micro: var(--bb-mustard);
+  --st-index: rgba(234, 178, 42, 0.9);
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.on_light {
+  --st-title: var(--bb-blood-700);
+  --st-micro: var(--bb-navy);
+  --st-index: #b8893f;
+}
+
+.alignRight {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.alignRight .sectionMicro {
+  justify-content: flex-end;
+}
+
+.sectionIndex {
+  flex: none;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(4.5rem, 10vw, 8rem);
+  line-height: 0.72;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--st-index);
+  position: relative;
+}
+
+.sectionIndex::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 30%;
+  bottom: -0.5rem;
+  height: 5px;
+  background: var(--bb-red);
+  transform: skewX(-20deg);
+}
+
+.sectionText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.sectionMicro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--st-micro);
+}
+
+/* Tre quadratini (uno pieno) come nei pannelli tecnici */
+.microSquares {
+  display: inline-block;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
+  opacity: 0.9;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--st-title);
+  overflow-wrap: break-word;
+}
+
+.on_dark .sectionHeading {
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(3px 4px 0 rgba(20, 6, 6, 0.55));
+  padding-right: 0.1em;
+}
+
+.sectionAction {
+  margin-left: auto;
+  align-self: center;
+}
+
+.alignRight .sectionAction {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* ================================================================== */
+/*  HOTSPOT                                                            */
+/* ================================================================== */
+.hotspot {
+  position: absolute;
+  z-index: 4;
+  width: 0;
+  height: 0;
+}
+
+.hotspotDot {
+  position: absolute;
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #eab22a 0 6px, #16191e 7px 13px, transparent 14px);
+  box-shadow: 0 0 0 2px #d9b268, 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+.hotspotDot::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(234, 178, 42, 0.8);
+  animation: bb-ping 2.4s var(--ease-out) infinite;
+}
+
+@keyframes bb-ping {
+  from { transform: scale(0.7); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+.hotspotLine {
+  position: absolute;
+  left: 14px;
+  top: var(--hs-rise);
+  width: var(--hs-length);
+  height: calc(-1 * var(--hs-rise));
+  overflow: visible;
+}
+
+.hotspotLine line {
+  stroke: rgba(243, 216, 151, 0.85);
+  stroke-width: 2;
+  stroke-dasharray: 5 6;
+}
+
+.hotspotCard {
+  position: absolute;
+  left: calc(var(--hs-length) + 18px);
+  top: var(--hs-rise);
+  transform: translateY(-50%);
+  min-width: 150px;
+  padding: 0.55rem 1rem 0.6rem;
+  color: var(--bb-parchment);
+  background: linear-gradient(135deg, rgba(22, 25, 30, 0.92), rgba(45, 50, 58, 0.88));
+  border-left: 4px solid var(--bb-red);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  box-shadow: 0 14px 24px -12px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.hotspotLeft .hotspotLine {
+  left: auto;
+  right: 14px;
+  transform: scaleX(-1);
+}
+
+.hotspotLeft .hotspotCard {
+  left: auto;
+  right: calc(var(--hs-length) + 18px);
+  border-left: 0;
+  border-right: 4px solid var(--bb-red);
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tapeMoving,
+  .hotspotDot::after {
+    animation: none;
+  }
+}

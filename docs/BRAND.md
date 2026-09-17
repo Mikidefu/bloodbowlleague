@@ -81,3 +81,29 @@ Titoli sempre MAIUSCOLI. Un punto esclamativo è benvenuto ma non va aggiunto ai
 - **Atmosfera globale**: vignettatura da stadio e grana di stampa sopra la pagina; i blocchi di `main` entrano con un'animazione morbida (disattivata con `prefers-reduced-motion`).
 - **Componenti**: `<Wordmark />` (lettere cesellate argento + nastro rosso), `<Emblem />` in ottone con cuore illustrabile, `<PageHeader />` con scena di stadio in duotono e personaggio scontornato automatico per sezione.
 - **Illustrazioni**: slot facoltativi definiti in `src/lib/art.ts`, caricati con `useArt()` (se il file manca resta la grafica vettoriale). Prompt e procedura in `docs/MIDJOURNEY.md`, preparazione file con `npm run art`.
+
+## Linguaggio "editoriale gaming" (v3)
+
+Ispirato a landing sportive/gaming (Nike, Valorant, Project Mugen): composizioni a strati, geometrie spigolose irregolari, numerazione delle sezioni, nastri diagonali.
+
+**Componenti** (`src/components/brand/`):
+
+- `<Shards variant="hero|band|header" />`: schegge poligonali irregolari (rosso, navy, filetti d'ottone) da mettere `position:absolute` dietro al contenuto. Il genitore deve avere `position: relative; isolation: isolate`.
+- `<TapeStrip text|items tone="mustard|red|ink" angle moving reverse label />`: nastro "da cantiere" diagonale con testo ripetuto; `items` accetta link (es. risultati). Scorre in loop se `moving`.
+- `<SectionTitle index="01" title micro on="dark|light" align="left|right" action />`: titolo di sezione con numero gigante a contorno, micro-etichetta tecnica (`S01 // …`) e azione a destra.
+- `<Hotspot x y side length rise>…</Hotspot>`: punto pulsante con linea tratteggiata e cartellino smussato, posizionato in % su un contenitore relativo.
+- `<PageHeader>` ora ha sagoma irregolare, schegge, titolo fantasma, numero di sezione automatico (01 Teams … 07 Seasons) e nastro sul bordo.
+
+**Utility globali**:
+
+- `.bleed`: sezione a tutta larghezza dentro `.container` (espone `--gutter` per allineare il contenuto a 1240px).
+- `.ghost-text` (+ `.on-light`): parola gigante a contorno sullo sfondo, `position:absolute`.
+- `.chamfer` (`--cut`): angoli tagliati a 45°. `.offset-frame`: cornice sottile sfalsata dietro all'elemento (mettere `.chamfer` su un figlio, non sullo stesso elemento).
+- `.page-rail`: binario decorativo fisso a sinistra (solo ≥1500px), già nel layout.
+
+**Regole di impaginazione**:
+
+- Alternare fasce scure e chiare (pergamena `#f3ecdf`) con bordi tagliati via `clip-path` a poligono irregolare, non dritti.
+- Ogni sezione principale di una pagina ha un `SectionTitle` numerato; i personaggi/illustrazioni possono sfondare il bordo della fascia.
+- Micro-etichette in `--font-data` 80% maiuscolo spaziato (`letter-spacing: .2em`) per dare il tono "tecnico".
+- Contenere sempre gli elementi decorativi che sforano (`overflow: hidden` sulla sezione) per non creare scroll orizzontale su mobile; se un'illustrazione deve uscire dall'alto non usare `overflow-x: clip` sullo stesso contenitore.

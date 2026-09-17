@@ -163,6 +163,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {children}
             </main>
             <SiteFooter />
+            <div className="page-rail" aria-hidden="true"><i /><i /><i /><i /><span>BBL // New Season</span></div>
           </SeasonProvider>
         </AuthProvider>
       </LanguageProvider>

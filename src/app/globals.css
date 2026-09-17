@@ -607,6 +607,119 @@ label {
   filter: drop-shadow(2px 3px 0 rgba(20, 8, 4, 0.55));
 }
 
+/* Sezione a tutta larghezza dentro .container */
+.bleed {
+  --gutter: max(1.5rem, calc(50cqw - 620px));
+  margin-inline: calc(50% - 50cqw);
+  padding-inline: var(--gutter);
+}
+
+/* Testo fantasma gigante sullo sfondo delle sezioni */
+.ghost-text {
+  position: absolute;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(6rem, 18cqw, 17rem);
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.14);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ghost-text.on-light {
+  -webkit-text-stroke-color: rgba(122, 26, 28, 0.12);
+}
+
+/* Angoli smussati (tagli a 45°) e cornice sfalsata */
+.chamfer {
+  --cut: 18px;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+
+.offset-frame {
+  position: relative;
+}
+
+.offset-frame::before {
+  content: '';
+  position: absolute;
+  inset: 8px -8px -8px 8px;
+  z-index: -1;
+  border: 1px solid rgba(234, 178, 42, 0.55);
+  pointer-events: none;
+}
+
+/* Binario decorativo sul margine sinistro (solo schermi larghi) */
+.page-rail {
+  display: none;
+}
+
+@media (min-width: 1500px) {
+  .page-rail {
+    position: fixed;
+    top: 30vh;
+    left: 22px;
+    bottom: 8vh;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 14px;
+    pointer-events: none;
+  }
+
+  .page-rail::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(234, 178, 42, 0.4) 15%, rgba(234, 178, 42, 0.4) 85%, transparent);
+  }
+
+  .page-rail i {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    background: var(--bb-slate-500);
+  }
+
+  .page-rail i:nth-child(1),
+  .page-rail i:nth-child(4) {
+    background: var(--bb-red);
+  }
+
+  .page-rail i:nth-child(3) {
+    width: 4px;
+    height: 22px;
+    background: var(--bb-mustard);
+  }
+
+  .page-rail span {
+    position: relative;
+    margin-top: auto;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--font-data);
+    font-stretch: 80%;
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(243, 216, 151, 0.55);
+    background: var(--bb-slate-900);
+    padding: 8px 0;
+  }
+}
+
 /* Ingresso morbido dei blocchi di pagina */
 @keyframes bb-rise {
   from {

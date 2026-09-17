@@ -1,13 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Calendar, Trophy, ShieldAlert, Star } from 'lucide-react';
+import { Users, Calendar, Trophy, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import { ART } from '@/lib/art';
 import { useArt } from '@/lib/useArt';
 import Emblem from '@/components/brand/Emblem';
+import Shards from '@/components/brand/Shards';
+import TapeStrip from '@/components/brand/TapeStrip';
+import SectionTitle from '@/components/brand/SectionTitle';
+import Hotspot from '@/components/brand/Hotspot';
 import styles from './Home.module.css';
 
 type Standing = {
@@ -16,14 +20,20 @@ type Standing = {
     logo_url: string | null;
     primary_color: string | null;
     points: number;
+    played?: number;
 };
 
 type Scorer = { id: string; name: string; team_name: string; primary_color: string | null; total_td: number };
 
 type Result = {
     id: string;
+    round: number;
+    match_type?: string;
+    match_date?: string | null;
     home_name: string;
     away_name: string;
+    home_logo: string | null;
+    away_logo: string | null;
     home_score: number;
     away_score: number;
     home_color: string | null;
@@ -34,15 +44,12 @@ type Result = {
 function TeamBadge({ logo, color, name, size = 56 }: { logo: string | null; color: string | null; name: string; size?: number }) {
     return (
         <span className={styles.teamBadge} style={{ ['--team' as string]: color || 'var(--bb-slate-500)', width: size, height: size }}>
-            {logo ? (
-                 
-                <img src={logo} alt={name} />
-            ) : (
-                <ShieldAlert size={size * 0.5} />
-            )}
+            {logo ? <img src={logo} alt={name} /> : <ShieldAlert size={size * 0.5} />}
         </span>
     );
 }
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function Home() {
     const { t } = useLanguage();
@@ -79,197 +86,257 @@ export default function Home() {
             .then(res => res.json())
             .then((data: Result[]) => {
                 if (cancelled || !Array.isArray(data)) return;
-                setResults(data.filter(m => m.is_played).slice(-10).reverse());
+                setResults(data.filter(m => m.is_played).reverse());
             })
             .catch(console.error);
         return () => { cancelled = true; };
     }, [seasonQuery, seasonsLoading]);
 
-    const headlines = [
-        { value: stats.teams, label: t.home.registeredTeams },
-        { value: stats.matches, label: t.home.matchesPlayed },
-        { value: stats.casualties, label: t.home.totalCasualties, blood: true },
-    ];
+    const clean = (label: string) => label.replace(/:\s*$/, '');
+    const seasonName = selectedSeason?.name ?? 'New Season';
+    const seasonCode = `S${pad(selectedSeason?.number ?? 1)}`;
 
     const podium = standings.slice(0, 3);
-    // Ordine visivo del podio: 2° - 1° - 3°
     const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean);
+    const chasingPack = standings.slice(3, 8);
     const star = scorers[0];
+    const latest = results.slice(0, 3);
 
     return (
-        <div className={styles.dashboard}>
-            {/* COPERTINA A TUTTA LARGHEZZA */}
-            <section
-                className={`${styles.hero} ${hasStadium ? styles.heroPhoto : ''}`}
-                style={hasStadium ? { ['--stadium' as string]: `url(${ART.stadium})` } : undefined}
-            >
-                <div className={styles.floodlights} aria-hidden="true">
-                    <span className={styles.beamLeft} />
-                    <span className={styles.beamRight} />
-                </div>
+        <div className={styles.home}>
+            {/* ============ COPERTINA ============ */}
+            <section className={`bleed ${styles.hero}`}>
+                <div
+                    className={`${styles.heroBg} ${hasStadium ? styles.heroBgPhoto : ''}`}
+                    style={hasStadium ? { ['--stadium' as string]: `url(${ART.stadium})` } : undefined}
+                    aria-hidden="true"
+                />
+                <Shards variant="hero" className={styles.heroShards} />
 
-                <div className={styles.heroInner}>
-                    <div className={styles.heroCopy}>
-                        <div className={styles.heroKicker}>
-                            <span className="tag">{selectedSeason?.name ?? 'New Season'}</span>
-                            <span className={styles.heroKickerLine}>The Game of Fantasy Football</span>
-                        </div>
+                <div className={styles.heroGiant} aria-hidden="true">Blood Bowl</div>
 
-                        <div className={styles.banner}>
-                            <h1 className={styles.heroTitle}>{t.home.title}</h1>
-                        </div>
+                <div className={styles.heroStage}>
+                    {hasHeroPlayer ? (
+                        <img src={ART.heroPlayer} alt="" className={styles.heroPlayer} />
+                    ) : (
+                        <Emblem size={380} className={styles.heroEmblem} />
+                    )}
 
-                        <p className={styles.heroSubtitle}>{t.home.subtitle}</p>
-
-                        <div className={styles.heroActions}>
-                            <Link href="/teams" className="btn btn-gold">
-                                <Users size={20} /> {t.home.manageTeamsBtn}
-                            </Link>
-                            <Link href="/standings" className="btn btn-slate">
-                                <Trophy size={20} /> {t.nav.standings}
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className={styles.heroVisual} aria-hidden="true">
-                        {hasHeroPlayer ? (
-                             
-                            <img src={ART.heroPlayer} alt="" className={styles.heroPlayer} />
-                        ) : (
-                            <div className={styles.emblemStage}>
-                                <span className={styles.emblemGlow} />
-                                <Emblem size={340} className={styles.heroEmblem} />
-                            </div>
-                        )}
+                    <div className={styles.hotspots}>
+                        <Hotspot x={38} y={30} side="left" length={110} rise={-50}>
+                            <span className={styles.hsValue}>{stats.teams}</span>
+                            <span className={styles.hsLabel}>{clean(t.home.registeredTeams)}</span>
+                        </Hotspot>
+                        <Hotspot x={70} y={50} side="right" length={120} rise={-60}>
+                            <span className={styles.hsValue}>{stats.matches}</span>
+                            <span className={styles.hsLabel}>{clean(t.home.matchesPlayed)}</span>
+                        </Hotspot>
+                        <Hotspot x={52} y={84} side="right" length={150} rise={-24}>
+                            <span className={`${styles.hsValue} ${styles.hsBlood}`}>{stats.casualties}</span>
+                            <span className={styles.hsLabel}>{clean(t.home.totalCasualties)}</span>
+                        </Hotspot>
                     </div>
                 </div>
 
-                {/* Tabellone con i numeri della stagione */}
-                <ul className={styles.scoreboard}>
-                    {headlines.map(item => (
-                        <li key={item.label} className={`plate ${styles.scorePlate}`}>
-                            <span className={`${styles.scoreValue} ${item.blood ? styles.scoreBlood : ''}`}>{item.value}</span>
-                            <span className={styles.scoreLabel}>{item.label.replace(/:\s*$/, '')}</span>
-                        </li>
-                    ))}
-                </ul>
+                <div className={styles.heroCopy}>
+                    <div className={styles.heroMicro}>
+                        <span className="tag">{seasonName}</span>
+                        <span>{`BBL // ${seasonCode} // The Game of Fantasy Football`}</span>
+                    </div>
+                    <h1 className={styles.heroTitle}>{t.home.title}</h1>
+                    <p className={styles.heroSubtitle}>{t.home.subtitle}</p>
+                    <div className={styles.heroActions}>
+                        <Link href="/teams" className="btn btn-gold">
+                            <Users size={20} /> {t.home.manageTeamsBtn}
+                        </Link>
+                        <Link href="/standings" className="btn btn-slate">
+                            <Trophy size={20} /> {t.nav.standings}
+                        </Link>
+                    </div>
+                </div>
             </section>
 
-            {/* TICKER DEGLI ULTIMI RISULTATI */}
-            <section className={styles.ticker} aria-label={t.home.latestResults}>
-                <span className={styles.tickerLabel}>{t.home.latestResults}</span>
-                <div className={styles.tickerViewport}>
-                    {results.length === 0 ? (
-                        <span className={styles.tickerEmpty}>{t.home.noResults}</span>
+            {/* ============ NASTRI INCROCIATI ============ */}
+            <div className={`bleed ${styles.tapes}`}>
+                <TapeStrip tone="red" angle={2.5} moving reverse text={`Blood Bowl League ✦ ${seasonName}`} className={styles.tapeBack} />
+                <TapeStrip
+                    tone="mustard"
+                    angle={-2}
+                    label={t.home.latestResults}
+                    className={styles.tapeFront}
+                    items={
+                        results.length > 0
+                            ? results.slice(0, 10).map(m => (
+                                <Link key={m.id} href={`/schedule/${m.id}`} className={styles.tapeResult}>
+                                    {m.home_name} <b>{m.home_score}–{m.away_score}</b> {m.away_name}
+                                </Link>
+                            ))
+                            : [t.home.latestResults, t.home.noResults]
+                    }
+                />
+            </div>
+
+            {/* ============ 01 · CLASSIFICA ============ */}
+            <section className={`bleed ${styles.tableSection}`}>
+                <span className={`ghost-text on-light ${styles.ghostTable}`} aria-hidden="true">Champions</span>
+                <div className={styles.inner}>
+                    <SectionTitle
+                        index="01"
+                        on="light"
+                        micro={`${seasonCode} // ${seasonName}`}
+                        title={t.home.topOfTable}
+                        action={<Link href="/standings" className={styles.moreLink}>{t.nav.standings} <ArrowRight size={18} /></Link>}
+                    />
+
+                    {podium.length === 0 ? (
+                        <p className={styles.emptyNote}>{t.home.noResults}</p>
                     ) : (
-                        <div className={styles.tickerTrack}>
-                            {[0, 1].map(copy => (
-                                <ul key={copy} className={styles.tickerList} aria-hidden={copy === 1}>
-                                    {results.map(match => (
-                                        <li key={`${copy}-${match.id}`}>
-                                            <Link href={`/schedule/${match.id}`} className={styles.tickerItem} tabIndex={copy === 1 ? -1 : undefined}>
-                                                <span className={styles.tickerDot} style={{ background: match.home_color || 'var(--bb-slate-500)' }} />
-                                                <span>{match.home_name}</span>
-                                                <strong className={styles.tickerScore}>{match.home_score}–{match.away_score}</strong>
-                                                <span>{match.away_name}</span>
-                                                <span className={styles.tickerDot} style={{ background: match.away_color || 'var(--bb-slate-500)' }} />
+                        <div className={styles.tableGrid}>
+                            <ol className={styles.podium}>
+                                {podiumOrder.map(team => {
+                                    const place = standings.indexOf(team) + 1;
+                                    return (
+                                        <li key={team.id} className={`${styles.podiumStep} ${styles[`place${place}`]}`}>
+                                            <Link href={`/teams/${team.id}`} className={styles.podiumTeam}>
+                                                {place === 1 && hasTrophy && <img src={ART.trophy} alt="" className={styles.trophyArt} />}
+                                                <TeamBadge logo={team.logo_url} color={team.primary_color} name={team.name} size={place === 1 ? 92 : 70} />
+                                                <span className={styles.podiumName}>{team.name}</span>
+                                                <span className={styles.podiumPts}>{team.points} {t.home.points}</span>
+                                            </Link>
+                                            <span className={styles.podiumBlock}>
+                                                <span className={styles.podiumPlace}>{place}</span>
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ol>
+
+                            {chasingPack.length > 0 && (
+                                <ol className={styles.pack} start={4}>
+                                    {chasingPack.map((team, i) => (
+                                        <li key={team.id}>
+                                            <Link href={`/teams/${team.id}`} className={`chamfer ${styles.packRow}`}>
+                                                <span className={styles.packPos}>{pad(i + 4)}</span>
+                                                <TeamBadge logo={team.logo_url} color={team.primary_color} name={team.name} size={40} />
+                                                <span className={styles.packName}>{team.name}</span>
+                                                <span className={styles.packPts}>{team.points}<small>{t.home.points}</small></span>
                                             </Link>
                                         </li>
                                     ))}
-                                </ul>
-                            ))}
+                                </ol>
+                            )}
                         </div>
                     )}
                 </div>
             </section>
 
-            {/* PODIO */}
-            <section className={`panel-blood ${styles.podiumPanel}`}>
-                <div className={styles.sectionHead}>
-                    <h2 className="title-spike">{t.home.topOfTable}</h2>
-                    <Link href="/standings" className={styles.sectionLink}>{t.nav.standings} →</Link>
-                </div>
+            {/* ============ 02 · STAR PLAYER ============ */}
+            <section className={`bleed ${styles.starSection}`}>
+                <Shards variant="band" className={styles.starShards} />
+                <span className={`ghost-text ${styles.ghostStar}`} aria-hidden="true">MVP</span>
 
-                {podium.length === 0 ? (
-                    <p className={styles.emptyNote}>{t.home.noResults}</p>
-                ) : (
-                    <ol className={styles.podium}>
-                        {podiumOrder.map(team => {
-                            const place = standings.indexOf(team) + 1;
-                            return (
-                                <li key={team.id} className={`${styles.podiumStep} ${styles[`place${place}`]}`}>
-                                    <Link href={`/teams/${team.id}`} className={styles.podiumTeam}>
-                                        {place === 1 && hasTrophy && (
-                                             
-                                            <img src={ART.trophy} alt="" className={styles.trophyArt} />
-                                        )}
-                                        <TeamBadge logo={team.logo_url} color={team.primary_color} name={team.name} size={place === 1 ? 88 : 68} />
-                                        <span className={styles.podiumName}>{team.name}</span>
-                                        <span className={styles.podiumPts}>{team.points} {t.home.points}</span>
-                                    </Link>
-                                    <span className={styles.podiumBlock}>
-                                        <span className={styles.podiumPlace}>{place}</span>
+                <div className={`${styles.inner} ${styles.starInner}`}>
+                    <div className={styles.starVisual} aria-hidden="true">
+                        {hasStarArt ? <img src={ART.starPlayer} alt="" className={styles.starArt} /> : <Emblem size={300} />}
+                    </div>
+
+                    <div className={styles.starContent}>
+                        <SectionTitle index="02" micro="Top scorer // Touchdowns" title={t.home.starPlayer} align="right" />
+
+                        {star ? (
+                            <>
+                                <div className={styles.starCard}>
+                                    <span className={styles.starTeam} style={{ ['--team' as string]: star.primary_color || 'var(--bb-mustard)' }}>
+                                        {star.team_name}
                                     </span>
-                                </li>
-                            );
-                        })}
-                    </ol>
-                )}
-            </section>
-
-            {/* STAR PLAYER */}
-            <section className={`panel-slate ${styles.starPanel}`}>
-                <div className={styles.sectionHead}>
-                    <h2 className="title-spike">{t.home.starPlayer}</h2>
-                    <Star size={30} className={styles.starIcon} aria-hidden="true" />
-                </div>
-
-                {star ? (
-                    <div className={styles.starBody}>
-                        {hasStarArt && (
-                             
-                            <img src={ART.starPlayer} alt="" className={styles.starArt} />
-                        )}
-                        <div className={styles.starInfo}>
-                            <span className={styles.starTeam} style={{ ['--team' as string]: star.primary_color || 'var(--bb-mustard)' }}>
-                                {star.team_name}
-                            </span>
-                            <span className={styles.starName}>{star.name}</span>
-                            <span className={`plate ${styles.starStat}`}>
-                                <strong>{star.total_td}</strong>
-                                <span>{t.home.touchdowns}</span>
-                            </span>
-                        </div>
-                        {scorers.length > 1 && (
-                            <ol className={styles.chasers} start={2}>
-                                {scorers.slice(1, 4).map(p => (
-                                    <li key={p.id}>
-                                        <span className={styles.chaserName}>{p.name}</span>
-                                        <span className={styles.chaserTd}>{p.total_td}</span>
-                                    </li>
-                                ))}
-                            </ol>
+                                    <span className={styles.starName}>{star.name}</span>
+                                    <span className={`plate ${styles.starStat}`}>
+                                        <strong>{star.total_td}</strong>
+                                        <span>{t.home.touchdowns}</span>
+                                    </span>
+                                </div>
+                                {scorers.length > 1 && (
+                                    <ol className={styles.chasers}>
+                                        {scorers.slice(1, 4).map((p, i) => (
+                                            <li key={p.id} className="chamfer">
+                                                <span className={styles.chaserPos}>{pad(i + 2)}</span>
+                                                <span className={styles.chaserName}>{p.name}</span>
+                                                <span className={styles.chaserTd}>{p.total_td}</span>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                )}
+                            </>
+                        ) : (
+                            <p className={styles.emptyNote}>{t.home.noResults}</p>
                         )}
                     </div>
-                ) : (
+                </div>
+            </section>
+
+            {/* ============ 03 · ULTIME PARTITE ============ */}
+            <section className={styles.resultsSection}>
+                <span className={`ghost-text ${styles.ghostResults}`} aria-hidden="true">Results</span>
+                <SectionTitle
+                    index="03"
+                    micro={`${seasonCode} // Match reports`}
+                    title={t.home.latestResults}
+                    action={<Link href="/schedule" className={`${styles.moreLink} ${styles.moreLinkDark}`}>{t.nav.schedule} <ArrowRight size={18} /></Link>}
+                />
+
+                {latest.length === 0 ? (
                     <p className={styles.emptyNote}>{t.home.noResults}</p>
+                ) : (
+                    <div className={styles.resultGrid}>
+                        {latest.map(m => (
+                            <div key={m.id} className="offset-frame">
+                                <Link href={`/schedule/${m.id}`} className={`chamfer ${styles.resultCard}`}>
+                                    <span className={styles.resultMeta}>
+                                        <span className={styles.resultRound}>R{pad(m.round)}</span>
+                                        <span>{m.match_type}</span>
+                                    </span>
+                                    <span className={styles.resultBody}>
+                                        <span className={styles.resultTeam}>
+                                            <TeamBadge logo={m.home_logo} color={m.home_color} name={m.home_name} size={62} />
+                                            <span>{m.home_name}</span>
+                                        </span>
+                                        <span className={styles.resultScore}>
+                                            {m.home_score}<i>–</i>{m.away_score}
+                                        </span>
+                                        <span className={styles.resultTeam}>
+                                            <TeamBadge logo={m.away_logo} color={m.away_color} name={m.away_name} size={62} />
+                                            <span>{m.away_name}</span>
+                                        </span>
+                                    </span>
+                                    <span className={styles.resultFoot}>
+                                        Match report <ArrowRight size={16} />
+                                    </span>
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </section>
 
-            {/* AZIONI RAPIDE */}
-            <section className={`card ${styles.actionsCard}`}>
-                <h2 className="title-slab">{t.home.quickActions}</h2>
-                <div className={styles.actionGrid}>
-                    {isAdmin && isViewingActive && (
-                        <Link href="/teams/new" className="btn btn-primary">
-                            <Users size={20} /> {t.home.draftNewTeam}
+            {/* ============ INVITO FINALE ============ */}
+            <section className={`bleed ${styles.cta}`}>
+                <div className={styles.ctaInner}>
+                    <div className={styles.ctaLeft}>
+                        <span className={styles.ctaArrow} aria-hidden="true" />
+                        <h2 className={styles.ctaTitle}>{t.home.quickActions}</h2>
+                    </div>
+                    <div className={styles.ctaRight}>
+                        {isAdmin && isViewingActive && (
+                            <Link href="/teams/new" className="btn btn-primary">
+                                <Users size={20} /> {t.home.draftNewTeam}
+                            </Link>
+                        )}
+                        <Link href="/schedule" className="btn btn-gold">
+                            <Calendar size={20} /> {t.home.generateSchedule}
                         </Link>
-                    )}
-                    <Link href="/schedule" className="btn btn-navy">
-                        <Calendar size={20} /> {t.home.generateSchedule}
-                    </Link>
+                        <span className={`${styles.ctaArrow} ${styles.ctaArrowRight}`} aria-hidden="true" />
+                    </div>
                 </div>
-                <div className={`chain-rule ${styles.chain}`} aria-hidden="true" />
             </section>
         </div>
     );
