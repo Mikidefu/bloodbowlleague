@@ -97,6 +97,9 @@
 }
 
 .gold { color: var(--color-gold); }
+
+/* Stagione annullata: visibile ma esclusa dai totali */
+.table tbody tr.notCounted { opacity: 0.55; background: repeating-linear-gradient(-45deg, #1a1a1a, #1a1a1a 10px, #221616 10px, #221616 20px); }
 .positive { color: #4ade80; }
 .negative { color: var(--color-blood-bright); }
 

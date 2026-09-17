@@ -7,11 +7,22 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete, type CoachChoice } from '@/components/CoachPicker';
-import type { Coach, SeasonSummary, TeamOverview } from '@/lib/types';
+import type { Coach, SeasonStatus, SeasonSummary, TeamOverview } from '@/lib/types';
 import headerStyles from '../coaches/Coaches.module.css';
 import styles from './Seasons.module.css';
 
 type WizardRow = { teamId: string; included: boolean; coach: CoachChoice };
+type PreviousAction = 'pause' | 'cancel' | 'delete';
+
+const STATUS_CLASS: Record<SeasonStatus, string> = {
+  active: styles.statusActive,
+  completed: styles.statusCompleted,
+  paused: styles.statusPaused,
+  cancelled: styles.statusCancelled,
+};
+
+const fill = (text: string, values: Record<string, string | number>) =>
+  Object.entries(values).reduce((acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)), text);
 
 const formatDate = (value: string | null) => (value ? new Date(value.replace(' ', 'T') + 'Z').toLocaleDateString() : '—');
 
@@ -29,6 +40,9 @@ export default function SeasonsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  // Stagione in corso senza campione: finestra per scegliere se metterla in pausa, annullarla o eliminarla
+  const [decision, setDecision] = useState<{ name: string; pending: number } | null>(null);
+  const [busySeasonId, setBusySeasonId] = useState<string | null>(null);
 
   // I contatori (partite giocate, campione) cambiano spesso: si ricaricano all'apertura della pagina
   useEffect(() => { refreshSeasons(); }, [refreshSeasons]);
@@ -63,26 +77,36 @@ export default function SeasonsPage() {
       return;
     }
     const name = seasonName.trim() || `Season ${nextNumber}`;
-    if (!confirm(t.seasons.confirmStart.replace('{name}', name).replace('{count}', String(included.length)))) return;
+    if (!confirm(fill(t.seasons.confirmStart, { name, count: included.length }))) return;
+    await submitNewSeason({});
+  };
 
+  const submitNewSeason = async (options: { force?: boolean; previous_action?: PreviousAction }) => {
+    const included = rows.filter(r => r.included);
     const payload = {
-      name,
+      name: seasonName.trim() || `Season ${nextNumber}`,
       teams: included.map(r => ({ team_id: r.teamId, ...coachChoicePayload(r.coach) })),
+      ...options,
     };
-    const post = (force: boolean) => fetch('/api/seasons', {
+    const post = (body: typeof payload) => fetch('/api/seasons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, force }),
+      body: JSON.stringify(body),
     });
 
     setSubmitting(true);
     try {
-      let res = await post(false);
+      let res = await post(payload);
       if (res.status === 409) {
-        // Stagione in corso con partite ancora da giocare: serve una conferma esplicita
-        const data = await res.json().catch(() => null);
-        if (!data?.incomplete || !confirm(`${data.error}\n\n${t.seasons.confirmIncomplete}`)) return;
-        res = await post(true);
+        const conflict = await res.json().catch(() => null);
+        if (conflict?.needs_decision) {
+          // Nessun campione: decide l'utente nella finestra dedicata
+          setDecision({ name: conflict.season_name, pending: conflict.pending_matches });
+          return;
+        }
+        // Campione già proclamato ma partite ancora da giocare: basta una conferma
+        if (!conflict?.incomplete || !confirm(`${conflict.error}\n\n${t.seasons.confirmIncomplete}`)) return;
+        res = await post({ ...payload, force: true });
       }
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -91,6 +115,7 @@ export default function SeasonsPage() {
       }
       await refreshSeasons();
       setSelectedSeasonId(data.id);
+      setDecision(null);
       setShowWizard(false);
       router.push('/teams');
     } catch {
@@ -115,6 +140,67 @@ export default function SeasonsPage() {
     refreshSeasons();
   };
 
+  const chooseDecision = async (action: PreviousAction) => {
+    if (!decision) return;
+    if (action === 'delete' && !confirm(fill(t.seasons.confirmDelete, { name: decision.name }))) return;
+    await submitNewSeason({ previous_action: action });
+  };
+
+  // Azioni sulla singola stagione (pausa, annullamento, ripresa, eliminazione)
+  const changeStatus = async (season: SeasonSummary, action: 'pause' | 'cancel' | 'resume') => {
+    const messages = { pause: t.seasons.confirmPause, cancel: t.seasons.confirmCancel, resume: t.seasons.confirmResume };
+    if (!confirm(fill(messages[action], { name: season.name }))) return;
+
+    const send = (pauseCurrent: boolean) => fetch(`/api/seasons/${season.id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, pause_current: pauseCurrent }),
+    });
+
+    setBusySeasonId(season.id);
+    try {
+      let res = await send(false);
+      if (res.status === 409) {
+        const conflict = await res.json().catch(() => null);
+        // Riprendere una stagione quando un'altra è in corso: quella in corso va in pausa
+        if (!conflict?.active_exists) { alert(conflict?.error || 'Operation failed'); return; }
+        if (!confirm(fill(t.seasons.confirmResumePauseCurrent, { name: season.name, current: conflict.active_name }))) return;
+        res = await send(true);
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Operation failed');
+        return;
+      }
+      await refreshSeasons();
+    } finally {
+      setBusySeasonId(null);
+    }
+  };
+
+  const deleteSeason = async (season: SeasonSummary) => {
+    if (!confirm(fill(t.seasons.confirmDelete, { name: season.name }))) return;
+    setBusySeasonId(season.id);
+    try {
+      const res = await fetch(`/api/seasons/${season.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Failed to delete season');
+        return;
+      }
+      await refreshSeasons();
+    } finally {
+      setBusySeasonId(null);
+    }
+  };
+
+  const statusLabel: Record<SeasonStatus, string> = {
+    active: t.seasons.active,
+    completed: t.seasons.completed,
+    paused: t.seasons.paused,
+    cancelled: t.seasons.cancelled,
+  };
+
   const viewSeason = (season: SeasonSummary) => {
     setSelectedSeasonId(season.id);
     router.push('/standings');
@@ -130,6 +216,32 @@ export default function SeasonsPage() {
               <button className="btn btn-primary" onClick={openWizard}><Plus size={22} /> {t.seasons.newSeason}</button>
           )}
         </div>
+
+        {decision && (
+            <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="decision-title">
+              <div className={styles.modal}>
+                <h2 id="decision-title" className={styles.wizardTitle}>{t.seasons.decisionTitle}</h2>
+                <p className={styles.wizardIntro}>{fill(t.seasons.decisionText, { name: decision.name, pending: decision.pending })}</p>
+                <div className={styles.decisionGrid}>
+                  <button type="button" className={styles.decisionBtn} onClick={() => chooseDecision('pause')} disabled={submitting}>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionPause}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionPauseHint}</span>
+                  </button>
+                  <button type="button" className={styles.decisionBtn} onClick={() => chooseDecision('cancel')} disabled={submitting}>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionCancel}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionCancelHint}</span>
+                  </button>
+                  <button type="button" className={`${styles.decisionBtn} ${styles.decisionDanger}`} onClick={() => chooseDecision('delete')} disabled={submitting}>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionDelete}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionDeleteHint}</span>
+                  </button>
+                </div>
+                <div className={styles.wizardActions}>
+                  <button type="button" className="btn" onClick={() => setDecision(null)} disabled={submitting}>{t.seasons.decisionBack}</button>
+                </div>
+              </div>
+            </div>
+        )}
 
         {showWizard && (
             <section className={styles.wizard} aria-labelledby="wizard-title">
@@ -208,7 +320,7 @@ export default function SeasonsPage() {
           {seasons.map(season => {
             const isActive = season.status === 'active';
             return (
-                <article key={season.id} className={`${styles.seasonCard} ${isActive ? styles.seasonCardActive : ''}`}>
+                <article key={season.id} className={`${styles.seasonCard} ${isActive ? styles.seasonCardActive : ''} ${season.status === 'cancelled' ? styles.seasonCardCancelled : ''}`}>
                   <div className={styles.cardTop}>
                     <div>
                       <div className={styles.seasonNumber}>#{season.number}</div>
@@ -222,8 +334,8 @@ export default function SeasonsPage() {
                           <h2 className={styles.seasonName}>{season.name}</h2>
                       )}
                     </div>
-                    <span className={`${styles.status} ${isActive ? styles.statusActive : styles.statusCompleted}`}>
-                      {isActive ? t.seasons.active : t.seasons.completed}
+                    <span className={`${styles.status} ${STATUS_CLASS[season.status]}`}>
+                      {statusLabel[season.status]}
                     </span>
                   </div>
 
@@ -251,6 +363,26 @@ export default function SeasonsPage() {
                     {isAdmin && renamingId !== season.id && (
                         <button className={`btn ${styles.smallBtn}`} onClick={() => { setRenamingId(season.id); setRenameValue(season.name); }}>
                           {t.seasons.rename}
+                        </button>
+                    )}
+                    {isAdmin && season.status === 'active' && (
+                        <button className={`btn ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'pause')}>
+                          {t.seasons.pause}
+                        </button>
+                    )}
+                    {isAdmin && (season.status === 'paused' || season.status === 'cancelled') && (
+                        <button className={`btn ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'resume')}>
+                          {t.seasons.resume}
+                        </button>
+                    )}
+                    {isAdmin && season.status !== 'cancelled' && (
+                        <button className={`btn ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'cancel')}>
+                          {t.seasons.cancelSeason}
+                        </button>
+                    )}
+                    {isAdmin && season.status !== 'completed' && (
+                        <button className={`btn ${styles.smallBtn} ${styles.dangerBtn}`} disabled={busySeasonId === season.id} onClick={() => deleteSeason(season)}>
+                          {t.seasons.deleteSeason}
                         </button>
                     )}
                   </div>

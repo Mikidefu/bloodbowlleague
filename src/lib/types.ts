@@ -56,7 +56,7 @@ export type TeamSeasonEntry = {
   season_id: string;
   season_number: number;
   season_name: string;
-  season_status: 'active' | 'completed';
+  season_status: SeasonStatus;
   coach_id: string | null;
   coach_name: string | null;
 };
@@ -107,7 +107,7 @@ export type PlayerStatsRow = {
 // GET /api/schedule/[id]
 export type MatchDetails = Match & {
   season_name: string | null;
-  season_status: 'active' | 'completed' | null;
+  season_status: SeasonStatus | null;
   homePlayers: MatchPlayer[];
   awayPlayers: MatchPlayer[];
   stats: PlayerStatsRow[];
@@ -126,11 +126,13 @@ export type PlayerLeader = {
 };
 
 // GET /api/seasons
+export type SeasonStatus = 'active' | 'completed' | 'paused' | 'cancelled';
+
 export type SeasonSummary = {
   id: string;
   number: number;
   name: string;
-  status: 'active' | 'completed';
+  status: SeasonStatus;
   started_at: string | null;
   ended_at: string | null;
   teams_count: number;

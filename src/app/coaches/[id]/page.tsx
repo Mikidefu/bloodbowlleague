@@ -100,6 +100,7 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
         </div>
 
         <h2 className={styles.sectionTitle}>{t.coaches.bySeason}</h2>
+        {career.seasons.some(s => !s.counts_in_career) && <p className={styles.subtitle} style={{ marginBottom: '1rem' }}>{t.coaches.notCounted}</p>}
         <div className={styles.board}>
           {career.seasons.length === 0 ? (
               <p className={styles.empty}>—</p>
@@ -120,13 +121,13 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
                   </thead>
                   <tbody>
                   {career.seasons.map(s => (
-                      <tr key={`${s.season_id}-${s.team_id}`}>
+                      <tr key={`${s.season_id}-${s.team_id}`} className={s.counts_in_career ? '' : styles.notCounted}>
                         <td className={styles.left}>
                           {/* Apre classifica e calendario di quella stagione */}
                           <Link href="/standings" onClick={() => setSelectedSeasonId(s.season_id)} className={styles.nameLink} style={{ fontSize: '1.1rem' }}>
                             {s.season_name}
                           </Link>
-                          <span className={styles.muted}>{s.season_status === 'active' ? t.seasons.active : t.seasons.completed}</span>
+                          <span className={styles.muted}>{({ active: t.seasons.active, completed: t.seasons.completed, paused: t.seasons.paused, cancelled: t.seasons.cancelled })[s.season_status]}</span>
                         </td>
                         <td className={styles.left}>
                           <Link href={`/teams/${s.team_id}`} className={styles.teamCell} style={{ color: '#ddd' }}>

@@ -2,10 +2,26 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
-import { getActiveSeason } from '@/lib/seasons';
+import { closeSeasonStatement, deleteSeasonStatements, getActiveSeason, toSeasonStatus } from '@/lib/seasons';
 import { computePlayoffFinishes } from '@/lib/standings';
 
-// Elenco stagioni con partecipanti, avanzamento del calendario e campione (se la finale è stata giocata)
+// Campione di una stagione (se la finale è stata giocata), con il suo allenatore
+async function findChampion(seasonId: string) {
+  const finishes = await computePlayoffFinishes(seasonId);
+  const championId = [...finishes.entries()].find(([, finish]) => finish === 'champion')?.[0];
+  if (!championId) return null;
+  const { rows: [c] } = await db.execute({
+    sql: `SELECT t.id AS team_id, t.name AS team_name, co.name AS coach_name
+          FROM teams t
+          LEFT JOIN season_teams st ON st.team_id = t.id AND st.season_id = ?
+          LEFT JOIN coaches co ON co.id = st.coach_id
+          WHERE t.id = ?`,
+    args: [seasonId, championId],
+  });
+  return c ?? null;
+}
+
+// Elenco stagioni con stato, partecipanti, avanzamento del calendario e campione
 export async function GET() {
   try {
     const { rows } = await db.execute(`
@@ -17,34 +33,18 @@ export async function GET() {
       ORDER BY s.number DESC
     `);
 
-    const seasons = await Promise.all(rows.map(async s => {
-      const finishes = await computePlayoffFinishes(String(s.id));
-      const championId = [...finishes.entries()].find(([, finish]) => finish === 'champion')?.[0];
-      let champion = null;
-      if (championId) {
-        const { rows: [c] } = await db.execute({
-          sql: `SELECT t.id AS team_id, t.name AS team_name, co.name AS coach_name
-                FROM teams t
-                LEFT JOIN season_teams st ON st.team_id = t.id AND st.season_id = ?
-                LEFT JOIN coaches co ON co.id = st.coach_id
-                WHERE t.id = ?`,
-          args: [s.id, championId],
-        });
-        champion = c ?? null;
-      }
-      return {
-        id: String(s.id),
-        number: Number(s.number),
-        name: String(s.name),
-        status: String(s.status),
-        started_at: s.started_at,
-        ended_at: s.ended_at,
-        teams_count: Number(s.teams_count),
-        matches_total: Number(s.matches_total),
-        matches_played: Number(s.matches_played),
-        champion,
-      };
-    }));
+    const seasons = await Promise.all(rows.map(async s => ({
+      id: String(s.id),
+      number: Number(s.number),
+      name: String(s.name),
+      status: toSeasonStatus(s.status, s.closed_reason),
+      started_at: s.started_at,
+      ended_at: s.ended_at,
+      teams_count: Number(s.teams_count),
+      matches_total: Number(s.matches_total),
+      matches_played: Number(s.matches_played),
+      champion: await findChampion(String(s.id)),
+    })));
 
     return NextResponse.json(seasons);
   } catch (error) {
@@ -55,27 +55,45 @@ export async function GET() {
 
 type SeasonTeamInput = { team_id?: unknown; coach_id?: unknown; new_coach_name?: unknown };
 
-// Avvia una nuova stagione: chiude quella attiva e iscrive le squadre che proseguono, con il loro allenatore.
+// Cosa fare della stagione in corso quando non ha ancora un campione
+const PREVIOUS_ACTIONS = ['pause', 'cancel', 'delete'] as const;
+type PreviousAction = typeof PREVIOUS_ACTIONS[number];
+
+// Avvia una nuova stagione e iscrive le squadre che proseguono, con il loro allenatore.
+// La stagione in corso:
+//   - con un campione viene conclusa (se restano partite non giocate serve force: true);
+//   - senza campione serve una decisione esplicita in previous_action: 'pause' | 'cancel' | 'delete'.
 // Le squadre nuove si creano poi da "Draft team" e vengono iscritte automaticamente alla stagione attiva.
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const force = body.force === true;
+    const previousAction = PREVIOUS_ACTIONS.includes(body.previous_action) ? body.previous_action as PreviousAction : null;
     const teamsInput: SeasonTeamInput[] = Array.isArray(body.teams) ? body.teams : [];
 
     const active = await getActiveSeason();
+    const activeChampion = active ? await findChampion(active.id) : null;
 
-    // Stagione in corso non finita: serve una conferma esplicita
-    if (active && !force) {
+    if (active) {
       const { rows: [pending] } = await db.execute({
         sql: 'SELECT COUNT(*) AS c FROM matches WHERE season_id = ? AND is_played = 0',
         args: [active.id],
       });
-      if (Number(pending.c) > 0) {
+      const pendingMatches = Number(pending.c);
+
+      if (!activeChampion && !previousAction) {
         return NextResponse.json({
-          error: `${active.name} still has ${pending.c} match(es) to play.`,
+          error: `${active.name} has no champion yet: choose whether to pause, cancel or delete it.`,
+          needs_decision: true,
+          season_name: active.name,
+          pending_matches: pendingMatches,
+        }, { status: 409 });
+      }
+      if (activeChampion && pendingMatches > 0 && !force) {
+        return NextResponse.json({
+          error: `${active.name} still has ${pendingMatches} match(es) to play.`,
           incomplete: true,
-          pending_matches: Number(pending.c),
+          pending_matches: pendingMatches,
         }, { status: 409 });
       }
     }
@@ -98,18 +116,25 @@ export async function POST(request: Request) {
       }
     }
 
-    const { rows: [maxRow] } = await db.execute('SELECT COALESCE(MAX(number), 0) AS n FROM seasons');
+    const statements: { sql: string; args: (string | number | null)[] }[] = [];
+    const deletingActive = !!active && !activeChampion && previousAction === 'delete';
+
+    if (active) {
+      if (activeChampion) statements.push(closeSeasonStatement(active.id, 'completed'));
+      else if (previousAction === 'pause') statements.push(closeSeasonStatement(active.id, 'paused'));
+      else if (previousAction === 'cancel') statements.push(closeSeasonStatement(active.id, 'cancelled'));
+      else if (deletingActive) statements.push(...await deleteSeasonStatements(active.id));
+    }
+
+    // Numero progressivo: se la stagione in corso viene eliminata, la nuova ne riprende il numero
+    const { rows: [maxRow] } = await db.execute({
+      sql: 'SELECT COALESCE(MAX(number), 0) AS n FROM seasons WHERE id <> ?',
+      args: [deletingActive ? active!.id : ''],
+    });
     const number = Number(maxRow.n) + 1;
     const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 60) : `Season ${number}`;
     const seasonId = crypto.randomUUID();
 
-    const statements: { sql: string; args: (string | number | null)[] }[] = [];
-    if (active) {
-      statements.push({
-        sql: "UPDATE seasons SET status = 'completed', ended_at = CURRENT_TIMESTAMP WHERE id = ?",
-        args: [active.id],
-      });
-    }
     statements.push({
       sql: "INSERT INTO seasons (id, number, name, status) VALUES (?, ?, ?, 'active')",
       args: [seasonId, number, name],
@@ -137,7 +162,10 @@ export async function POST(request: Request) {
     }
 
     await db.batch(statements, 'write');
-    return NextResponse.json({ success: true, id: seasonId, number, name, previous: active?.id ?? null }, { status: 201 });
+    return NextResponse.json({
+      success: true, id: seasonId, number, name,
+      previous: active ? { id: active.id, outcome: activeChampion ? 'completed' : previousAction } : null,
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof CoachInputError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

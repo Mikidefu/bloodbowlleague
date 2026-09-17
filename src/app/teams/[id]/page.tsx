@@ -406,7 +406,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               {team.season_history.length > 0 && (
                   <span className={styles.seasonHistory}>
                     {team.season_history.map(h => (
-                        <span key={h.season_id} className={styles.historyChip} title={h.season_status === 'active' ? t.seasons.active : t.seasons.completed}>
+                        <span key={h.season_id} className={styles.historyChip} title={({ active: t.seasons.active, completed: t.seasons.completed, paused: t.seasons.paused, cancelled: t.seasons.cancelled })[h.season_status]}>
                           {h.season_name}: {h.coach_name ?? '—'}
                         </span>
                     ))}
