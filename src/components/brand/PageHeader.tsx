@@ -85,7 +85,7 @@ export default function PageHeader({ title, kicker, subtitle, icon, actions, ton
       </div>
 
       <div className={styles.tapeWrap} aria-hidden="true">
-        <TapeStrip tone="ink" angle={-2} moving={false} text={`Blood Bowl League ✦ ${title}`} />
+        <TapeStrip tone="ink" angle={-2} fit items={['Blood Bowl League', title]} />
       </div>
     </header>
   );

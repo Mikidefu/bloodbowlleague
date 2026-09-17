@@ -251,19 +251,14 @@
   flex-wrap: wrap;
 }
 
-/* Nastro che attraversa il bordo inferiore */
+/* Nastro che attraversa il bordo inferiore: largo quanto il testo */
 .tapeWrap {
   position: absolute;
   z-index: 3;
   left: -1.5rem;
-  bottom: -1.6rem;
-  width: 46%;
+  bottom: -1.5rem;
+  max-width: calc(100% - 1rem);
   pointer-events: none;
-}
-
-.tapeWrap > div {
-  width: 100%;
-  margin-left: 0;
 }
 
 @media (max-width: 900px) {
@@ -276,7 +271,7 @@
     max-width: 45%;
   }
   .withArt { padding-top: 7rem; }
-  .tapeWrap { width: 70%; }
+
 }
 
 @media (max-width: 768px) {
@@ -291,5 +286,7 @@
   .index { -webkit-text-stroke-width: 1.5px; }
   .micro { font-size: 0.68rem; letter-spacing: 0.14em; }
   .actions { width: 100%; }
-  .tapeWrap { left: 0; width: 80%; bottom: -1.2rem; }
+  .tapeWrap { left: 0.5rem; bottom: -1.1rem; max-width: calc(100% - 1.5rem); }
+  .tapeWrap li:first-child,
+  .tapeWrap li:nth-child(2) > span:first-child { display: none; }
 }

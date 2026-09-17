@@ -44,6 +44,40 @@
   --tape-edge: #eab22a;
 }
 
+/* Nastro a misura: largo quanto il testo, con punte tagliate alle estremità */
+.tapeFit {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  margin-left: 0;
+  padding: 0 1.4rem 0 0.4rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%, 10px 50%);
+}
+
+.tapeFit .tapeItem {
+  padding-right: 0.6rem;
+}
+
+/* Nastro fermo: riga unica di elementi interi, centrati */
+.tapeStatic {
+  --tape-row: 2.85rem;
+}
+
+.tapeStaticList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  height: var(--tape-row);
+  overflow: hidden;
+  list-style: none;
+  padding: 0 1.5rem;
+}
+
+.tapeStaticList .tapeItem {
+  height: var(--tape-row);
+  padding-block: 0;
+}
+
 .tapeTrack {
   display: flex;
   width: max-content;
@@ -293,6 +327,71 @@
   border-left: 0;
   border-right: 4px solid var(--bb-red);
   text-align: right;
+}
+
+@media (max-width: 760px) {
+  .tapeItem {
+    font-size: 0.95rem;
+    padding-block: 0.6rem 0.55rem;
+  }
+
+  .tapeFit .tapeItem {
+    font-size: 0.85rem;
+  }
+
+  .tapeStatic {
+    --tape-row: 2.4rem;
+    width: 120%;
+    margin-left: -10%;
+  }
+
+  .tapeStaticList {
+    padding: 0 10%;
+  }
+
+  /* Titoli di sezione impilati: niente parole spezzate */
+  .sectionTitle,
+  .alignRight {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    text-align: left;
+  }
+
+  .alignRight .sectionMicro {
+    justify-content: flex-start;
+  }
+
+  .sectionIndex {
+    font-size: 3.4rem;
+    -webkit-text-stroke-width: 1.5px;
+  }
+
+  .sectionIndex::after {
+    bottom: -0.35rem;
+    height: 4px;
+  }
+
+  .sectionText {
+    width: 100%;
+  }
+
+  .sectionHeading {
+    font-size: clamp(2rem, 9.5vw, 2.6rem);
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .sectionMicro {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+  }
+
+  .sectionAction,
+  .alignRight .sectionAction {
+    margin: 0.25rem 0 0;
+    align-self: flex-start;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

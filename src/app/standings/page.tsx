@@ -131,6 +131,7 @@ export default function StandingsPage() {
                         <TapeStrip
                             tone="ink"
                             angle={-1.5}
+                            moving={false}
                             text={`${seasonName} ✦ Final Four ✦ Top ${PLAYOFF_SPOTS}`}
                             className={styles.tape}
                         />

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
 import Emblem from '@/components/brand/Emblem';
 import Wordmark from '@/components/brand/Wordmark';
+import Shards from '@/components/brand/Shards';
 import SeasonBar from './SeasonBar';
 import styles from './NavBar.module.css';
 
@@ -33,6 +34,7 @@ function NavBar() {
 
   const closeMenu = () => setIsMobileMenuOpen(false);
   const isActive = (href: string) => pathname.startsWith(href);
+  const pad = (n: number) => String(n).padStart(2, '0');
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -45,36 +47,48 @@ function NavBar() {
       <>
         <nav className={styles.navBar}>
           <Link href="/" className={styles.logoLink} aria-label="Blood Bowl League – Home">
-            <Emblem size={68} className={styles.logoEmblem} />
+            <Emblem size={64} className={styles.logoEmblem} />
             <Wordmark className={styles.wordmark} />
           </Link>
 
           {/* Desktop Links */}
           <div className={styles.navLinks}>
-            {NAV_LINKS.map(({ href, key, Icon }) => (
-                <Link key={href} href={href} className={`${styles.navItem} ${isActive(href) ? styles.active : ''}`}>
-                  <Icon size={18} />{t.nav[key]}
+            {NAV_LINKS.map(({ href, key, Icon }, i) => (
+                <Link
+                    key={href}
+                    href={href}
+                    className={`${styles.navItem} ${isActive(href) ? styles.active : ''}`}
+                    aria-current={isActive(href) ? 'page' : undefined}
+                >
+                  <span className={styles.navIndex} aria-hidden="true">{pad(i + 1)}</span>
+                  <Icon size={16} className={styles.navIcon} />
+                  <span>{t.nav[key]}</span>
                 </Link>
             ))}
+          </div>
+
+          <div className={styles.navTools}>
             {isAdmin ? (
-                <button onClick={handleLogout} className={`${styles.navItem} ${styles.navButton}`}>
-                  <LogOut size={18} />{t.nav.logout}
+                <button onClick={handleLogout} className={styles.ctaBtn}>
+                  <LogOut size={16} /><span>{t.nav.logout}</span>
                 </button>
             ) : (
-                <Link href="/login" className={`${styles.navItem} ${isActive('/login') ? styles.active : ''}`}>
-                  <Lock size={18} />{t.nav.login}
+                <Link href="/login" className={`${styles.ctaBtn} ${isActive('/login') ? styles.ctaActive : ''}`}>
+                  <Lock size={16} /><span>{t.nav.login}</span>
                 </Link>
             )}
 
             {/* Language Switcher */}
-            <div className={styles.langContainer}>
+            <div className={styles.langContainer} role="group" aria-label="Language">
               <button
                   onClick={() => setLanguage('en')}
                   className={`${styles.langBtn} ${language === 'en' ? styles.active : ''}`}
+                  aria-pressed={language === 'en'}
               >EN</button>
               <button
                   onClick={() => setLanguage('it')}
                   className={`${styles.langBtn} ${language === 'it' ? styles.active : ''}`}
+                  aria-pressed={language === 'it'}
               >IT</button>
             </div>
           </div>
@@ -84,38 +98,44 @@ function NavBar() {
               className={styles.hamburgerBtn}
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
+              aria-expanded={isMobileMenuOpen}
           >
-            <Menu size={32} />
+            <Menu size={26} />
           </button>
         </nav>
 
         {/* Mobile Sidebar */}
-        <div className={`${styles.mobileSidebar} ${isMobileMenuOpen ? styles.open : ''}`}>
+        <div className={`${styles.mobileSidebar} ${isMobileMenuOpen ? styles.open : ''}`} aria-hidden={!isMobileMenuOpen}>
+          <Shards variant="band" className={styles.sidebarShards} />
           <div className={styles.closeHeader}>
-            <Emblem size={56} />
+            <Emblem size={52} />
+            <span className={styles.sidebarMicro}>BBL // Menu</span>
             <button className={styles.closeBtn} onClick={closeMenu} aria-label="Close menu">
-              <X size={32} />
+              <X size={26} />
             </button>
           </div>
 
           <div className={styles.mobileMenuContent}>
-            {NAV_LINKS.map(({ href, key, Icon }) => (
+            {NAV_LINKS.map(({ href, key, Icon }, i) => (
                 <Link
                     key={href}
                     href={href}
                     className={`${styles.mobileNavItem} ${isActive(href) ? styles.active : ''}`}
                     onClick={closeMenu}
                 >
-                  <Icon size={26} />{t.nav[key]}
+                  <span className={styles.mobileIndex} aria-hidden="true">{pad(i + 1)}</span>
+                  <span className={styles.mobileLabel}>{t.nav[key]}</span>
+                  <Icon size={22} className={styles.mobileIcon} />
                 </Link>
             ))}
+
             {isAdmin ? (
-                <button onClick={handleLogout} className={styles.mobileNavItem}>
-                  <LogOut size={26} />{t.nav.logout}
+                <button onClick={handleLogout} className={styles.mobileCta}>
+                  <LogOut size={20} />{t.nav.logout}
                 </button>
             ) : (
-                <Link href="/login" className={styles.mobileNavItem} onClick={closeMenu}>
-                  <Lock size={26} />{t.nav.login}
+                <Link href="/login" className={styles.mobileCta} onClick={closeMenu}>
+                  <Lock size={20} />{t.nav.login}
                 </Link>
             )}
 

@@ -398,6 +398,7 @@ export default function SchedulePage() {
           <TapeStrip
               tone={isPlayoffRound ? 'mustard' : 'red'}
               angle={-1.6}
+              moving={false}
               text={currentRound !== null ? `Matchday ${pad(currentRound)} ✦ ${roundType}` : `Blood Bowl League ✦ ${t.schedule.title}`}
           />
         </div>
