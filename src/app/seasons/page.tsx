@@ -11,10 +11,30 @@ import SectionTitle from '@/components/brand/SectionTitle';
 import Shards from '@/components/brand/Shards';
 import TapeStrip from '@/components/brand/TapeStrip';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete, type CoachChoice } from '@/components/CoachPicker';
-import type { Coach, SeasonSummary, TeamOverview } from '@/lib/types';
+import type { Coach, SeasonStatus, SeasonSummary, TeamOverview } from '@/lib/types';
 import styles from './Seasons.module.css';
 
 type WizardRow = { teamId: string; included: boolean; coach: CoachChoice };
+type PreviousAction = 'pause' | 'cancel' | 'delete';
+
+// Etichetta di stato: attiva rossa, conclusa navy, in pausa senape, annullata spenta e barrata
+const STATUS_TAG: Record<SeasonStatus, string> = {
+  active: 'tag tag-red',
+  completed: 'tag tag-navy',
+  paused: 'tag',
+  cancelled: `tag ${styles.tagCancelled}`,
+};
+
+// Variante della card per gli stati non conclusi
+const STATUS_CARD: Record<SeasonStatus, string> = {
+  active: '',
+  completed: '',
+  paused: styles.seasonCardPaused,
+  cancelled: styles.seasonCardCancelled,
+};
+
+const fill = (text: string, values: Record<string, string | number>) =>
+  Object.entries(values).reduce((acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)), text);
 
 const formatDate = (value: string | null) => (value ? new Date(value.replace(' ', 'T') + 'Z').toLocaleDateString() : '—');
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -33,6 +53,9 @@ export default function SeasonsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  // Stagione in corso senza campione: finestra per scegliere se metterla in pausa, annullarla o eliminarla
+  const [decision, setDecision] = useState<{ name: string; pending: number } | null>(null);
+  const [busySeasonId, setBusySeasonId] = useState<string | null>(null);
 
   // I contatori (partite giocate, campione) cambiano spesso: si ricaricano all'apertura della pagina
   useEffect(() => { refreshSeasons(); }, [refreshSeasons]);
@@ -67,26 +90,36 @@ export default function SeasonsPage() {
       return;
     }
     const name = seasonName.trim() || `Season ${nextNumber}`;
-    if (!confirm(t.seasons.confirmStart.replace('{name}', name).replace('{count}', String(included.length)))) return;
+    if (!confirm(fill(t.seasons.confirmStart, { name, count: included.length }))) return;
+    await submitNewSeason({});
+  };
 
+  const submitNewSeason = async (options: { force?: boolean; previous_action?: PreviousAction }) => {
+    const included = rows.filter(r => r.included);
     const payload = {
-      name,
+      name: seasonName.trim() || `Season ${nextNumber}`,
       teams: included.map(r => ({ team_id: r.teamId, ...coachChoicePayload(r.coach) })),
+      ...options,
     };
-    const post = (force: boolean) => fetch('/api/seasons', {
+    const post = (body: typeof payload) => fetch('/api/seasons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, force }),
+      body: JSON.stringify(body),
     });
 
     setSubmitting(true);
     try {
-      let res = await post(false);
+      let res = await post(payload);
       if (res.status === 409) {
-        // Stagione in corso con partite ancora da giocare: serve una conferma esplicita
-        const data = await res.json().catch(() => null);
-        if (!data?.incomplete || !confirm(`${data.error}\n\n${t.seasons.confirmIncomplete}`)) return;
-        res = await post(true);
+        const conflict = await res.json().catch(() => null);
+        if (conflict?.needs_decision) {
+          // Nessun campione: decide l'utente nella finestra dedicata
+          setDecision({ name: conflict.season_name, pending: conflict.pending_matches });
+          return;
+        }
+        // Campione già proclamato ma partite ancora da giocare: basta una conferma
+        if (!conflict?.incomplete || !confirm(`${conflict.error}\n\n${t.seasons.confirmIncomplete}`)) return;
+        res = await post({ ...payload, force: true });
       }
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -95,6 +128,7 @@ export default function SeasonsPage() {
       }
       await refreshSeasons();
       setSelectedSeasonId(data.id);
+      setDecision(null);
       setShowWizard(false);
       router.push('/teams');
     } catch {
@@ -117,6 +151,67 @@ export default function SeasonsPage() {
     }
     setRenamingId(null);
     refreshSeasons();
+  };
+
+  const chooseDecision = async (action: PreviousAction) => {
+    if (!decision) return;
+    if (action === 'delete' && !confirm(fill(t.seasons.confirmDelete, { name: decision.name }))) return;
+    await submitNewSeason({ previous_action: action });
+  };
+
+  // Azioni sulla singola stagione (pausa, annullamento, ripresa, eliminazione)
+  const changeStatus = async (season: SeasonSummary, action: 'pause' | 'cancel' | 'resume') => {
+    const messages = { pause: t.seasons.confirmPause, cancel: t.seasons.confirmCancel, resume: t.seasons.confirmResume };
+    if (!confirm(fill(messages[action], { name: season.name }))) return;
+
+    const send = (pauseCurrent: boolean) => fetch(`/api/seasons/${season.id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, pause_current: pauseCurrent }),
+    });
+
+    setBusySeasonId(season.id);
+    try {
+      let res = await send(false);
+      if (res.status === 409) {
+        const conflict = await res.json().catch(() => null);
+        // Riprendere una stagione quando un'altra è in corso: quella in corso va in pausa
+        if (!conflict?.active_exists) { alert(conflict?.error || 'Operation failed'); return; }
+        if (!confirm(fill(t.seasons.confirmResumePauseCurrent, { name: season.name, current: conflict.active_name }))) return;
+        res = await send(true);
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Operation failed');
+        return;
+      }
+      await refreshSeasons();
+    } finally {
+      setBusySeasonId(null);
+    }
+  };
+
+  const deleteSeason = async (season: SeasonSummary) => {
+    if (!confirm(fill(t.seasons.confirmDelete, { name: season.name }))) return;
+    setBusySeasonId(season.id);
+    try {
+      const res = await fetch(`/api/seasons/${season.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error || 'Failed to delete season');
+        return;
+      }
+      await refreshSeasons();
+    } finally {
+      setBusySeasonId(null);
+    }
+  };
+
+  const statusLabel: Record<SeasonStatus, string> = {
+    active: t.seasons.active,
+    completed: t.seasons.completed,
+    paused: t.seasons.paused,
+    cancelled: t.seasons.cancelled,
   };
 
   const viewSeason = (season: SeasonSummary) => {
@@ -164,6 +259,26 @@ export default function SeasonsPage() {
               {t.seasons.rename}
             </button>
         )}
+        {isAdmin && season.status === 'active' && (
+            <button className={`btn ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'pause')}>
+              {t.seasons.pause}
+            </button>
+        )}
+        {isAdmin && (season.status === 'paused' || season.status === 'cancelled') && (
+            <button className={`btn btn-gold ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'resume')}>
+              {t.seasons.resume}
+            </button>
+        )}
+        {isAdmin && season.status !== 'cancelled' && (
+            <button className={`btn btn-slate ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => changeStatus(season, 'cancel')}>
+              {t.seasons.cancelSeason}
+            </button>
+        )}
+        {isAdmin && season.status !== 'completed' && (
+            <button className={`btn btn-primary ${styles.smallBtn}`} disabled={busySeasonId === season.id} onClick={() => deleteSeason(season)}>
+              {t.seasons.deleteSeason}
+            </button>
+        )}
       </div>
   );
 
@@ -179,6 +294,36 @@ export default function SeasonsPage() {
                 <button className="btn btn-gold" onClick={openWizard}><Plus size={22} /> {t.seasons.newSeason}</button>
             ) : undefined}
         />
+
+        {decision && (
+            <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="decision-title">
+              <div className={`card chamfer ${styles.modal}`}>
+                <span className={styles.wizardMicro}><i className={styles.microSquares} aria-hidden="true" />{`${decision.name} // ${decision.pending}`}</span>
+                <h2 id="decision-title" className="title-slab">{t.seasons.decisionTitle}</h2>
+                <p className={styles.wizardIntro}>{fill(t.seasons.decisionText, { name: decision.name, pending: decision.pending })}</p>
+                <div className={styles.decisionGrid}>
+                  <button type="button" className={`chamfer ${styles.decisionBtn} ${styles.decisionPause}`} onClick={() => chooseDecision('pause')} disabled={submitting}>
+                    <span className={styles.decisionNum} aria-hidden="true">01</span>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionPause}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionPauseHint}</span>
+                  </button>
+                  <button type="button" className={`chamfer ${styles.decisionBtn}`} onClick={() => chooseDecision('cancel')} disabled={submitting}>
+                    <span className={styles.decisionNum} aria-hidden="true">02</span>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionCancel}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionCancelHint}</span>
+                  </button>
+                  <button type="button" className={`chamfer ${styles.decisionBtn} ${styles.decisionDanger}`} onClick={() => chooseDecision('delete')} disabled={submitting}>
+                    <span className={styles.decisionNum} aria-hidden="true">03</span>
+                    <span className={styles.decisionLabel}>{t.seasons.decisionDelete}</span>
+                    <span className={styles.decisionHint}>{t.seasons.decisionDeleteHint}</span>
+                  </button>
+                </div>
+                <div className={styles.wizardActions}>
+                  <button type="button" className="btn" onClick={() => setDecision(null)} disabled={submitting}>{t.seasons.decisionBack}</button>
+                </div>
+              </div>
+            </div>
+        )}
 
         {showWizard && (
             <section className={`card chamfer ${styles.wizard}`} aria-labelledby="wizard-title">
@@ -301,7 +446,7 @@ export default function SeasonsPage() {
 
                 <div className={styles.activeContent}>
                   <div className={styles.activeMicro}>
-                    <span className="tag tag-red">{t.seasons.active}</span>
+                    <span className={STATUS_TAG.active}>{statusLabel.active}</span>
                     <span>{`BBL // S${pad(activeSeason.number)} // Live`}</span>
                   </div>
 
@@ -348,18 +493,18 @@ export default function SeasonsPage() {
               <SectionTitle
                   index={activeSeason ? '01' : undefined}
                   micro={`${pastSeasons.length} // ${t.seasons.title}`}
-                  title={t.seasons.completed}
+                  title={pastSeasons.every(past => past.status === 'completed') ? t.seasons.completed : t.seasons.title}
               />
 
               <div className={styles.seasonList}>
                 {pastSeasons.map(season => (
                     <div key={season.id} className="offset-frame">
-                      <article className={`chamfer ${styles.seasonCard}`}>
+                      <article className={`chamfer ${styles.seasonCard} ${STATUS_CARD[season.status]}`}>
                         <span className={styles.cardNum} aria-hidden="true">{pad(season.number)}</span>
 
                         <div className={styles.cardTop}>
                           <span className={styles.cardMicro}><i className={styles.microSquares} aria-hidden="true" />{`S${pad(season.number)}`}</span>
-                          <span className="tag tag-navy">{t.seasons.completed}</span>
+                          <span className={STATUS_TAG[season.status]}>{statusLabel[season.status]}</span>
                         </div>
 
                         {renderName(season, styles.seasonName)}

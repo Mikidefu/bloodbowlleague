@@ -47,11 +47,13 @@ Le modifiche a un database esistente passano da script in `scripts/`, eseguibili
 node --env-file=.env.local scripts/migrate-spp.mjs          # anteprima
 node --env-file=.env.local scripts/migrate-spp.mjs --apply  # applica (salva un backup in backups/)
 node --env-file=.env.local scripts/migrate-seasons.mjs --apply
+node --env-file=.env.local scripts/migrate-season-status.mjs --apply
 ```
 
 ### Stagioni e allenatori
 
-- Esiste al massimo **una stagione attiva**; avviandone una nuova (pagina *Stagioni*) quella in corso viene chiusa e diventa di sola lettura.
+- Esiste al massimo **una stagione attiva**. Le altre sono in sola lettura e hanno uno stato: **conclusa**, **in pausa** (riprendibile) o **annullata** (consultabile ma esclusa dalle carriere degli allenatori). Una stagione non conclusa si può anche **eliminare** con partite e statistiche delle partite.
+- Avviando una nuova stagione: se quella in corso ha un campione viene conclusa, altrimenti l'app chiede se metterla in pausa, annullarla o eliminarla.
 - Le squadre partecipano alle stagioni tramite `season_teams`, che registra anche **l'allenatore di quella stagione**: una squadra può proseguire (con roster e SPP) cambiando allenatore, e un allenatore può guidare squadre diverse nel tempo.
 - Partite, calendario, classifica, statistiche e playoff sono per stagione; le API accettano `?season=<id>` e senza parametro usano la stagione attiva.
 - Le squadre nuove entrano sempre nella stagione attiva e richiedono un allenatore (esistente o nuovo; i nomi non si duplicano).

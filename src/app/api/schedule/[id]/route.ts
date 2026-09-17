@@ -2,17 +2,19 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
 import { recalcSppStatement } from '@/lib/spp';
+import { describeSeasonStatus, seasonStatusSql, toSeasonStatus } from '@/lib/seasons';
 
 // Risultati e partite si modificano solo nella stagione attiva.
 // Restituisce la risposta d'errore da inviare, oppure null se la partita è modificabile.
 async function lockedMatchResponse(matchId: string) {
   const { rows: [row] } = await db.execute({
-    sql: 'SELECT s.name, s.status FROM matches m LEFT JOIN seasons s ON s.id = m.season_id WHERE m.id = ?',
+    sql: 'SELECT s.name, s.status, s.closed_reason FROM matches m LEFT JOIN seasons s ON s.id = m.season_id WHERE m.id = ?',
     args: [matchId]
   });
   if (!row) return NextResponse.json({ error: 'Match not found' }, { status: 404 });
   if (row.status !== 'active') {
-    return NextResponse.json({ error: `${row.name ?? 'This season'} is completed: its matches are read-only.` }, { status: 409 });
+    const status = describeSeasonStatus(toSeasonStatus(row.status, row.closed_reason));
+    return NextResponse.json({ error: `${row.name ?? 'This season'} is ${status}: its matches are read-only.` }, { status: 409 });
   }
   return null;
 }
@@ -30,7 +32,7 @@ export async function GET(
         SELECT m.*,
                th.name as home_name, th.logo_url as home_logo, th.primary_color as home_color,
                ta.name as away_name, ta.logo_url as away_logo, ta.primary_color as away_color,
-               s.name as season_name, s.status as season_status
+               s.name as season_name, ${seasonStatusSql('s')} as season_status
         FROM matches m
                JOIN teams th ON m.home_team_id = th.id
                JOIN teams ta ON m.away_team_id = ta.id

@@ -468,7 +468,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                             <span
                                 key={h.season_id}
                                 className={`chamfer ${styles.historyChip} ${h.season_status === 'active' ? styles.historyChipActive : ''}`}
-                                title={h.season_status === 'active' ? t.seasons.active : t.seasons.completed}
+                                title={({ active: t.seasons.active, completed: t.seasons.completed, paused: t.seasons.paused, cancelled: t.seasons.cancelled })[h.season_status]}
                             >
                               {h.season_name}: {h.coach_name ?? '—'}
                             </span>

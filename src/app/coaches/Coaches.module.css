@@ -883,6 +883,57 @@
   color: var(--bb-blood-700);
 }
 
+/* Stagione annullata: visibile ma esclusa dai totali */
+.notCountedNote {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 70ch;
+  margin: 0 0 1.25rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--bb-red);
+  background: rgba(200, 37, 44, 0.08);
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 700;
+  color: var(--bb-ink);
+}
+
+.roster tbody tr.notCounted td {
+  color: var(--bb-ink-soft);
+  background:
+    repeating-linear-gradient(-45deg, rgba(200, 37, 44, 0.07) 0 10px, transparent 10px 20px),
+    var(--bb-paper);
+}
+
+.roster tbody tr.notCounted td > * {
+  opacity: 0.6;
+}
+
+.roster tbody tr.notCounted .nameLink {
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 3px;
+}
+
+.roster tbody tr.notCounted td:first-child > .statusTag {
+  opacity: 1;
+}
+
+.statusTag {
+  display: table;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+}
+
+:global(.tag).tagCancelled {
+  background-color: var(--bb-slate-700);
+  color: var(--bb-slate-300);
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 2px;
+}
+
 .positive { color: var(--bb-success); font-weight: 800; }
 .negative { color: var(--bb-red); font-weight: 800; }
 

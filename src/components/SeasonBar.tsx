@@ -3,14 +3,36 @@ import Link from 'next/link';
 import { CalendarRange, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useSeason } from '@/lib/SeasonContext';
+import type { SeasonStatus } from '@/lib/types';
 import styles from './SeasonBar.module.css';
+
+const BADGE_CLASS: Record<SeasonStatus, string> = {
+  active: styles.badgeActive,
+  completed: styles.badgeCompleted,
+  paused: styles.badgePaused,
+  cancelled: styles.badgeCancelled,
+};
 
 // Barra sotto la navbar: stagione consultata, stato, avanzamento e link alla gestione delle stagioni
 export default function SeasonBar() {
   const { t } = useLanguage();
-  const { seasons, selectedSeason, isViewingActive, setSelectedSeasonId, seasonsLoading } = useSeason();
+  const { seasons, selectedSeason, setSelectedSeasonId, seasonsLoading } = useSeason();
 
   if (seasonsLoading || !selectedSeason) return null;
+
+  const statusLabel: Record<SeasonStatus, string> = {
+    active: t.seasons.active,
+    completed: t.seasons.completed,
+    paused: t.seasons.paused,
+    cancelled: t.seasons.cancelled,
+  };
+  const banner: Record<SeasonStatus, string | null> = {
+    active: null,
+    completed: t.seasons.readOnlyBanner,
+    paused: t.seasons.pausedBanner,
+    cancelled: t.seasons.cancelledBanner,
+  };
+  const status = selectedSeason.status;
 
   const code = `S${String(selectedSeason.number).padStart(2, '0')}`;
   const total = selectedSeason.matches_total || 0;
@@ -35,16 +57,16 @@ export default function SeasonBar() {
               >
                 {seasons.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.name}{s.status === 'active' ? ` (${t.seasons.active})` : ''}
+                      {s.name}{s.status !== 'completed' ? ` (${statusLabel[s.status]})` : ''}
                     </option>
                 ))}
               </select>
               <ChevronDown size={18} className={styles.chevron} aria-hidden="true" />
             </div>
 
-            <span className={`${styles.badge} ${isViewingActive ? styles.badgeActive : styles.badgeCompleted}`}>
+            <span className={`${styles.badge} ${BADGE_CLASS[status]}`}>
               <i className={styles.dot} aria-hidden="true" />
-              {isViewingActive ? t.seasons.active : t.seasons.completed}
+              {statusLabel[status]}
             </span>
 
             {total > 0 && (
@@ -62,9 +84,9 @@ export default function SeasonBar() {
             </Link>
           </div>
         </div>
-        {!isViewingActive && (
-            <div className={styles.readOnlyBanner} role="status">
-              <span>{t.seasons.readOnlyBanner}</span>
+        {banner[status] && (
+            <div className={`${styles.readOnlyBanner} ${status === 'cancelled' ? styles.cancelledBanner : ''}`} role="status">
+              <span>{banner[status]}</span>
             </div>
         )}
       </>

@@ -11,6 +11,7 @@ import SectionTitle from '@/components/brand/SectionTitle';
 import Shards from '@/components/brand/Shards';
 import type { CoachCareer } from '@/lib/coaches';
 import type { PlayoffFinish } from '@/lib/standings';
+import type { SeasonStatus } from '@/lib/types';
 import styles from '../Coaches.module.css';
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
@@ -99,6 +100,20 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
     { label: t.coaches.titles, value: totals.titles > 0 ? <><Trophy size={30} aria-hidden="true" /> {totals.titles}</> : 0 },
   ];
 
+  // Stato della stagione come etichetta del brand: in pausa senape, annullata spenta e barrata
+  const statusLabel: Record<SeasonStatus, string> = {
+    active: t.seasons.active,
+    completed: t.seasons.completed,
+    paused: t.seasons.paused,
+    cancelled: t.seasons.cancelled,
+  };
+  const statusTag: Record<SeasonStatus, string> = {
+    active: 'tag tag-red',
+    completed: 'tag tag-navy',
+    paused: 'tag',
+    cancelled: `tag ${styles.tagCancelled}`,
+  };
+
   const diffClass = (n: number) => (n > 0 ? styles.positive : n < 0 ? styles.negative : '');
 
   // Stagione più recente: colore squadra per la tinta del ritratto e righe della scheda
@@ -179,8 +194,8 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
                     {latest ? (
                         <>
                           {latest.season_name}{' '}
-                          <span className={`tag ${latest.season_status === 'active' ? 'tag-red' : 'tag-navy'} ${styles.labelTag}`}>
-                            {latest.season_status === 'active' ? t.seasons.active : t.seasons.completed}
+                          <span className={`${statusTag[latest.season_status]} ${styles.labelTag}`}>
+                            {statusLabel[latest.season_status]}
                           </span>
                         </>
                     ) : '—'}
@@ -233,6 +248,9 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
           <span className={`ghost-text on-light ${styles.ghostSeasons}`} aria-hidden="true">Seasons</span>
           <div className={styles.inner}>
             <SectionTitle index="02" on="light" micro={`${career.seasons.length} ${t.coaches.seasons}`} title={t.coaches.bySeason} />
+            {career.seasons.some(s => !s.counts_in_career) && (
+                <p className={styles.notCountedNote}><span className={`tag ${styles.tagCancelled}`}>{t.seasons.cancelled}</span>{t.coaches.notCounted}</p>
+            )}
 
             {career.seasons.length === 0 ? (
                 <div className={`chamfer ${styles.emptyCard}`}><p className={styles.emptyText}>—</p></div>
@@ -261,13 +279,15 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
                         const tdDiff = s.td_for - s.td_against;
                         const casDiff = s.cas_for - s.cas_against;
                         return (
-                            <tr key={`${s.season_id}-${s.team_id}`}>
+                            <tr key={`${s.season_id}-${s.team_id}`} className={s.counts_in_career ? undefined : styles.notCounted}>
                               <td>
                                 {/* Apre classifica e calendario di quella stagione */}
                                 <Link href="/standings" onClick={() => setSelectedSeasonId(s.season_id)} className={styles.nameLink}>
                                   {s.season_name}
                                 </Link>
-                                <span className={styles.muted}>{s.season_status === 'active' ? t.seasons.active : t.seasons.completed}</span>
+                                {s.season_status === 'active' || s.season_status === 'completed'
+                                    ? <span className={styles.muted}>{statusLabel[s.season_status]}</span>
+                                    : <span className={`${statusTag[s.season_status]} ${styles.statusTag}`}>{statusLabel[s.season_status]}</span>}
                               </td>
                               <td>
                                 <Link

@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
 import { uploadTeamLogo, UploadError } from '@/lib/upload';
 import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
-import { getActiveSeason } from '@/lib/seasons';
+import { getActiveSeason, seasonStatusSql } from '@/lib/seasons';
 
 export async function GET(
     request: Request,
@@ -51,7 +51,7 @@ export async function GET(
     // Storico partecipazioni: stagione e allenatore (la prima riga è la più recente)
     const { rows: history } = await db.execute({
       sql: `
-        SELECT s.id AS season_id, s.number AS season_number, s.name AS season_name, s.status AS season_status,
+        SELECT s.id AS season_id, s.number AS season_number, s.name AS season_name, ${seasonStatusSql('s')} AS season_status,
                st.coach_id, c.name AS coach_name
         FROM season_teams st
         JOIN seasons s ON s.id = st.season_id

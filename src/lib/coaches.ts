@@ -1,12 +1,14 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { computePlayoffFinishes, computeStandings, type PlayoffFinish, type TeamStanding } from '@/lib/standings';
+import { countsInCareer, parseSeasonStatus, seasonStatusSql, type SeasonStatus } from '@/lib/seasons';
 
 export type CoachSeasonRecord = {
   season_id: string;
   season_number: number;
   season_name: string;
-  season_status: string;
+  season_status: SeasonStatus;
+  counts_in_career: boolean;       // false per le stagioni annullate (mostrate ma non sommate)
   team_id: string;
   team_name: string;
   team_race: string;
@@ -56,8 +58,9 @@ const emptyTotals = (): CoachTotals => ({
   td_for: 0, td_against: 0, cas_for: 0, cas_against: 0, titles: 0, finals: 0, playoffs: 0, win_rate: 0,
 });
 
-function sumTotals(records: CoachSeasonRecord[]): CoachTotals {
+function sumTotals(allRecords: CoachSeasonRecord[]): CoachTotals {
   const totals = emptyTotals();
+  const records = allRecords.filter(r => r.counts_in_career);
   totals.seasons = new Set(records.map(r => r.season_id)).size;
   totals.teams = new Set(records.map(r => r.team_id)).size;
   for (const r of records) {
@@ -88,7 +91,7 @@ export async function computeCoachCareers(coachId?: string): Promise<CoachCareer
     }),
     db.execute({
       sql: `
-        SELECT st.coach_id, st.season_id, s.number AS season_number, s.name AS season_name, s.status AS season_status,
+        SELECT st.coach_id, st.season_id, s.number AS season_number, s.name AS season_name, ${seasonStatusSql('s')} AS season_status,
                t.id AS team_id, t.name AS team_name, t.race AS team_race, t.logo_url AS team_logo, t.primary_color AS team_color
         FROM season_teams st
         JOIN seasons s ON s.id = st.season_id
@@ -121,7 +124,8 @@ export async function computeCoachCareers(coachId?: string): Promise<CoachCareer
             season_id: seasonId,
             season_number: Number(e.season_number),
             season_name: String(e.season_name),
-            season_status: String(e.season_status),
+            season_status: parseSeasonStatus(e.season_status),
+            counts_in_career: countsInCareer(parseSeasonStatus(e.season_status)),
             team_id: String(e.team_id),
             team_name: String(e.team_name),
             team_race: String(e.team_race),

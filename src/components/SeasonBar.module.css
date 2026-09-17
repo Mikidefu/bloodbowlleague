@@ -137,6 +137,16 @@
   background: rgba(37, 56, 111, 0.45);
 }
 
+.badgePaused {
+  color: var(--bb-mustard);
+  background: rgba(234, 178, 42, 0.18);
+}
+
+.badgeCancelled {
+  color: #ff8a80;
+  background: rgba(200, 37, 44, 0.25);
+}
+
 /* Avanzamento partite */
 .progress {
   display: flex;
@@ -215,6 +225,15 @@
     repeating-linear-gradient(-45deg, #1a1208 0 8px, transparent 8px 16px) top / 100% 5px no-repeat,
     repeating-linear-gradient(-45deg, #1a1208 0 8px, transparent 8px 16px) bottom / 100% 5px no-repeat,
     #eab22a;
+}
+
+/* Stagione annullata: nastro rosso */
+.readOnlyBanner.cancelledBanner {
+  color: #fff4e0;
+  background:
+    repeating-linear-gradient(-45deg, #3a0d0f 0 8px, transparent 8px 16px) top / 100% 5px no-repeat,
+    repeating-linear-gradient(-45deg, #3a0d0f 0 8px, transparent 8px 16px) bottom / 100% 5px no-repeat,
+    var(--bb-red);
 }
 
 @media (max-width: 900px) {

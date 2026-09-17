@@ -465,6 +465,180 @@
 }
 
 /* ================================================================== */
+/*  STATI DELLA STAGIONE (pausa, annullata)                            */
+/* ================================================================== */
+
+/* In pausa: filetto senape al posto del rosso */
+.seasonCardPaused {
+  background:
+    linear-gradient(var(--bb-mustard), var(--bb-mustard)) 0 0 / 100% 4px no-repeat,
+    repeating-linear-gradient(-45deg, rgba(234, 178, 42, 0.07) 0 12px, transparent 12px 24px),
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, cover, 200px, cover;
+}
+
+.seasonCardPaused .cardNum {
+  -webkit-text-stroke-color: rgba(234, 178, 42, 0.35);
+}
+
+/* Annullata: resta consultabile ma spenta, nome barrato */
+.seasonCardCancelled {
+  background:
+    linear-gradient(var(--bb-slate-500), var(--bb-slate-500)) 0 0 / 100% 4px no-repeat,
+    repeating-linear-gradient(-45deg, rgba(200, 37, 44, 0.08) 0 12px, transparent 12px 24px),
+    var(--tex-grain),
+    linear-gradient(160deg, #22262d, #16191e);
+  background-size: 100% 4px, cover, 200px, cover;
+}
+
+.seasonCardCancelled .seasonName,
+.seasonCardCancelled .facts,
+.seasonCardCancelled .champion,
+.seasonCardCancelled .cardNum {
+  opacity: 0.6;
+}
+
+.seasonCardCancelled .seasonName {
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 4px;
+}
+
+:global(.tag).tagCancelled {
+  background-color: var(--bb-slate-700);
+  color: var(--bb-slate-300);
+  text-decoration: line-through;
+  text-decoration-color: var(--bb-red);
+  text-decoration-thickness: 2px;
+}
+
+/* ================================================================== */
+/*  FINESTRA "STAGIONE SENZA CAMPIONE"                                 */
+/* ================================================================== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(16, 19, 24, 0.88);
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  --cut: 28px;
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  margin: 0;
+  overflow-y: auto;
+}
+
+.decisionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.decisionBtn {
+  --cut: 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 1.1rem 1.2rem 1.2rem;
+  text-align: left;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--bb-slate-500), var(--bb-slate-500)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), filter 0.2s ease;
+}
+
+.decisionBtn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  filter: brightness(1.12);
+}
+
+.decisionBtn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.decisionNum {
+  position: absolute;
+  z-index: -1;
+  top: -0.4rem;
+  right: 0.2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(243, 216, 151, 0.25);
+  pointer-events: none;
+}
+
+.decisionLabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff6e6;
+}
+
+.decisionHint {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: var(--bb-slate-300);
+}
+
+.decisionPause {
+  background:
+    linear-gradient(var(--bb-mustard), var(--bb-mustard)) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+}
+
+.decisionPause .decisionLabel {
+  color: var(--bb-mustard);
+}
+
+.decisionDanger {
+  background:
+    var(--tex-grain),
+    linear-gradient(180deg, #e8493f 0%, #c8252c 50%, #9a1c21 100%);
+  background-size: 200px, cover;
+}
+
+.decisionDanger .decisionHint {
+  color: #fff4e0;
+}
+
+.decisionDanger .decisionNum {
+  -webkit-text-stroke-color: rgba(255, 244, 224, 0.35);
+}
+
+/* ================================================================== */
 /*  PROCEDURA NUOVA STAGIONE                                           */
 /* ================================================================== */
 .wizard {

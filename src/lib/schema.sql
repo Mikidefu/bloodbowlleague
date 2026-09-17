@@ -4,14 +4,17 @@
 -- Per un database esistente usare gli script in scripts/ (es. migrate-spp.mjs).
 -- Le foreign key sono attive (PRAGMA foreign_keys = 1).
 
--- Stagioni: al massimo una attiva, le concluse sono in sola lettura
+-- Stagioni: al massimo una attiva, le altre sono in sola lettura.
+-- status: active (in corso) | completed (chiusa); closed_reason dice come è stata chiusa.
+-- (Colonna separata perché cambiare il CHECK di status richiederebbe di ricreare la tabella.)
 CREATE TABLE IF NOT EXISTS seasons (
     id TEXT PRIMARY KEY,
     number INTEGER NOT NULL UNIQUE,
     name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    ended_at DATETIME
+    ended_at DATETIME,
+    closed_reason TEXT CHECK (closed_reason IN ('completed', 'paused', 'cancelled'))  -- NULL se in corso
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_seasons_single_active ON seasons(status) WHERE status = 'active';
