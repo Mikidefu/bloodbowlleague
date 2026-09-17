@@ -20,7 +20,6 @@ const SWATCHES = [
 ];
 
 const ASSETS = [
-  { file: 'badge-ring.svg', label: 'Badge ring' },
   { file: 'stars-bar.svg', label: 'Stars bar' },
   { file: 'splatter-a.svg', label: 'Splatter A' },
   { file: 'splatter-b.svg', label: 'Splatter B' },
@@ -52,7 +51,7 @@ export default function BrandPage() {
         <h2 className="title-spike">Emblem</h2>
         <div className={styles.emblemRow}>
           <Emblem size={220} />
-          <Emblem size={140} topText="SEASON" bottomText="2026" initials={['N', 'S']} />
+          <Emblem size={140} />
           <Emblem size={80} />
         </div>
       </section>

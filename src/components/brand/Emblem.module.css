@@ -1,0 +1,6 @@
+.emblem {
+  display: block;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+}

@@ -92,7 +92,7 @@ export default function StandingsPage() {
                                                     {hasTrophy ? (
                                                         <img src={ART.trophy} alt="" className={styles.trophyArt} />
                                                     ) : (
-                                                        <Emblem size={150} className={styles.trophyFallback} useCrestArt={false} />
+                                                        <Emblem size={150} className={styles.trophyFallback} />
                                                     )}
                                                 </div>
                                             )}

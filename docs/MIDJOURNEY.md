@@ -47,21 +47,25 @@ wide view of a ramshackle fantasy football stadium at night, towering wooden and
 full body heroic low angle shot of a massive orc blitzer charging forward with a spiked leather football tucked under his arm, crimson and gold armored shoulder pads with rivets, cracked helmet with horns, snarling tusks, mud and dust flying, dynamic action pose, gritty fantasy american football comic illustration, bold black ink linework, cel shading with painterly texture, crimson red, mustard gold and slate blue palette, isolated on a plain flat white background, no ground shadow --ar 3:4 --v 7 --style raw --no text, letters, logo, watermark, background scenery
 ```
 
-## 3. Logo: cuore dello stemma
+## 3. Logo della lega (completo)
 
-`art-src/logo-crest.png` → `public/art/logo-crest.webp`
+`art-src/logo.png` → `public/art/logo.webp` (+ favicon `src/app/icon.png` generata in automatico)
 
-Compare **al centro** dello stemma vettoriale (sostituisce il pallone con le iniziali), sopra il cerchio navy.
-Deve essere centrato e leggibile anche molto piccolo.
+Il logo è **solo illustrazione**: niente più stemma vettoriale. Compare nella navbar, nel menu mobile, nel login,
+nella copertina (se manca il giocatore) e come filigrana nelle testate.
+Consigli: genera con `--sref` dello stadio, scegli la variante più leggibile anche piccola (deve funzionare a 50px),
+evita dettagli sottili sui bordi. Se Midjourney sbaglia la scritta, usa **Vary (Region)** solo sulla fascia del testo.
 
-```
-emblem illustration of a spiked leather american football crossed with two brass-studded gauntlets, front view, perfectly centered and symmetrical, heavy black ink outlines, bold flat colors, crimson red leather, polished brass spikes and rivets, mustard gold highlights, simple readable silhouette for a sports crest, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --no text, letters, numbers, shield border, frame, watermark
-```
-
-Alternativa più "mascotte":
+Versione A, **con scritta** (consigliata):
 
 ```
-emblem illustration of a snarling horned skull wearing a battered red football helmet with a brass face guard, front view, perfectly centered and symmetrical, heavy black ink outlines, bold flat colors, crimson red, polished brass, bone white, simple readable silhouette for a sports crest, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --no text, letters, frame, watermark
+hand-drawn sports team crest logo for a brutal fantasy football league, circular badge with a jagged spiked outer ring, center: a snarling armored orc head with horned helmet biting a spiked leather american football, bold curved banner across the bottom with the text "BLOOD BOWL", small crossed bones and rivets on the ring, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, crimson red, mustard gold, slate blue and bone white palette, gritty vintage print feel, front view, perfectly centered and symmetrical, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no photo, 3d render, gradient mesh, extra text, small text, watermark, signature
+```
+
+Versione B, **senza scritta** (più pulita, il nome lo mette il sito accanto al logo):
+
+```
+hand-drawn mascot emblem for a brutal fantasy football league, shield-shaped badge with spiked brass rim and rivets, center: a snarling orc head in a battered red horned football helmet, a spiked leather football and two crossed bones behind it, torn red and gold ribbon at the bottom without lettering, thick black ink outlines, comic book inking with cross-hatching, cel shading with painterly texture, crimson red, mustard gold, slate blue and bone white palette, gritty vintage print feel, front view, perfectly centered and symmetrical, sticker-style die-cut edge, isolated on a plain flat white background --ar 1:1 --v 7 --style raw --stylize 150 --no text, letters, numbers, photo, 3d render, watermark, signature
 ```
 
 ## 4. Trofeo (podio della home, 1° posto)
@@ -124,7 +128,7 @@ seamless tileable texture of aged parchment paper, subtle stains, fibers and cre
 |---|---|
 | `stadium.jpg` | Copertina home (a colori) e sfondo di **tutte** le testate (duotono rosso/navy/ardesia) |
 | `hero-player.webp` | Copertina home, a destra (al posto dello stemma grande) |
-| `logo-crest.webp` | Centro dello stemma: navbar, menu mobile, copertina, `/brand` |
+| `logo.webp` | Logo della lega: navbar, menu mobile, login, copertina, filigrana testate, `/brand`, favicon |
 | `trophy.webp` | Podio della home, sopra la squadra prima in classifica |
 | `star-player.webp` | Riquadro "Star Player" della home |
 | `header-*.webp` | Testata della rispettiva pagina (sostituisce la filigrana dello stemma) |

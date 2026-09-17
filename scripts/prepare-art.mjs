@@ -12,6 +12,7 @@ const OUT = 'public/art';
 const JOBS = {
   'stadium': { type: 'photo', width: 2400 },
   'texture-parchment': { type: 'photo', width: 1600 },
+  'logo': { type: 'cutout', height: 700 },
   'logo-crest': { type: 'cutout', height: 600 },
   'hero-player': { type: 'cutout', height: 1200 },
   'trophy': { type: 'cutout', height: 500 },
@@ -148,6 +149,15 @@ async function run() {
       // Rimuove l'eventuale vecchia versione PNG
       await rm(path.join(OUT, `${name}.png`), { force: true });
       console.log(`✓ ${file} → ${OUT}/${name}.webp${holes ? ` (${holes} zone chiuse rimosse)` : ''}`);
+      // Il logo diventa anche la favicon del sito
+      if (name === 'logo') {
+        await sharp(cut)
+          .trim({ threshold: 1 })
+          .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toFile('src/app/icon.png');
+        console.log('  ↳ favicon aggiornata: src/app/icon.png');
+      }
     }
     done++;
   }

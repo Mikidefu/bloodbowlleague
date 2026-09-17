@@ -62,7 +62,7 @@ export default function PageHeader({ title, kicker, subtitle, icon, actions, ton
       >
         <Shards variant="header" />
         <span className={styles.ghost}>{title}</span>
-        {!hasArt && <Emblem size={220} className={styles.watermark} useCrestArt={false} />}
+        {!hasArt && <Emblem size={220} className={styles.watermark} />}
       </div>
 
       {hasArt && artSrc && <img src={artSrc} alt="" className={styles.art} aria-hidden="true" />}

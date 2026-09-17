@@ -52,7 +52,7 @@ Titoli sempre MAIUSCOLI. Un punto esclamativo è benvenuto ma non va aggiunto ai
 ## Componenti (`src/components/brand/`)
 
 - `<PageHeader title kicker? subtitle? icon? actions? tone?="blood|slate|navy" />`: testata di **ogni** pagina con fascia curva e titolo corsivo giallo. Sostituisce i vecchi `headerArea`/`pageTitle`.
-- `<Emblem size? topText? bottomText? initials? />`: stemma SVG della lega con anello a punte.
+- `<Emblem size? className? />`: logo della lega, **solo illustrazione** (`public/art/logo.webp`, generato con Midjourney e preparato con `npm run art`, che crea anche la favicon `src/app/icon.png`).
 
 ## Asset (`public/brand/`)
 
@@ -60,7 +60,6 @@ Titoli sempre MAIUSCOLI. Un punto esclamativo è benvenuto ma non va aggiunto ai
 |---|---|
 | `grain.svg` | Grana fine (tile 240px) per carta e pulsanti |
 | `grunge.svg` | Macchie da stampa (tile 900px) per fondi scuri o rossi |
-| `badge-ring.svg` | Stemma senza testo (favicon, filigrane). Copia in `src/app/icon.svg` |
 | `stars-bar.svg` | Barra navy con tre stelle sopra le tabelle |
 | `splatter-a.svg`, `splatter-b.svg` | Schizzi di sangue |
 | `spiked-ball.svg` | Pallone chiodato (icona o illustrazione) |
@@ -79,7 +78,7 @@ Titoli sempre MAIUSCOLI. Un punto esclamativo è benvenuto ma non va aggiunto ai
 - **Materiali**: `--bb-brass` (ottone), `--bb-gold-text` (testo dorato), `--rivet` (rivetto), `--shadow-deep`, `--ease-out`.
 - **Classi**: `.plate` (placca d'ottone con rivetti), `.gold-text` (titolo dorato in rilievo). `.card` ha la cornice in ottone con rivetti, `.panel-blood`/`.panel-slate` hanno il filetto d'ottone e profondità, i pulsanti sono metallici con riflesso al passaggio del mouse.
 - **Atmosfera globale**: vignettatura da stadio e grana di stampa sopra la pagina; i blocchi di `main` entrano con un'animazione morbida (disattivata con `prefers-reduced-motion`).
-- **Componenti**: `<Wordmark />` (lettere cesellate argento + nastro rosso), `<Emblem />` in ottone con cuore illustrabile, `<PageHeader />` con scena di stadio in duotono e personaggio scontornato automatico per sezione.
+- **Componenti**: `<Wordmark />` (lettere cesellate argento + nastro rosso), `<Emblem />` (logo illustrato), `<PageHeader />` con scena di stadio in duotono e personaggio scontornato automatico per sezione.
 - **Illustrazioni**: slot facoltativi definiti in `src/lib/art.ts`, caricati con `useArt()` (se il file manca resta la grafica vettoriale). Prompt e procedura in `docs/MIDJOURNEY.md`, preparazione file con `npm run art`.
 
 ## Linguaggio "editoriale gaming" (v3)
