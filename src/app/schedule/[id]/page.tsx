@@ -6,6 +6,8 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { displayMatchType } from '@/lib/matchTypes';
 import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
+import TapeStrip from '@/components/brand/TapeStrip';
 import styles from './MatchDetails.module.css';
 import { isTrue, type MatchDetails } from '@/lib/types';
 
@@ -27,6 +29,8 @@ const zeroAsEmpty = (value: NumericInput) => (value === 0 ? '' : value);
 // Il colore squadra arriva dal DB: lo passiamo come variabile CSS e lo usiamo solo come accento
 const teamAccent = (color: string | null | undefined) =>
   (color ? { '--team-color': color } : undefined) as React.CSSProperties | undefined;
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
   { field: 'td', label: 'TD', title: 'Touchdowns' },
@@ -199,11 +203,12 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const statusClass = (status: string) =>
       status === 'Dead' ? styles.statusDead : status === 'Injured' ? styles.statusInjured : '';
 
-  const renderTeamStats = (teamName: string, teamId: string, teamColor: string | null) => {
+  const renderTeamStats = (index: string, side: 'home' | 'away', teamName: string, teamId: string, teamColor: string | null) => {
     const isExpanded = !!expandedTeams[teamId];
+    const roster = playerStats.filter(p => p.team_id === teamId);
 
     return (
-        <section className={styles.teamReport} style={teamAccent(teamColor)}>
+        <section className={`${styles.teamReport} ${isExpanded ? styles.teamReportOpen : ''}`} style={teamAccent(teamColor)}>
           {/* Non un <button>: dentro il fieldset disabilitato deve restare apribile anche per i non-admin */}
           <div
               role="button"
@@ -218,11 +223,21 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               }}
               className={styles.teamToggle}
           >
-            {isExpanded ? <ChevronDown size={28} aria-hidden="true" /> : <ChevronRight size={28} aria-hidden="true" />}
-            <h3 className={styles.teamToggleTitle}>{teamName} {t.match.players}</h3>
+            <SectionTitle
+                index={index}
+                on="light"
+                micro={`${side === 'home' ? 'Home' : 'Away'} // ${pad(roster.length)} // ${t.match.postMatchReports}`}
+                title={`${teamName} ${t.match.players}`}
+                action={
+                  <span className={`chamfer ${styles.toggleIcon}`} aria-hidden="true">
+                    {isExpanded ? <ChevronDown size={28} /> : <ChevronRight size={28} />}
+                  </span>
+                }
+            />
           </div>
 
           {isExpanded && (
+              <div className={`offset-frame ${styles.tableFrame}`}>
               <div className={`table-container ${styles.tableContainer}`}>
                 <div className="stars-bar" aria-hidden="true" />
                 <div className={styles.tableScroll}>
@@ -238,7 +253,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                     </tr>
                     </thead>
                     <tbody>
-                    {playerStats.filter(p => p.team_id === teamId).map((stat) => (
+                    {roster.map((stat) => (
                         <tr key={stat.player_id} className={stat.status === 'Dead' ? styles.rowDead : undefined}>
 
                           {/* ICONA MAGLIETTA CON NUMERO */}
@@ -287,6 +302,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   </table>
                 </div>
               </div>
+              </div>
           )}
         </section>
     );
@@ -302,7 +318,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       cas: NumericInput,
       setCas: (v: NumericInput) => void,
   ) => (
-      <div className={styles.side} style={teamAccent(color)}>
+      <div className={`${styles.side} ${side === 'home' ? styles.sideHome : styles.sideAway}`} style={teamAccent(color)}>
+        <span className={styles.sideCode} aria-hidden="true">{side === 'home' ? 'HOME // H' : 'AWAY // A'}</span>
         <div className={styles.logoRing}>
           {logo ? (
               <img src={logo} alt={side === 'home' ? 'Home Logo' : 'Away Logo'} className={styles.logoImage} />
@@ -343,37 +360,58 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Per i non-admin tutti i campi sono in sola lettura */}
         <fieldset disabled={!canEdit} className={styles.fieldset}>
-          {/* TABELLONE DELLA PARTITA */}
-          <section className={`panel-slate ${styles.scoreboard}`}>
-            <span className={`splatter ${styles.splatter}`} aria-hidden="true" />
+          {/* TABELLONE DELLA PARTITA: versus con diagonale nei colori delle squadre */}
+          <section
+              className={`bleed ${styles.scoreboard}`}
+              style={{
+                ...(match.home_color ? { ['--home-color' as string]: match.home_color } : {}),
+                ...(match.away_color ? { ['--away-color' as string]: match.away_color } : {}),
+              }}
+          >
+            <div className={styles.tintHome} aria-hidden="true" />
+            <div className={styles.tintAway} aria-hidden="true" />
+            <div className={styles.splitLine} aria-hidden="true" />
+            <span className={`ghost-text ${styles.ghostVs}`} aria-hidden="true">VS</span>
 
-            <div className={styles.boardTop}>
-              <h2 className={`title-spike ${styles.matchdayTitle}`}>MATCHDAY</h2>
-              <div className={styles.kickoff}>
-                <label htmlFor="match-kickoff" className={styles.kickoffLabel}>KICK-OFF:</label>
-                <input
-                    id="match-kickoff"
-                    type="datetime-local"
-                    value={matchDate}
-                    onChange={(e) => setMatchDate(e.target.value)}
-                    className={styles.kickoffInput}
-                />
+            <div className={styles.inner}>
+              <div className={styles.boardTop}>
+                <span className={styles.boardMicro}>
+                  <i className={styles.microSquares} aria-hidden="true" />
+                  {`R${pad(match.round || 0)} // ${displayMatchType(match.match_type)} // KICK-OFF`}
+                </span>
+                <h2 className={styles.matchdayTitle}>MATCHDAY <span>{pad(match.round || 0)}</span></h2>
+                <div className={`chamfer ${styles.kickoff}`}>
+                  <label htmlFor="match-kickoff" className={styles.kickoffLabel}>KICK-OFF:</label>
+                  <input
+                      id="match-kickoff"
+                      type="datetime-local"
+                      value={matchDate}
+                      onChange={(e) => setMatchDate(e.target.value)}
+                      className={styles.kickoffInput}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className={styles.faceoff}>
-              {renderSide('home', match.home_name, match.home_logo, match.home_color, homeScore, setHomeScore, homeCas, setHomeCas)}
-              <div className={styles.vs} aria-hidden="true">VS</div>
-              {renderSide('away', match.away_name, match.away_logo, match.away_color, awayScore, setAwayScore, awayCas, setAwayCas)}
+              <div className={styles.faceoff}>
+                {renderSide('home', match.home_name, match.home_logo, match.home_color, homeScore, setHomeScore, homeCas, setHomeCas)}
+                <div className={styles.vs} aria-hidden="true">VS</div>
+                {renderSide('away', match.away_name, match.away_logo, match.away_color, awayScore, setAwayScore, awayCas, setAwayCas)}
+              </div>
             </div>
           </section>
 
-          {/* TABELLE DEI GIOCATORI */}
-          <h2 className={`title-spike ${styles.reportsTitle}`}>{t.match.postMatchReports}</h2>
-          <div className={styles.teamReports}>
-            {renderTeamStats(match.home_name, match.home_team_id, match.home_color)}
-            {renderTeamStats(match.away_name, match.away_team_id, match.away_color)}
+          <div className={`bleed ${styles.tapeWrap}`}>
+            <TapeStrip tone="mustard" angle={-1.5} moving={false} text={`${match.home_name} ✦ VS ✦ ${match.away_name}`} />
           </div>
+
+          {/* TABELLE DEI GIOCATORI */}
+          <section className={`bleed ${styles.reports}`}>
+            <span className={`ghost-text on-light ${styles.ghostReport}`} aria-hidden="true">Report</span>
+            <div className={`${styles.inner} ${styles.teamReports}`}>
+              {renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
+              {renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
+            </div>
+          </section>
         </fieldset>
       </div>
   );
