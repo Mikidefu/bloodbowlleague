@@ -4,7 +4,11 @@ import type { ReactNode } from 'react';
 import { Skull, Star, Trophy, Target } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
+import SectionTitle from '@/components/brand/SectionTitle';
+import Shards from '@/components/brand/Shards';
 import { useSeason } from '@/lib/SeasonContext';
+import { ART } from '@/lib/art';
+import { useArt } from '@/lib/useArt';
 import styles from './Stats.module.css';
 import type { PlayerLeader } from '@/lib/types';
 
@@ -24,11 +28,27 @@ const STAT_COLUMNS: { key: SortKey; label: string; value: (p: PlayerLeader) => n
     { key: 'spp', label: 'SPP', value: p => p.total_spp ?? 0 },
 ];
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
+type BoardConfig = {
+    players: PlayerLeader[];
+    sortKey: SortKey;
+    title: string;
+    icon: ReactNode;
+    index: string;
+    code: string;
+    ghost: string;
+    tone: 'light' | 'dark';
+    flip?: boolean;
+    withArt?: boolean;
+};
+
 export default function StatsPage() {
     const { t } = useLanguage();
     const { seasonQuery, seasonsLoading, selectedSeason } = useSeason();
     const [stats, setStats] = useState<PlayerStatsBoard | null>(null);
     const [loading, setLoading] = useState(true);
+    const hasStarArt = useArt(ART.starPlayer);
 
     // Statistiche della stagione consultata
     useEffect(() => {
@@ -50,94 +70,111 @@ export default function StatsPage() {
 
     if (loading) return <div className="loading-state">Scouting player stats...</div>;
 
-    // Tabellone Hall of Fame: capoclassifica in evidenza + tabella completa
-    const renderBoard = (
-        players: PlayerLeader[],
-        sortKey: SortKey,
-        title: string,
-        icon: ReactNode,
-        tone: 'slate' | 'blood',
-    ) => {
+    const seasonCode = `S${pad(selectedSeason?.number ?? 1)}`;
+
+    // Sezione numerata della Hall of Fame: capoclassifica in grande + inseguitori in righe smussate
+    const renderBoard = ({ players, sortKey, title, icon, index, code, ghost, tone, flip, withArt }: BoardConfig) => {
         const sortColumn = STAT_COLUMNS.find(c => c.key === sortKey)!;
         const leader = players[0];
+        const chasers = players.slice(1);
+        const isLight = tone === 'light';
+        const showArt = withArt && hasStarArt;
 
         return (
-            <section className={`${tone === 'blood' ? 'panel-blood' : 'panel-slate'} ${styles.board}`}>
-                <header className={styles.boardHeader}>
-                    <h2 className={`title-spike ${styles.boardTitle}`}>
-                        <span className={styles.boardIcon} aria-hidden="true">{icon}</span>
-                        <span>{title}</span>
-                    </h2>
-                    <span className={`tag ${styles.boardTag}`}>{sortColumn.label}</span>
-                </header>
+            <section
+                key={sortKey}
+                className={[
+                    'bleed',
+                    styles.band,
+                    isLight ? styles.bandLight : styles.bandDark,
+                    flip ? styles.flip : '',
+                    showArt ? styles.withArt : '',
+                ].filter(Boolean).join(' ')}
+            >
+                <div className={styles.bandBg} aria-hidden="true">
+                    {!isLight && <Shards variant="band" className={styles.bandShards} />}
+                    <span className={`ghost-text ${isLight ? 'on-light' : ''} ${styles.ghost}`}>{ghost}</span>
+                </div>
 
-                {leader && (
-                    <div className={styles.leader}>
-                        <span className={styles.leaderRank} aria-hidden="true">#1</span>
-                        <div className={styles.leaderInfo}>
-                            <h3 className={styles.leaderName}>{leader.name}</h3>
-                            <div className={styles.leaderTeam}>
-                                <span
-                                    className={styles.teamSwatch}
-                                    style={{ backgroundColor: leader.primary_color || undefined }}
-                                    aria-hidden="true"
-                                />
-                                {leader.team_name}
+                <div className={styles.inner}>
+                    <SectionTitle
+                        index={index}
+                        on={tone}
+                        align={flip ? 'right' : 'left'}
+                        micro={`${seasonCode} // ${code}`}
+                        title={title}
+                        action={<span className={`tag ${isLight ? 'tag-red' : ''} ${styles.boardTag}`}>{sortColumn.label}</span>}
+                    />
+
+                    <div className={styles.boardGrid}>
+                        {showArt && (
+                            <div className={styles.artCol} aria-hidden="true">
+                                <img src={ART.starPlayer} alt="" className={styles.starArt} />
                             </div>
+                        )}
+
+                        <div className={styles.featureCol}>
+                            {leader ? (
+                                <div className={`offset-frame ${styles.featureFrame}`}>
+                                    <div
+                                        className={`chamfer ${styles.feature}`}
+                                        style={{ ['--team' as string]: leader.primary_color || 'var(--bb-mustard)' }}
+                                    >
+                                        <span className={styles.featureNumeral} aria-hidden="true">01</span>
+                                        <span className={styles.featureIcon} aria-hidden="true">{icon}</span>
+
+                                        <span className={styles.featureMicro}>
+                                            <i className={styles.microBar} aria-hidden="true" />
+                                            {`#1 // ${code} // Leader`}
+                                        </span>
+
+                                        <div className={styles.featureBody}>
+                                            <span className={styles.featureTeam}>
+                                                <span className={styles.teamSwatch} aria-hidden="true" />
+                                                {leader.team_name}
+                                            </span>
+                                            <h3 className={styles.featureName}>{leader.name}</h3>
+                                        </div>
+
+                                        <div className={styles.featureValue}>
+                                            <strong>{sortColumn.value(leader)}</strong>
+                                            <span>{sortColumn.label}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className={styles.noData}>NO DATA</p>
+                            )}
                         </div>
-                        <div className={styles.leaderValue}>
-                            <strong>{sortColumn.value(leader)}</strong>
-                            <span>{sortColumn.label}</span>
+
+                        <div className={styles.rowsCol}>
+                            <div className={styles.rowsHead} aria-hidden="true">
+                                <span>#</span>
+                                <span>{t.stats.thPlayer}</span>
+                                <span>{sortColumn.label}</span>
+                            </div>
+                            {chasers.length > 0 ? (
+                                <ol className={styles.rows} start={2}>
+                                    {chasers.map((p, idx) => (
+                                        <li
+                                            key={p.id}
+                                            className={`chamfer ${styles.row}`}
+                                            style={{ ['--team' as string]: p.primary_color || 'var(--bb-slate-500)' }}
+                                        >
+                                            <span className={styles.rowPos}>{pad(idx + 2)}</span>
+                                            <span className={styles.rowText}>
+                                                <span className={styles.rowName}>{p.name}</span>
+                                                <span className={styles.rowTeam}>{p.team_name}</span>
+                                            </span>
+                                            <span className={styles.rowValue}>{sortColumn.value(p)}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                            ) : (
+                                <p className={styles.noData}>NO DATA</p>
+                            )}
                         </div>
                     </div>
-                )}
-
-                <div className={`table-container ${styles.tableContainer}`}>
-                    <table className={`data-table ${styles.table}`}>
-                        <thead>
-                        <tr>
-                            <th className={`num ${styles.rankCol}`}>#</th>
-                            <th>{t.stats.thPlayer}</th>
-                            {STAT_COLUMNS.map(col => (
-                                <th
-                                    key={col.key}
-                                    className={`num ${col.key === sortKey ? styles.sortHead : ''}`}
-                                >
-                                    {col.label}
-                                </th>
-                            ))}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {players.map((p, idx) => {
-                            const isTopPlayer = idx === 0;
-                            return (
-                                <tr key={p.id} className={isTopPlayer ? styles.topPlayerRow : undefined}>
-                                    <td className={`num ${styles.rankCell}`}>{idx + 1}</td>
-
-                                    {/* Nome Giocatore e Squadra */}
-                                    <td className={styles.playerCell}>
-                                        <span className={styles.playerName}>{p.name}</span>
-                                        <span className={styles.teamName}>{p.team_name}</span>
-                                    </td>
-
-                                    {/* Statistiche */}
-                                    {STAT_COLUMNS.map(col => (
-                                        <td
-                                            key={col.key}
-                                            className={`num ${col.key === sortKey ? styles.sortCell : styles.statCell}`}
-                                        >
-                                            {col.value(p)}
-                                        </td>
-                                    ))}
-                                </tr>
-                            );
-                        })}
-                        {players.length === 0 && (
-                            <tr><td colSpan={6} className={styles.noData}>NO DATA</td></tr>
-                        )}
-                        </tbody>
-                    </table>
                 </div>
             </section>
         );
@@ -152,11 +189,23 @@ export default function StatsPage() {
                     <p className={styles.emptyText}>{t.stats.noStats}</p>
                 </div>
             ) : (
-                <div className={styles.statsGrid}>
-                    {renderBoard(stats.scorers, 'td', t.stats.topScorers, <Star size={30} />, 'slate')}
-                    {renderBoard(stats.killers, 'cas', t.stats.topKillers, <Skull size={30} />, 'blood')}
-                    {renderBoard(stats.mvps, 'mvp', t.stats.mostMvps, <Trophy size={30} />, 'blood')}
-                    {renderBoard(stats.spp, 'spp', t.stats.topExperience, <Star size={30} />, 'slate')}
+                <div className={styles.bands}>
+                    {renderBoard({
+                        players: stats.scorers, sortKey: 'td', title: t.stats.topScorers, icon: <Star size={30} />,
+                        index: '01', code: 'Touchdowns', ghost: 'Scorers', tone: 'light', withArt: true,
+                    })}
+                    {renderBoard({
+                        players: stats.killers, sortKey: 'cas', title: t.stats.topKillers, icon: <Skull size={30} />,
+                        index: '02', code: 'Casualties', ghost: 'Killers', tone: 'dark', flip: true,
+                    })}
+                    {renderBoard({
+                        players: stats.mvps, sortKey: 'mvp', title: t.stats.mostMvps, icon: <Trophy size={30} />,
+                        index: '03', code: 'Most valuable', ghost: 'MVP', tone: 'light',
+                    })}
+                    {renderBoard({
+                        players: stats.spp, sortKey: 'spp', title: t.stats.topExperience, icon: <Star size={30} />,
+                        index: '04', code: 'Star player points', ghost: 'Legends', tone: 'dark', flip: true,
+                    })}
                 </div>
             )}
         </div>

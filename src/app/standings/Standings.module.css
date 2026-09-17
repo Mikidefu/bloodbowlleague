@@ -1,8 +1,16 @@
 /* src/app/standings/Standings.module.css */
-/* Classifica: tabella roster del Rulebook (.table-container > .stars-bar + .data-table) */
+/* Classifica: podio su fascia pergamena, nastro diagonale, tabella roster smussata su fascia scura */
 
 .page {
-  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  margin: 0 auto;
 }
 
 /* ================================================================== */
@@ -22,21 +30,417 @@
 }
 
 /* ================================================================== */
-/*  CONTENITORE E TABELLA                                              */
+/*  01 · PODIO (fascia pergamena con bordi irregolari)                 */
 /* ================================================================== */
+.podiumBand {
+  position: relative;
+  isolation: isolate;
+  margin-top: -1.5rem;
+  padding-top: 6rem;
+  padding-bottom: 7.5rem;
+  color: var(--bb-ink);
+}
+
+/* Fondo ritagliato: separato dal contenuto così il trofeo può sfondare senza essere tagliato */
+.podiumBg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background:
+    var(--tex-grain),
+    radial-gradient(ellipse 45% 60% at 50% 70%, rgba(234, 178, 42, 0.22), transparent 70%),
+    radial-gradient(ellipse 60% 70% at 90% 20%, rgba(200, 37, 44, 0.09), transparent 70%),
+    linear-gradient(180deg, #f3ecdf, #e5d8bf);
+  background-size: 200px, cover, cover, cover;
+  clip-path: polygon(0 4%, 18% 0, 47% 3.5%, 76% 0, 100% 2.5%, 100% 93%, 81% 100%, 52% 94%, 24% 99%, 0 94%);
+}
+
+/* Filetto rosso + quadratini in alto a sinistra */
+.podiumBg::before {
+  content: '';
+  position: absolute;
+  top: 3.6rem;
+  left: var(--gutter);
+  width: 60px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 36px 6px no-repeat,
+    linear-gradient(var(--bb-ink), var(--bb-ink)) 44px 0 / 6px 6px no-repeat,
+    linear-gradient(var(--bb-ink), var(--bb-ink)) 54px 0 / 6px 6px no-repeat;
+}
+
+/* Scheggia navy sul bordo destro */
+.podiumBg::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 34%;
+  height: 46%;
+  background: linear-gradient(135deg, rgba(37, 56, 111, 0.16), rgba(37, 56, 111, 0.04));
+  clip-path: polygon(62% 0, 100% 18%, 100% 100%, 0 100%);
+}
+
+.ghostPodium {
+  left: -2%;
+  bottom: 3.5rem;
+}
+
+.podium {
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 1.75rem;
+  margin-top: 4rem;
+}
+
+.podiumSlot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.podiumFrame {
+  position: relative;
+  filter: drop-shadow(0 22px 26px rgba(40, 24, 10, 0.35));
+}
+
+/* Cornice sfalsata color ottone dietro alla card smussata */
+.podiumFrame::before {
+  content: '';
+  position: absolute;
+  inset: 12px -12px -12px 12px;
+  z-index: -1;
+  border: 2px solid rgba(184, 137, 63, 0.55);
+  clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
+}
+
+.podiumCard {
+  --cut: 24px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-height: 300px;
+  padding: 1.4rem 1.5rem 1.5rem;
+  overflow: hidden;
+  color: var(--bb-parchment);
+  background:
+    linear-gradient(var(--team), var(--team)) 0 0 / 100% 6px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a 0%, #1b1e24 70%, #16191e 100%);
+  background-size: 100% 6px, 200px, cover;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.podiumCard:hover {
+  color: var(--bb-parchment);
+  transform: translate(-5px, -5px);
+}
+
+/* Taglio diagonale col colore squadra nell'angolo */
+.podiumCard::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  width: 55%;
+  height: 38%;
+  background: linear-gradient(135deg, transparent 0 49.5%, var(--team) 50%);
+  opacity: 0.35;
+}
+
+.slot1 .podiumCard {
+  min-height: 390px;
+  padding: 1.8rem 1.8rem 1.8rem;
+  background:
+    linear-gradient(var(--team), var(--team)) 0 0 / 100% 7px no-repeat,
+    var(--tex-grain),
+    radial-gradient(ellipse 80% 60% at 70% 10%, rgba(255, 180, 90, 0.25), transparent 70%),
+    linear-gradient(155deg, #d6343a 0%, #9a2226 45%, #3a0d0f 100%);
+  background-size: 100% 7px, 200px, cover, cover;
+}
+
+.slot1 .podiumFrame::before {
+  border-color: rgba(200, 37, 44, 0.6);
+}
+
+/* Numerale gigante a contorno */
+.podiumNumeral {
+  position: absolute;
+  z-index: -1;
+  right: -0.4rem;
+  top: -1.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 13rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 216, 151, 0.28);
+  pointer-events: none;
+}
+
+.slot1 .podiumNumeral {
+  font-size: 17rem;
+  top: -2.5rem;
+  -webkit-text-stroke-color: rgba(255, 224, 138, 0.45);
+}
+
+.podiumMicro {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.slot1 .podiumMicro {
+  color: #ffe08a;
+}
+
+.podiumBadge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  margin: 0.8rem 0 0.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--team);
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  box-shadow: 0 0 0 3px var(--team), 0 0 0 6px #d9b268, 0 10px 18px -6px rgba(0, 0, 0, 0.6);
+}
+
+.slot1 .podiumBadge {
+  width: 96px;
+  height: 96px;
+}
+
+.podiumBadge img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.podiumName {
+  max-width: 100%;
+  margin-top: auto;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.7rem;
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: #fff6e6;
+  overflow-wrap: break-word;
+}
+
+.slot1 .podiumName {
+  font-size: 2.4rem;
+  text-shadow: 3px 4px 0 rgba(58, 13, 15, 0.7);
+}
+
+.podiumCoach {
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--team);
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bb-slate-300);
+}
+
+.slot1 .podiumCoach {
+  color: rgba(255, 240, 220, 0.8);
+}
+
+.podiumPts {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  width: 100%;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed rgba(243, 216, 151, 0.3);
+}
+
+.podiumPts strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 3rem;
+  line-height: 0.85;
+  background: var(--bb-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.slot1 .podiumPts strong {
+  font-size: 4.2rem;
+}
+
+.podiumPts span {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+}
+
+/* Trofeo che sfonda il bordo superiore della card del capolista */
+.trophyWrap {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  height: 150px;
+  margin-bottom: -60px;
+  pointer-events: none;
+}
+
+.trophyArt {
+  height: 210px;
+  width: auto;
+  margin-top: -60px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.45));
+  animation: bb-trophy-in 1s var(--ease-out) backwards 0.3s;
+}
+
+.trophyFallback {
+  width: 150px;
+  height: 150px;
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.45));
+}
+
+@keyframes bb-trophy-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+}
+
+/* ================================================================== */
+/*  NASTRO TRA LE FASCE                                                */
+/* ================================================================== */
+.tapes {
+  position: relative;
+  z-index: 5;
+  overflow: hidden;
+  height: 96px;
+  margin-top: -64px;
+  margin-bottom: -44px;
+  padding-inline: 0;
+  pointer-events: none;
+}
+
+.tape {
+  position: absolute !important;
+  top: 28px;
+  left: 0;
+  right: 0;
+}
+
+/* ================================================================== */
+/*  02 · CLASSIFICA COMPLETA (fascia scura)                            */
+/* ================================================================== */
+.tableBand {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: -4rem;
+  padding-top: 6.5rem;
+  padding-bottom: 6rem;
+}
+
+.tableBg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background:
+    var(--tex-grain),
+    radial-gradient(ellipse 50% 45% at 85% 10%, rgba(52, 80, 154, 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 5% 95%, rgba(200, 37, 44, 0.22), transparent 70%),
+    linear-gradient(180deg, #121620 0%, #181c24 55%, #101318 100%);
+  background-size: 200px, cover, cover, cover;
+}
+
+/* Schegge angolari: rossa in basso a destra, navy in alto a sinistra */
+.tableBg::before,
+.tableBg::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.tableBg::before {
+  right: 0;
+  bottom: 0;
+  width: 42%;
+  height: 55%;
+  background: linear-gradient(135deg, rgba(200, 37, 44, 0.5), rgba(58, 13, 15, 0.15));
+  clip-path: polygon(70% 0, 100% 10%, 100% 100%, 0 100%, 38% 62%);
+}
+
+.tableBg::after {
+  left: 0;
+  top: 0;
+  width: 30%;
+  height: 40%;
+  background: linear-gradient(200deg, rgba(37, 56, 111, 0.55), rgba(26, 40, 82, 0.05));
+  clip-path: polygon(0 0, 100% 0, 45% 55%, 0 100%);
+}
+
+.ghostTable {
+  right: -3%;
+  top: 3.5rem;
+}
+
+.tableFrame {
+  margin-top: 0.5rem;
+}
+
+.tableFrame::before {
+  inset: 12px -12px -12px 12px;
+  clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
+}
+
 .tableContainer {
-  margin-top: 0;
+  --cut: 22px;
+  margin: 0;
+  background: var(--bb-paper);
 }
 
 /* La barra con le stelle resta ferma quando la tabella scorre in orizzontale */
 .tableContainer > :global(.stars-bar) {
   position: sticky;
   left: 0;
+  background-color: #16191e;
 }
 
 .table {
   min-width: 820px;
   font-size: 1.05rem;
+}
+
+.table th {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 
 .table tbody td {
@@ -57,6 +461,32 @@
 }
 
 /* ================================================================== */
+/*  ZONA PLAYOFF                                                       */
+/* ================================================================== */
+.table tbody tr.playoffRow td {
+  background: #f8eed3;
+}
+
+.table tbody tr.playoffRow:nth-child(even) td {
+  background: #f0e2bd;
+}
+
+.table tbody tr:hover td,
+.table tbody tr.playoffRow:hover td {
+  background: #f7dc9c;
+}
+
+/* Linea di taglio sotto l'ultima squadra qualificata */
+.table tbody tr.cutRow td {
+  border-bottom: 3px solid var(--bb-red);
+}
+
+.table tbody tr.cutRow + tr td {
+  border-top: 0;
+  box-shadow: inset 0 4px 0 -1px rgba(29, 26, 24, 0.12);
+}
+
+/* ================================================================== */
 /*  COLONNE FISSE: POSIZIONE + SQUADRA                                 */
 /* ================================================================== */
 .posCol,
@@ -64,14 +494,14 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  width: 3.5rem;
-  min-width: 3.5rem;
+  width: 3.75rem;
+  min-width: 3.75rem;
 }
 
 .teamCol,
 .teamCell {
   position: sticky;
-  left: 3.5rem;
+  left: 3.75rem;
   z-index: 2;
 }
 
@@ -87,12 +517,12 @@
 }
 
 /* Linguetta della zona playoff: filetto senape + filetto navy */
-.playoffRow .posCell {
+.table tbody tr.playoffRow .posCell {
   box-shadow: inset 5px 0 0 var(--bb-mustard), inset 9px 0 0 var(--bb-navy);
 }
 
 .table .posCell {
-  padding-left: 0.9rem;
+  padding-left: 1.1rem;
   padding-right: 0.5rem;
 }
 
@@ -100,12 +530,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  height: 2rem;
+  min-width: 2.1rem;
+  height: 2.1rem;
   padding: 0 0.35rem;
-  font-family: var(--font-slab);
+  font-family: var(--font-display);
+  font-style: italic;
   font-weight: 900;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   line-height: 1;
   color: var(--bb-ink-soft);
 }
@@ -114,14 +545,14 @@
 .posLeader {
   color: var(--bb-parchment);
   background: var(--bb-navy);
-  border-radius: var(--radius);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
   box-shadow: inset 0 -3px 0 var(--bb-navy-deep);
-  transform: skewX(-8deg);
 }
 
 .posLeader {
-  background: var(--bb-red);
-  box-shadow: inset 0 -3px 0 var(--bb-blood-950);
+  color: #2a1a05;
+  background: var(--bb-gold-text);
+  box-shadow: inset 0 -3px 0 #8a600c;
 }
 
 /* ================================================================== */
@@ -217,9 +648,10 @@
 }
 
 .table td.ptsCell {
-  font-family: var(--font-slab);
+  font-family: var(--font-display);
+  font-style: italic;
   font-weight: 900;
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   line-height: 1;
   color: var(--bb-blood-700);
 }
@@ -228,33 +660,204 @@
 /*  LEGENDA                                                            */
 /* ================================================================== */
 .legend {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: -0.5rem;
+  margin-top: 2rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.7rem;
   color: var(--bb-parchment);
+  background: rgba(10, 12, 18, 0.6);
+  border-left: 4px solid var(--bb-red);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
 }
 
 .legendMarker {
   flex: none;
   width: 22px;
   height: 22px;
-  background: var(--bb-paper);
+  background: #f8eed3;
   box-shadow: inset 5px 0 0 var(--bb-mustard), inset 9px 0 0 var(--bb-navy);
 }
 
 .legendText {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 /* ================================================================== */
-/*  MOBILE                                                             */
+/*  RESPONSIVE                                                         */
 /* ================================================================== */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
+  .podium {
+    gap: 1.25rem;
+  }
+
+  .podiumCard {
+    padding: 1.2rem 1.1rem 1.2rem;
+  }
+
+  .slot1 .podiumCard {
+    padding: 1.4rem 1.2rem;
+  }
+
+  .podiumName {
+    font-size: 1.35rem;
+  }
+
+  .slot1 .podiumName {
+    font-size: 1.8rem;
+  }
+
+  .podiumNumeral {
+    font-size: 10rem;
+  }
+
+  .slot1 .podiumNumeral {
+    font-size: 13rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .podiumBand {
+    margin-top: -2rem;
+    padding-top: 4.5rem;
+    padding-bottom: 6rem;
+  }
+
+  .podiumBg::before {
+    top: 2.4rem;
+  }
+
+  /* Capolista a tutta larghezza, 2° e 3° affiancati */
+  .podium {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 1.5rem 1rem;
+  }
+
+  .slot1 {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .podiumSlot:not(.slot1) .podiumFrame,
+  .podiumSlot:not(.slot1) .podiumCard {
+    height: 100%;
+  }
+
+  .podiumFrame::before {
+    inset: 8px -8px -8px 8px;
+  }
+
+  .podiumCard {
+    --cut: 16px;
+    min-height: 0;
+    padding: 1rem 0.9rem 1rem;
+  }
+
+  .slot1 .podiumCard {
+    min-height: 0;
+    padding: 1.3rem 1.2rem 1.2rem;
+  }
+
+  .podiumMicro {
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+  }
+
+  .podiumBadge {
+    width: 54px;
+    height: 54px;
+    margin: 0.5rem 0 0.35rem;
+  }
+
+  .slot1 .podiumBadge {
+    width: 76px;
+    height: 76px;
+  }
+
+  .podiumName {
+    font-size: 1.15rem;
+  }
+
+  .slot1 .podiumName {
+    font-size: 1.9rem;
+  }
+
+  .podiumCoach {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+  }
+
+  .podiumPts strong {
+    font-size: 2.2rem;
+  }
+
+  .slot1 .podiumPts strong {
+    font-size: 3.2rem;
+  }
+
+  .podiumNumeral {
+    font-size: 7rem;
+    top: -0.6rem;
+  }
+
+  .slot1 .podiumNumeral {
+    font-size: 11rem;
+    top: -1.6rem;
+  }
+
+  .trophyWrap {
+    height: 110px;
+    margin-bottom: -46px;
+  }
+
+  .trophyArt {
+    height: 150px;
+    margin-top: -40px;
+  }
+
+  .trophyFallback {
+    width: 110px;
+    height: 110px;
+  }
+
+  .ghostPodium {
+    display: none;
+  }
+
+  .tapes {
+    height: 80px;
+    margin-top: -52px;
+    margin-bottom: -36px;
+  }
+
+  .tape {
+    top: 22px;
+  }
+
+  .tableBand {
+    margin-bottom: -3rem;
+    padding-top: 5rem;
+    padding-bottom: 4.5rem;
+  }
+
+  .ghostTable {
+    top: 2rem;
+  }
+
+  .tableFrame::before {
+    inset: 8px -8px -8px 8px;
+  }
+
+  .tableContainer {
+    --cut: 14px;
+  }
+
   .table {
     min-width: 720px;
     font-size: 0.98rem;
@@ -298,7 +901,7 @@
   }
 
   .table td.ptsCell {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
 
   .legend {
@@ -306,6 +909,13 @@
   }
 
   .legendText {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trophyArt {
+    animation: none;
   }
 }
