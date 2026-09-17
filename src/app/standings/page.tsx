@@ -3,8 +3,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trophy, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import PageHeader from '@/components/brand/PageHeader';
 import styles from './Standings.module.css';
 import type { TeamStanding } from '@/lib/standings';
+
+const diffClass = (value: number) =>
+    value > 0 ? styles.diffPositive : value < 0 ? styles.diffNegative : '';
 
 export default function StandingsPage() {
     const { t } = useLanguage();
@@ -24,41 +28,36 @@ export default function StandingsPage() {
             });
     }, []);
 
-    if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem', color: '#fff' }}>Computing league standings...</div>;
+    if (loading) return <div className="loading-state">Computing league standings...</div>;
 
     return (
-        <div>
-            {/* HEADER PAGE */}
-            <div className={styles.headerArea}>
-                <h1 className={styles.pageTitle}>
-                    <Trophy size={48} color="var(--color-gold)" style={{ filter: 'drop-shadow(3px 3px 0 #111)' }} />
-                    {t.standings.title}
-                </h1>
-            </div>
+        <div className={styles.page}>
+            <PageHeader title={t.standings.title} icon={<Trophy size={44} />} />
 
-            <div className={styles.leaderboardCard}>
-                {standings.length === 0 ? (
-                    <p style={{ textAlign: 'center', fontFamily: 'var(--font-typewriter)', color: '#aaa', padding: '3rem' }}>
-                        {t.standings.noStandings}
-                    </p>
-                ) : (
-                    <div className={styles.tableWrapper}>
-                        <table className={styles.standingsTable}>
-                            <thead className={styles.stickyHeader}>
+            {standings.length === 0 ? (
+                <div className={`card ${styles.emptyCard}`}>
+                    <p className={styles.emptyText}>{t.standings.noStandings}</p>
+                </div>
+            ) : (
+                <>
+                    <div className={`table-container ${styles.tableContainer}`}>
+                        <div className="stars-bar" aria-hidden="true" />
+                        <table className={`data-table ${styles.table}`}>
+                            <thead>
                             <tr>
-                                <th style={{ width: '60px' }}>{t.standings.pos}</th>
+                                <th className={`num ${styles.posCol}`}>{t.standings.pos}</th>
                                 <th className={styles.teamCol}>{t.standings.team}</th>
-                                <th title="Played">P</th>
-                                <th title="Wins">W</th>
-                                <th title="Draws">D</th>
-                                <th title="Losses">L</th>
-                                <th title="Touchdowns For">TD+</th>
-                                <th title="Touchdowns Against">TD-</th>
-                                <th title="Touchdown Difference">TDD</th>
-                                <th title="Casualties Inflicted">CAS+</th>
-                                <th title="Casualties Suffered">CAS-</th>
-                                <th title="Casualty Difference">CASD</th>
-                                <th style={{ color: 'var(--color-blood-bright)' }}>{t.standings.pts}</th>
+                                <th className="num" title="Played">P</th>
+                                <th className="num" title="Wins">W</th>
+                                <th className="num" title="Draws">D</th>
+                                <th className="num" title="Losses">L</th>
+                                <th className={`num ${styles.groupStart}`} title="Touchdowns For">TD+</th>
+                                <th className="num" title="Touchdowns Against">TD-</th>
+                                <th className="num" title="Touchdown Difference">TDD</th>
+                                <th className={`num ${styles.groupStart}`} title="Casualties Inflicted">CAS+</th>
+                                <th className="num" title="Casualties Suffered">CAS-</th>
+                                <th className="num" title="Casualty Difference">CASD</th>
+                                <th className={`num ${styles.ptsHead}`}>{t.standings.pts}</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -68,64 +67,70 @@ export default function StandingsPage() {
                                 return (
                                     <tr
                                         key={team.id}
-                                        className={`${styles.teamRow} ${isPlayoffZone ? styles.playoffRow : ''}`}
+                                        className={isPlayoffZone ? styles.playoffRow : undefined}
                                     >
                                         {/* POSIZIONE */}
-                                        <td className={`${styles.posCell} ${isPlayoffZone ? styles.playoffPos : ''}`}>
-                                            {index + 1}
+                                        <td className={`num ${styles.posCell}`}>
+                                            <span
+                                                className={`${styles.posBadge} ${isPlayoffZone ? (index === 0 ? styles.posLeader : styles.posPlayoff) : ''}`}
+                                            >
+                                                {index + 1}
+                                            </span>
                                         </td>
 
                                         {/* SQUADRA (Logo + Nome) */}
-                                        <td>
+                                        <td className={styles.teamCell}>
                                             <Link href={`/teams/${team.id}`} className={styles.teamLink}>
-                                                <div className={styles.logoWrapper} style={{ borderColor: team.primary_color || '#333' }}>
+                                                <span
+                                                    className={styles.logoRing}
+                                                    style={{ borderColor: team.primary_color || undefined }}
+                                                >
                                                     {team.logo_url ? (
                                                         <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
                                                     ) : (
-                                                        <ShieldAlert size={24} color={team.primary_color || '#fff'} />
+                                                        <ShieldAlert size={20} color={team.primary_color || 'currentColor'} />
                                                     )}
-                                                </div>
-                                                {team.name}
+                                                </span>
+                                                <span className={styles.teamName}>{team.name}</span>
                                             </Link>
                                         </td>
 
-                                        {/* STATISTICHE (Partite) - Aggiunti Fallback Sicuri */}
-                                        <td className={styles.statCell} style={{ color: '#fff' }}>{team.played ?? 0}</td>
-                                        <td className={styles.statCell}>{team.wins}</td>
-                                        <td className={styles.statCell}>{team.draws}</td>
-                                        <td className={styles.statCell}>{team.losses}</td>
+                                        {/* STATISTICHE (Partite) */}
+                                        <td className="num">{team.played ?? 0}</td>
+                                        <td className="num">{team.wins}</td>
+                                        <td className="num">{team.draws}</td>
+                                        <td className="num">{team.losses}</td>
 
                                         {/* STATISTICHE (Touchdown) */}
-                                        <td className={styles.statCell}>{team.td_for ?? 0}</td>
-                                        <td className={styles.statCell}>{team.td_against ?? 0}</td>
-                                        <td className={`${styles.statCell} ${team.td_diff > 0 ? styles.statDiffPositive : team.td_diff < 0 ? styles.statDiffNegative : ''}`}>
+                                        <td className={`num ${styles.groupStart}`}>{team.td_for ?? 0}</td>
+                                        <td className="num">{team.td_against ?? 0}</td>
+                                        <td className={`num ${styles.diffCell} ${diffClass(team.td_diff)}`}>
                                             {team.td_diff > 0 ? `+${team.td_diff}` : (team.td_diff ?? 0)}
                                         </td>
 
                                         {/* STATISTICHE (Casualties) */}
-                                        <td className={styles.statCell}>{team.cas_for ?? 0}</td>
-                                        <td className={styles.statCell}>{team.cas_against ?? 0}</td>
-                                        <td className={`${styles.statCell} ${team.cas_diff > 0 ? styles.statDiffPositive : team.cas_diff < 0 ? styles.statDiffNegative : ''}`}>
+                                        <td className={`num ${styles.groupStart}`}>{team.cas_for ?? 0}</td>
+                                        <td className="num">{team.cas_against ?? 0}</td>
+                                        <td className={`num ${styles.diffCell} ${diffClass(team.cas_diff)}`}>
                                             {team.cas_diff > 0 ? `+${team.cas_diff}` : (team.cas_diff ?? 0)}
                                         </td>
 
                                         {/* PUNTI */}
-                                        <td className={styles.ptsCell}>{team.points ?? 0}</td>
+                                        <td className={`num ${styles.ptsCell}`}>{team.points ?? 0}</td>
                                     </tr>
                                 );
                             })}
                             </tbody>
                         </table>
-
-                        {/* LEGENDA PLAYOFF */}
-                        <div className={styles.legendArea}>
-                            <div className={styles.legendBox}></div>
-                            <span className={styles.legendText}>{t.standings.qualifyNote}</span>
-                        </div>
-
                     </div>
-                )}
-            </div>
+
+                    {/* LEGENDA PLAYOFF */}
+                    <div className={styles.legend}>
+                        <span className={styles.legendMarker} aria-hidden="true" />
+                        <span className={styles.legendText}>{t.standings.qualifyNote}</span>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

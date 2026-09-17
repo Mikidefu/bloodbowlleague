@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Book, ChevronDown, Search } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import PageHeader from '@/components/brand/PageHeader';
 import styles from './Skills.module.css';
 import type { Skill } from '@/lib/types';
 
@@ -10,6 +11,9 @@ export default function SkillsPage() {
     const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // --- FILTRO CATEGORIA (null = tutte) ---
+    const [activeType, setActiveType] = useState<string | null>(null);
 
     // --- AUTOCOMPLETE STATE ---
     const [searchInput, setSearchInput] = useState('');
@@ -55,6 +59,7 @@ export default function SkillsPage() {
     const handleSelectSuggestion = (skillId: string) => {
         setSearchInput('');
         setSuggestions([]);
+        setActiveType(null); // Mostra tutte le categorie così la skill è visibile
         setExpandedId(skillId); // Espande l'abilità
 
         // Scorri dolcemente fino all'elemento
@@ -72,7 +77,7 @@ export default function SkillsPage() {
     };
     // ---------------------------
 
-    if (loading) return <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1.5rem', textAlign: 'center', marginTop: '4rem' }}>Consulting the Playbook...</div>;
+    if (loading) return <div className="loading-state">Consulting the Playbook...</div>;
 
     // Raggruppiamo le skill per tipo
     const groupedSkills = skills.reduce((acc: Record<string, Skill[]>, skill) => {
@@ -81,64 +86,91 @@ export default function SkillsPage() {
         return acc;
     }, {});
 
+    const skillTypes = Object.keys(groupedSkills);
+    const visibleTypes = activeType ? skillTypes.filter(type => type === activeType) : skillTypes;
+
     const toggleSkill = (id: string) => {
         setExpandedId(expandedId === id ? null : id);
     };
 
     return (
-        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
+        <div className={styles.page}>
 
-            {/* HEADER */}
-            <div className={styles.headerArea}>
-                <Book size={48} color="var(--color-blood-bright)" />
-                <h1 className={styles.pageTitle}>SKILLS & ABILITIES</h1>
-            </div>
+            <PageHeader title="SKILLS & ABILITIES" icon={<Book size={44} />} tone="navy" />
 
-            {/* BARRA DI RICERCA AUTOCOMPLETE */}
-            <div className={styles.searchContainer}>
-                <label className={styles.searchLabel}>QUICK SEARCH PLAYBOOK</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Search size={28} color="var(--color-ink)" style={{ position: 'absolute', left: '15px' }} />
-                    <input
-                        type="text"
-                        value={searchInput}
-                        onChange={e => handleSearchChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className={styles.searchInput}
-                        style={{ paddingLeft: '55px' }}
-                        placeholder="Type a skill name..."
-                        autoComplete="off"
-                    />
+            {/* BARRA DI RICERCA AUTOCOMPLETE + FILTRI */}
+            <section className={`panel-slate ${styles.toolbar}`}>
+                <div className={styles.searchContainer}>
+                    <label htmlFor="skill-search" className={styles.searchLabel}>QUICK SEARCH PLAYBOOK</label>
+                    <div className={styles.searchField}>
+                        <Search size={22} className={styles.searchIcon} aria-hidden="true" />
+                        <input
+                            id="skill-search"
+                            type="text"
+                            value={searchInput}
+                            onChange={e => handleSearchChange(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className={styles.searchInput}
+                            placeholder="Type a skill name..."
+                            autoComplete="off"
+                        />
+                    </div>
+
+                    {/* TENDINA SUGGERIMENTI */}
+                    {suggestions.length > 0 && (
+                        <ul className={styles.suggestionsList}>
+                            {suggestions.map(skill => (
+                                <li
+                                    key={skill.id}
+                                    className={styles.suggestionItem}
+                                    onClick={() => handleSelectSuggestion(skill.id)}
+                                >
+                                    <span className={styles.suggestionName}>
+                                        {skill.name.charAt(0).toUpperCase() + skill.name.slice(1).toLowerCase()}
+                                    </span>
+                                    <span className={styles.suggestionType}>{skill.type}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
 
-                {/* TENDINA SUGGERIMENTI */}
-                {suggestions.length > 0 && (
-                    <ul className={styles.suggestionsList}>
-                        {suggestions.map(skill => (
-                            <li
-                                key={skill.id}
-                                className={styles.suggestionItem}
-                                onClick={() => handleSelectSuggestion(skill.id)}
+                {/* FILTRI CATEGORIA */}
+                {skillTypes.length > 1 && (
+                    <div className={styles.filters} role="group" aria-label="Skill categories">
+                        <button
+                            type="button"
+                            className={`btn ${activeType === null ? 'btn-primary' : ''} ${styles.filterBtn}`}
+                            aria-pressed={activeType === null}
+                            onClick={() => setActiveType(null)}
+                        >
+                            <span>ALL</span>
+                        </button>
+                        {skillTypes.map(type => (
+                            <button
+                                key={type}
+                                type="button"
+                                className={`btn ${activeType === type ? 'btn-primary' : ''} ${styles.filterBtn}`}
+                                aria-pressed={activeType === type}
+                                onClick={() => setActiveType(activeType === type ? null : type)}
                             >
-                                <span className={styles.suggestionName}>
-                                    {skill.name.charAt(0).toUpperCase() + skill.name.slice(1).toLowerCase()}
+                                <span>
+                                    {type} <small className={styles.filterCount}>{groupedSkills[type].length}</small>
                                 </span>
-                                <span className={styles.suggestionType}>{skill.type}</span>
-                            </li>
+                            </button>
                         ))}
-                    </ul>
+                    </div>
                 )}
-            </div>
+            </section>
 
             {/* CICLO DELLE CATEGORIE */}
-            {Object.keys(groupedSkills).map(type => (
-                <div key={type} className={styles.categoryBlock}>
+            {visibleTypes.map(type => (
+                <section key={type} className={`card ${styles.categoryBlock}`}>
 
-                    {/* TITOLO CATEGORIA (Effetto Nastro) */}
-                    <div className={styles.categoryTitleWrapper}>
-                        <div className={styles.categoryTitle}>
-                            <span>{type}</span>
-                        </div>
+                    {/* TITOLO CATEGORIA */}
+                    <div className={styles.categoryTitleRow}>
+                        <h2 className={`title-slab ${styles.categoryTitle}`}>{type}</h2>
+                        <span className={`tag tag-navy ${styles.categoryCount}`}>{groupedSkills[type].length}</span>
                     </div>
 
                     {/* LISTA SKILL */}
@@ -147,33 +179,37 @@ export default function SkillsPage() {
                             const isExpanded = expandedId === skill.id;
 
                             return (
-                                <div
+                                <article
                                     id={`skill-${skill.id}`} // Ancora HTML per l'autoscroll
                                     key={skill.id}
-                                    className={`${styles.skillCard} ${isExpanded ? styles.expanded : ''}`}
+                                    className={`${styles.skillEntry} ${isExpanded ? styles.expanded : ''}`}
                                 >
                                     {/* INTESTAZIONE CLICCABILE */}
-                                    <div
-                                        className={styles.skillHeader}
-                                        onClick={() => toggleSkill(skill.id)}
-                                    >
-                                        <div className={styles.skillNameWrapper}>
-                                            <h3 className={styles.skillName}>
-                                                {skill.name}
-                                            </h3>
-                                            {skill.level && (
-                                                <span className={styles.skillLevel}>
-                                                    ({skill.level})
+                                    <h3 className={styles.skillHeading}>
+                                        <button
+                                            type="button"
+                                            className={styles.skillHeader}
+                                            onClick={() => toggleSkill(skill.id)}
+                                            aria-expanded={isExpanded}
+                                        >
+                                            <span className={styles.skillNameWrapper}>
+                                                <span className={styles.skillName}>
+                                                    {skill.name}
                                                 </span>
-                                            )}
-                                        </div>
+                                                {skill.level && (
+                                                    <span className={styles.skillLevel}>
+                                                        ({skill.level})
+                                                    </span>
+                                                )}
+                                            </span>
 
-                                        <div className={styles.iconWrapper}>
-                                            <ChevronDown size={28} />
-                                        </div>
-                                    </div>
+                                            <span className={styles.iconWrapper} aria-hidden="true">
+                                                <ChevronDown size={24} />
+                                            </span>
+                                        </button>
+                                    </h3>
 
-                                    {/* CONTENUTO ESPANSO (Macchina da scrivere su griglia) */}
+                                    {/* CONTENUTO ESPANSO */}
                                     {isExpanded && (
                                         <div className={styles.skillContent}>
                                             <p className={styles.description}>
@@ -181,11 +217,11 @@ export default function SkillsPage() {
                                             </p>
                                         </div>
                                     )}
-                                </div>
+                                </article>
                             );
                         })}
                     </div>
-                </div>
+                </section>
             ))}
         </div>
     );

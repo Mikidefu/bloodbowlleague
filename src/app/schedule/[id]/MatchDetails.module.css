@@ -1,381 +1,418 @@
 /* src/app/schedule/[id]/MatchDetails.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&display=swap');
 
-.reportHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    border-bottom: 4px solid var(--color-ink);
-    padding-bottom: 1rem;
+.page {
+  padding-bottom: 2rem;
 }
 
-/* CONTENITORE PRINCIPALE DELLA GRAFICA MATCHDAY */
-.matchdayGraphic {
-    position: relative;
-    width: 100%;
-    background-color: #e5e0d8;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 4px var(--color-ink);
-    margin-bottom: 3rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 4rem 2rem;
-    border-radius: 2px;
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-/* Texture "Vissuto/Sporco" sopra a tutto */
-.grungeOverlay {
-    position: absolute;
-    inset: 0;
-    background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.15"/%3E%3C/svg%3E');
-    mix-blend-mode: multiply;
-    pointer-events: none;
-    z-index: 25;
+/* ================================================================== */
+/*  TABELLONE                                                          */
+/* ================================================================== */
+.scoreboard {
+  overflow: hidden;
+  margin-bottom: 3rem;
+  padding: 2rem 2rem 2.25rem;
+  border-top: 6px solid var(--bb-mustard);
 }
 
-/* ========================================= */
-/* FORME GEOMETRICHE STRAPPATE (Background)  */
-/* ========================================= */
-.shard {
-    position: absolute;
-    z-index: 1;
-    filter: url(#rough-edges) drop-shadow(5px 5px 10px rgba(0,0,0,0.4));
+.splatter {
+  top: -18px;
+  right: 8%;
+  transform: rotate(25deg);
+  opacity: 0.5;
 }
 
-.shardHomeDark {
-    top: 40%;
-    left: -5%;
-    width: 55%;
-    height: 65%;
-    background: #1a1a1a;
-    clip-path: polygon(0 0, 100% 30%, 80% 100%, 0 100%);
-}
-.shardHomeColor {
-    bottom: -15%;
-    left: -10%;
-    width: 65%;
-    height: 60%;
-    clip-path: polygon(0 20%, 85% 0, 100% 100%, 0 100%);
-    opacity: 0.9;
+.boardTop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  text-align: center;
 }
 
-.shardAwayDark {
-    top: -15%;
-    right: -5%;
-    width: 50%;
-    height: 55%;
-    background: #1a1a1a;
-    clip-path: polygon(20% 0, 100% 0, 100% 100%, 0 80%);
-}
-.shardAwayColor {
-    bottom: -5%;
-    right: -10%;
-    width: 50%;
-    height: 65%;
-    clip-path: polygon(100% 0, 0 100%, 100% 100%);
-    opacity: 0.9;
+.matchdayTitle {
+  font-size: clamp(2.6rem, 8vw, 5rem);
+  transform: rotate(-2deg);
 }
 
-/* ========================================= */
-/* TITOLO "MATCHDAY"                         */
-/* ========================================= */
-.titleContainer {
-    position: relative;
-    z-index: 10;
-    text-align: center;
-    margin-bottom: 2rem;
-    transform: rotate(-2deg);
-}
-.leagueTitle {
-    background: var(--color-blood-bright);
-    color: #fff;
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    font-size: 1.2rem;
-    padding: 0.2rem 1.5rem;
-    display: inline-block;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 0.5rem;
-    box-shadow: 3px 3px 0 #111;
-}
-.matchdayText {
-    font-family: 'Anton', sans-serif;
-    font-size: 7.5rem;
-    color: #111;
-    line-height: 0.9;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 4px 4px 0 rgba(255,255,255,0.8);
+.kickoff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
 }
 
-/* ========================================= */
-/* LOGHI E NOMI                               */
-/* ========================================= */
-.showcaseArea {
-    position: relative;
-    z-index: 15;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4rem;
-    width: 100%;
-    margin-bottom: 4rem;
+.kickoffLabel {
+  font-size: 1.1rem;
+  color: var(--bb-mustard);
 }
 
-.teamSide {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 40%;
+.kickoffInput {
+  min-height: 46px;
+  max-width: 100%;
 }
 
-.cursiveName {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%) rotate(-10deg);
-    font-family: 'Dancing Script', cursive;
-    font-size: 8rem;
-    white-space: nowrap;
-    opacity: 0.08;
-    z-index: -1;
-    pointer-events: none;
+.faceoff {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
 }
-.cursiveHome { right: -20%; }
-.cursiveAway { left: -20%; }
 
-.logoBox {
-    width: 150px;
-    height: 150px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    box-shadow: 5px 5px 0 #111, 10px 10px 20px rgba(0,0,0,0.4);
-    transition: transform 0.3s ease;
-    border: 3px solid #111;
-    position: relative;
-    z-index: 15;
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 1.5rem 1rem 1.25rem;
+  background: rgba(22, 25, 30, 0.4);
+  border-top: 6px solid var(--team-color, var(--bb-tan));
+  border-radius: var(--radius);
 }
-.logoBoxHome { transform: rotate(-3deg); }
-.logoBoxAway { transform: rotate(2deg); }
 
-.logoBox:hover {
-    transform: translateY(-5px) scale(1.05);
+.logoRing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  padding: 14px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--bb-paper);
+  border: 6px solid var(--team-color, var(--bb-tan));
+  box-shadow: 0 0 0 3px var(--bb-slate-950), 0 10px 20px -8px rgba(0, 0, 0, 0.7);
 }
+
 .logoImage {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.readableTeamName {
-    font-family: 'Anton', sans-serif;
-    font-size: 2.2rem;
-    color: var(--color-ink);
-    background: var(--color-paper);
-    padding: 0.3rem 1.5rem;
-    border: 3px solid var(--color-ink);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.6);
-    text-transform: uppercase;
-    text-align: center;
-    margin-top: -1.5rem;
-    z-index: 20;
-    line-height: 1.1;
-    transform: rotate(-2deg);
+.logoFallback {
+  flex: none;
+  color: var(--bb-slate-700);
 }
 
-.teamSide:nth-child(3) .readableTeamName {
-    transform: rotate(3deg);
+.teamName {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 2.6vw, 2rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
 }
 
-.vsBadge {
-    font-family: 'Anton', sans-serif;
-    font-size: 2.5rem;
-    color: #111;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #fff;
-    padding: 1rem;
-    border-radius: 50%;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 3px 3px 0 #111;
-    transform: rotate(-10deg);
-    z-index: 20;
+.scoreItem,
+.casItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* ========================================= */
-/* AREA PUNTEGGI                             */
-/* ========================================= */
-.scoresPanel {
-    position: relative;
-    z-index: 20;
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 800px;
-    background: #fff;
-    padding: 1.5rem 2rem;
-    box-shadow: 6px 6px 0 #111;
-    border: 3px solid #111;
-    transform: rotate(1deg);
+.casItem {
+  flex-direction: row;
+  gap: 0.5rem;
 }
 
-.scoreGroup {
-    display: flex;
-    gap: 2rem;
-    flex: 1;
-    justify-content: center;
+.scoreLabel {
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--bb-slate-300);
 }
 
-.statItem {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+/* Numeri enormi: specificità alta per superare gli stili globali degli input */
+.scoreboard .faceoff .side input.scoreInput[type='number'],
+.scoreboard .faceoff .side input.casInput[type='number'] {
+  padding: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-parchment);
+  -webkit-text-fill-color: var(--bb-parchment);
+  opacity: 1;
+  background: transparent;
+  border: 0;
+  border-bottom: 4px solid rgba(239, 229, 210, 0.3);
+  border-radius: 0;
+  box-shadow: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
-.label {
-    font-family: 'Anton', sans-serif;
-    font-size: 1.2rem;
-    color: #555;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-    letter-spacing: 1px;
+.scoreboard .faceoff .side input.scoreInput[type='number'] {
+  width: 100%;
+  max-width: 150px;
+  font-size: clamp(4rem, 11vw, 7rem);
+  border-bottom-color: var(--team-color, var(--bb-mustard));
 }
 
-.scoreInput, .casInput {
-    font-family: 'Anton', sans-serif;
-    text-align: center;
-    background: transparent;
-    border: none;
-    border-bottom: 4px solid #111;
-    transition: all 0.2s ease;
-    padding: 0;
+.scoreboard .faceoff .side input.casInput[type='number'] {
+  width: 72px;
+  min-height: 44px;
+  font-size: 2rem;
+  color: var(--bb-slate-300);
+  -webkit-text-fill-color: var(--bb-slate-300);
 }
 
-.scoreInput {
-    font-size: 5rem;
-    width: 100px;
-    color: #111;
+.scoreboard .faceoff .side input.scoreInput[type='number']:focus,
+.scoreboard .faceoff .side input.casInput[type='number']:focus {
+  border-bottom-color: var(--bb-mustard);
 }
 
-.casInput {
-    font-size: 3.5rem;
-    width: 80px;
-    color: #666;
+.scoreInput::placeholder,
+.casInput::placeholder {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
 }
 
-.scoreInput:focus, .casInput:focus {
-    outline: none;
-    border-bottom-color: var(--color-blood-bright);
+.scoreInput::-webkit-inner-spin-button,
+.scoreInput::-webkit-outer-spin-button,
+.casInput::-webkit-inner-spin-button,
+.casInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-/* ========================================= */
-/* TABELLE ROSTER - COMPLETAMENTE RIVISITATE */
-/* ========================================= */
-.folderTab {
-    background: var(--color-ink);
-    margin-bottom: 3rem;
-    box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
-    border: 3px solid var(--color-ink);
-    border-radius: 2px;
+.vs {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  line-height: 0.9;
+  color: var(--bb-mustard);
+  text-shadow: 3px 4px 0 rgba(0, 0, 0, 0.45);
 }
 
-.tableWrapper {
-    max-height: 600px;
-    overflow-y: auto;
-    overflow-x: auto; /* IMPORTANTE: Permette di scorrere la tabella orizzontalmente se sborda */
-    background: var(--color-paper);
-    border-top: 4px solid var(--color-ink);
+/* ================================================================== */
+/*  REPORT GIOCATORI                                                   */
+/* ================================================================== */
+.reportsTitle {
+  margin-bottom: 1.5rem;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
 }
 
-.stickyHeader {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--color-ink) !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+.teamReports {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.stickyHeader th {
-    color: var(--color-paper) !important;
-    border-bottom: 4px solid var(--color-blood-bright);
-    font-family: 'Anton', sans-serif;
-    letter-spacing: 1px;
-    font-size: 1.2rem;
-    text-transform: uppercase;
+.teamReport {
+  box-shadow: var(--shadow-print);
 }
 
-/* Righe Leggibili con Effetto Hover */
-.playerRow {
-    background-color: transparent !important;
-    border-bottom: 2px dashed #ccc !important;
-    transition: background 0.2s;
+.teamToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 60px;
+  padding: 0.75rem 1.25rem;
+  color: var(--bb-mustard);
+  background-color: var(--bb-slate-900);
+  background-image: var(--tex-grunge);
+  background-size: 700px;
+  border-left: 10px solid var(--team-color, var(--bb-tan));
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
 }
-.playerRow:nth-child(even) {
-    background-color: rgba(0,0,0,0.03) !important;
+
+.teamToggle:hover {
+  background-color: var(--bb-slate-700);
 }
-.playerRow:hover {
-    background-color: rgba(229, 9, 20, 0.1) !important;
+
+.teamToggleTitle {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--bb-parchment);
+  overflow-wrap: anywhere;
+}
+
+.teamReport .tableContainer {
+  margin: 0;
+  background: var(--bb-slate-900);
+}
+
+.tableScroll {
+  max-height: 600px;
+  overflow: auto;
+  background: var(--bb-paper);
+  -webkit-overflow-scrolling: touch;
+}
+
+.statsTable {
+  min-width: 760px;
+}
+
+.tableScroll .statsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.tableScroll .statsTable td {
+  vertical-align: middle;
+}
+
+.colJersey { width: 64px; }
+.colStat { width: 84px; }
+.colStatus { width: 160px; }
+
+.rowDead {
+  opacity: 0.5;
+}
+
+.jersey {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+}
+
+.jerseyIcon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--bb-slate-700);
+  stroke: var(--bb-ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, 0.3));
+}
+
+.jerseyNumber {
+  position: relative;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  text-shadow: 1px 1px 0 var(--bb-ink), -1px -1px 0 var(--bb-ink), 1px -1px 0 var(--bb-ink), -1px 1px 0 var(--bb-ink);
 }
 
 .playerName {
-    color: var(--color-ink) !important;
-    font-family: var(--font-varsity);
-    font-size: 1.6rem;
-    letter-spacing: 1px;
-    font-weight: bold;
-    word-wrap: break-word; /* Fa andare a capo i nomi lunghi */
+  min-width: 200px;
+  font-family: var(--font-slab);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.15;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
-/* Input vivaci e chiari - Allargati per essere comodi */
-.statsInput {
-    width: 100%;
-    min-width: 50px;
-    max-width: 80px;
-    padding: 0.5rem;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.4rem;
-    text-align: center;
-    background: #fff;
-    border: 2px solid var(--color-ink);
-    color: var(--color-blood-bright);
-    border-radius: 2px;
-    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.05);
+.rowDead .playerName {
+  text-decoration: line-through;
 }
 
-.statsInput:focus {
-    outline: none;
-    background: #fff;
-    border-color: var(--color-blood-bright);
-    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.3);
+/* Input statistiche: specificità alta per superare gli stili globali */
+.statsTable .statCell input.statsInput[type='number'] {
+  width: 100%;
+  max-width: 64px;
+  min-height: 44px;
+  padding: 0.3rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1;
+  text-align: center;
+  color: var(--bb-blood-700);
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+}
+
+.statsTable .statCell input.statsInput[type='number']:focus {
+  border-color: var(--bb-red);
 }
 
 .statusSelect {
-    width: 100%;
-    min-width: 110px;
-    padding: 0.5rem;
-    font-family: var(--font-typewriter);
-    font-weight: bold;
-    background: #fff;
-    border: 2px solid var(--color-ink);
-    color: var(--color-ink);
-    border-radius: 2px;
+  width: 100%;
+  min-width: 130px;
+  min-height: 44px;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 800;
+  font-size: 0.9rem;
 }
 
-/* ========================================= */
-/* RESPONSIVE                                */
-/* ========================================= */
+.statusInjured {
+  color: var(--bb-navy);
+  border-color: var(--bb-navy);
+}
+
+.statusDead {
+  color: var(--bb-blood-700);
+  border-color: var(--bb-blood-700);
+}
+
+/* ================================================================== */
+/*  MOBILE                                                             */
+/* ================================================================== */
 @media (max-width: 768px) {
-    .matchdayText { font-size: 4rem; }
-    .showcaseArea { flex-direction: column; gap: 2rem; }
-    .teamSide { width: 100%; }
-    .logoBox { width: 120px; height: 120px; }
-    .readableTeamName { font-size: 1.5rem; }
-    .scoresPanel { flex-direction: column; gap: 2rem; padding: 1.5rem; }
+  .page > header :global(.btn) {
+    flex: 1 1 auto;
+  }
+
+  .scoreboard {
+    margin: 0 -1rem 2.5rem;
+    padding: 1.5rem 1rem 1.75rem;
+  }
+
+  .faceoff { gap: 0.5rem; }
+
+  .side {
+    padding: 1rem 0.4rem;
+    gap: 0.45rem;
+  }
+
+  .logoRing {
+    width: 76px;
+    height: 76px;
+    padding: 8px;
+    border-width: 4px;
+  }
+
+  .logoFallback {
+    width: 36px;
+    height: 36px;
+  }
+
+  .scoreboard .faceoff .side input.casInput[type='number'] {
+    width: 52px;
+    font-size: 1.6rem;
+  }
+
+  .casItem { gap: 0.3rem; }
+
+  .teamToggle { padding: 0.6rem 1rem; }
 }
