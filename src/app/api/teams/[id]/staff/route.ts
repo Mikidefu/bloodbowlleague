@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
 import { getRoster } from '@/lib/rosters';
+import { rosterChangesBlocked } from '@/lib/postgame';
 
 // Sideline Staff e Team Re-roll durante la lega (p. 90, step 4 del post-partita p. 99), pagati dalla Treasury.
 // body: { item: 'reroll' | 'assistant_coach' | 'cheerleader' | 'apothecary', action: 'hire' | 'fire' }
@@ -11,6 +12,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { item, action } = await request.json().catch(() => ({}));
     const { rows: [team] } = await db.execute({ sql: 'SELECT * FROM teams WHERE id = ?', args: [id] });
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+    const blocked = await rosterChangesBlocked(id);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
     const roster = getRoster(team.roster as string | null);
     const treasury = Number(team.treasury || 0);

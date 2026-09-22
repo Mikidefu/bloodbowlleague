@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound, GraduationCap } from 'lucide-react';
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound, GraduationCap, Star } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/stats', key: 'stats', Icon: BarChart3 },
   { href: '/coaches', key: 'coaches', Icon: UserRound },
   { href: '/skills', key: 'skills', Icon: Book },
+  { href: '/stars', key: 'stars', Icon: Star },
 ] as const;
 
 function NavBar() {
@@ -69,16 +70,16 @@ function NavBar() {
 
           <div className={styles.navTools}>
             {/* Il tutorial sta qui e non tra le sezioni: e' l'ingresso per chi non sa ancora giocare */}
-            <Link href="/tutorial" className={`${styles.ctaBtn} ${styles.ctaTutorial} ${isActive('/tutorial') ? styles.ctaTutorialActive : ''}`}>
+            <Link href="/tutorial" className={`${styles.ctaBtn} ${styles.ctaTutorial} ${isActive('/tutorial') ? styles.ctaTutorialActive : ''}`} title={t.nav.tutorial}>
               <GraduationCap size={16} /><span>{t.nav.tutorial}</span>
             </Link>
 
             {isAdmin ? (
-                <button onClick={handleLogout} className={styles.ctaBtn}>
+                <button onClick={handleLogout} className={styles.ctaBtn} title={t.nav.logout}>
                   <LogOut size={16} /><span>{t.nav.logout}</span>
                 </button>
             ) : (
-                <Link href="/login" className={`${styles.ctaBtn} ${isActive('/login') ? styles.ctaActive : ''}`}>
+                <Link href="/login" className={`${styles.ctaBtn} ${isActive('/login') ? styles.ctaActive : ''}`} title={t.nav.login}>
                   <Lock size={16} /><span>{t.nav.login}</span>
                 </Link>
             )}

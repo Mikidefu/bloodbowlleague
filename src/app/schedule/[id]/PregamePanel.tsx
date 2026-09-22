@@ -6,7 +6,9 @@ import {
   INDUCEMENTS, LIMITS, PETTY_CASH_TREASURY_TOP_UP, fanFactor, inducementChoiceCost, mercenaryCost, pettyCash, rollDie,
   type InducementChoice,
 } from '@/lib/leagueRules';
+import Link from 'next/link';
 import { getRoster, hasRule, isLineman, journeymanPositions } from '@/lib/rosters';
+import { STAR_HIRES, canHireStar, getStarHire, teamFavoured } from '@/lib/starPlayers';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
 import styles from './MatchDetails.module.css';
 
@@ -57,7 +59,7 @@ export default function PregamePanel({ match, canEdit, onSaved }: Props) {
     const existing = players.filter(p => isTrue(p.journeyman));
     const existingCtv = existing.reduce((sum, p) => sum + jCtv(roster?.positions.find(pos => pos.key === p.position_key) ?? null), 0);
     const ctv = team.ctv - existingCtv + journeymen * jCtv(jPosition);
-    const ctx = { roster, favouredOf: team.favoured_of };
+    const ctx = { roster, favouredOf: team.favoured_of, league: team.team_league };
     const cost = draft.inducements.reduce((sum, c) => sum + (inducementChoiceCost(c, ctx) ?? 0), 0);
     const ff = draft.fair_weather ? fanFactor(team.dedicated_fans, Number(draft.fair_weather)) : null;
     return { roster, ctx, journeymen, options, jPosition, ctv, cost, ff, available };
@@ -179,11 +181,14 @@ export default function PregamePanel({ match, canEdit, onSaved }: Props) {
                 ) : (
                     <>
                       <strong>{t.rules.starPlayer}</strong>
-                      <input type="text" value={c.name ?? ''} placeholder={t.rules.starName} onChange={e => setSpecial(index, { name: e.target.value })} className={styles.smallInput} />
-                      <input type="number" min="0" step="5000" value={c.cost ?? ''} placeholder={t.rules.starCost} onChange={e => setSpecial(index, { cost: Number(e.target.value) || undefined })} className={styles.smallInput} />
-                      <label className={styles.inlineCheck}>
-                        <input type="checkbox" checked={c.qty === 2} onChange={e => setSpecial(index, { qty: e.target.checked ? 2 : 1 })} /> {t.rules.starPair}
-                      </label>
+                      {/* Solo le star che giocano per la League / il Favoured of della squadra (p. 192) */}
+                      <select value={c.star ?? ''} onChange={e => setSpecial(index, { star: e.target.value, qty: 1, name: undefined, cost: undefined })} className={styles.smallSelect} aria-label={t.rules.starPlayer}>
+                        <option value="">{c.name && !c.star ? `${c.name} (${gp(c.cost ?? 0)})` : t.stars.choose}</option>
+                        {STAR_HIRES.filter(h => canHireStar(h.playsFor, { league: team.team_league, favouredOf: teamFavoured(p.roster, team.team_league, team.favoured_of) })).map(h => (
+                            <option key={h.key} value={h.key}>{h.name} · {gp(h.cost)}{h.members.length > 1 ? ` · ${t.stars.pairShort}` : ''}</option>
+                        ))}
+                      </select>
+                      {getStarHire(c.star) && <Link href={`/stars#${getStarHire(c.star)!.members[0].key}`} className={styles.linkBtn} target="_blank">{t.stars.card}</Link>}
                     </>
                 )}
                 <button type="button" className={styles.iconBtnSmall} onClick={() => setSpecial(index, null)} aria-label={t.rules.remove} title={t.rules.remove}><Trash2 size={16} /></button>

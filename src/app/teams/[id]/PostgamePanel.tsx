@@ -4,25 +4,80 @@ import Link from 'next/link';
 import { Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { MISTAKE_THRESHOLD, expensiveMistake, mistakeExtraRoll, rollDie } from '@/lib/leagueRules';
+import { mustAdvance, onDraftList } from '@/lib/players';
+import { getPosition, getRoster, hasRule } from '@/lib/rosters';
 import { isTrue, type PendingPostgame, type TeamWithPlayers } from '@/lib/types';
 import styles from './TeamDetails.module.css';
 
 type Props = { team: TeamWithPlayers; isAdmin: boolean; onChange: () => void };
 
 // Sequenza post-partita ancora aperta per la squadra (p. 95): incassi e fan sono già applicati dal referto;
-// qui restano Journeymen (step 5) ed Expensive Mistakes (step 6). Avanzamenti e ingaggi si fanno nel roster.
+// qui restano Journeymen (step 5) ed Expensive Mistakes (step 6). Avanzamenti e ingaggi si fanno nel roster:
+// il pannello ricorda quelli obbligatori (p. 96) e, se il capitano è morto, la nomina del nuovo (p. 155).
 export default function PostgamePanel({ team, isAdmin, onChange }: Props) {
   const { t } = useLanguage();
-  if (!team.pending_postgame?.length) return null;
+  const pending = team.pending_postgame ?? [];
+  const mustAdvanceNow = team.players.filter(p => mustAdvance(p));
+  const roster = getRoster(team.roster);
+  const captainVacant = hasRule(roster, 'Team Captain')
+      && team.postgame_phase !== 'closed'
+      && !team.players.some(p => isTrue(p.is_captain) && onDraftList(p))
+      && team.players.some(p => isTrue(p.is_captain) && isTrue(p.dead));
+  if (!pending.length && !captainVacant) return null;
 
   return (
       <section className={`card ${styles.postgame}`} aria-label={t.rules.postgameTitle}>
         <h3 className="subhead">{t.rules.postgameTitle}</h3>
         <p className={styles.postgameSteps}>{t.rules.postgameSteps}</p>
-        {team.pending_postgame.map(p => (
+        {mustAdvanceNow.length > 0 && (
+            <div className={styles.pendingBlock}>
+              <strong>{t.rules.mustAdvanceList}</strong>
+              <ul className={styles.mustAdvanceList}>
+                {mustAdvanceNow.map(p => <li key={p.id}>{p.name} · {p.spp} SPP</li>)}
+              </ul>
+            </div>
+        )}
+        {captainVacant && isAdmin && <CaptainPicker team={team} onChange={onChange} />}
+        {pending.map(p => (
             <PendingMatch key={p.match_id} team={team} pending={p} isAdmin={isAdmin} onChange={onChange} />
         ))}
       </section>
+  );
+}
+
+// Nuovo Team Captain (p. 155): chiunque sia sulla Team Draft List tranne i Big Guy e i Journeymen
+function CaptainPicker({ team, onChange }: { team: TeamWithPlayers; onChange: () => void }) {
+  const { t } = useLanguage();
+  const [choice, setChoice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const roster = getRoster(team.roster);
+  const candidates = team.players.filter(p => onDraftList(p) && !isTrue(p.journeyman)
+      && !getPosition(roster, p.position_key)?.keywords.includes('Big Guy'));
+
+  const appoint = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/teams/${team.id}/captain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player_id: choice }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) alert(data.error || 'Error');
+      else onChange();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+      <div className={styles.pendingBlock}>
+        <strong>{t.rules.newCaptain}</strong>
+        <p className={styles.postgameSteps}>{t.rules.newCaptainHint}</p>
+        <div className={styles.captainRow}>
+          <select value={choice} onChange={e => setChoice(e.target.value)} aria-label={t.rules.newCaptain}>
+            <option value="">—</option>
+            {candidates.map(p => <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} ` : ''}{p.name} · {p.role}</option>)}
+          </select>
+          <button type="button" className="btn btn-primary" disabled={busy || !choice} onClick={appoint}>{t.rules.appoint}</button>
+        </div>
+      </div>
   );
 }
 

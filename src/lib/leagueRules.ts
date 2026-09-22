@@ -3,6 +3,7 @@
 
 import type { StatKey } from '@/lib/characteristics';
 import { getPosition, hasRule, type Roster, type RosterPosition } from '@/lib/rosters';
+import { getStarHire } from '@/lib/starPlayers';
 
 // ------------------------------------------------------------------
 // Draft della squadra (pp. 89-91)
@@ -181,6 +182,7 @@ export const concededScore = (winnerTouchdowns: number) => Math.max(2, winnerTou
 export type InducementContext = {
   roster: Roster | null;
   favouredOf: string | null;
+  league?: string | null;        // League scelta al draft: serve per gli Star Player (p. 152)
 };
 
 export type InducementDef = {
@@ -230,8 +232,9 @@ export type InducementChoice = {
   qty: number;
   position_key?: string;   // Mercenari
   with_skill?: boolean;    // Mercenari con skill primaria
-  name?: string;           // Star Player
-  cost?: number;           // Star Player: costo dal suo profilo
+  star?: string;           // Star Player: chiave del catalogo (una star o una coppia, src/lib/starPlayers.ts)
+  name?: string;           // Star Player registrati prima del catalogo (solo lettura)
+  cost?: number;
 };
 
 export function mercenaryCost(position: RosterPosition | null, withSkill: boolean) {
@@ -248,7 +251,9 @@ export function inducementChoiceCost(choice: InducementChoice, ctx: InducementCo
     return cost === null ? null : cost * choice.qty;
   }
   if (choice.key === 'star_player') {
-    return Number.isInteger(choice.cost) && (choice.cost as number) > 0 ? (choice.cost as number) * choice.qty : null;
+    // Una scelta = una star o una coppia, al costo del catalogo (la coppia ha un solo prezzo, p. 148)
+    const hire = getStarHire(choice.star);
+    return hire && choice.qty === 1 ? hire.cost : null;
   }
   const unit = def.cost(ctx);
   return unit === null ? null : unit * choice.qty;

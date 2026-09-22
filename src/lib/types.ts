@@ -92,6 +92,7 @@ export type TeamWithPlayers = Team & {
   tv: number;
   ctv: number;
   pending_postgame: PendingPostgame[];
+  postgame_phase: 'draft' | 'open' | 'closed';   // vedi src/lib/postgame.ts
 };
 
 // Partite con la sequenza post-partita ancora aperta (Expensive Mistakes da risolvere)

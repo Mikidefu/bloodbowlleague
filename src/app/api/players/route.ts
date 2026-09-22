@@ -6,6 +6,7 @@ import { skillLinks } from '@/lib/matchRules';
 import { DEFAULT_CHARACTERISTICS } from '@/lib/characteristics';
 import { PlayerInputError, parsePlayerProfile } from '@/lib/players';
 import { getPosition, getRoster } from '@/lib/rosters';
+import { rosterChangesBlocked } from '@/lib/postgame';
 
 // Ingaggio di un giocatore.
 // Squadre con Team Roster: { team_id, position_key, name, jersey_number } -> profilo e costo dal roster,
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
 
     const { rows: [team] } = await db.execute({ sql: 'SELECT * FROM teams WHERE id = ?', args: [team_id] });
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+    const blocked = await rosterChangesBlocked(String(team.id));
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
     const roster = getRoster(team.roster as string | null);
     const id = crypto.randomUUID();
 

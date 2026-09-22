@@ -31,6 +31,7 @@ const SECTIONS: Record<string, { index: string; code: string }> = {
   seasons: { index: '07', code: 'Seasons' },
   tutorial: { index: '08', code: 'Rookie school' },
   tables: { index: '09', code: 'Match tables' },
+  stars: { index: '10', code: 'Star players' },
   login: { index: '00', code: 'Locker room' },
   brand: { index: '99', code: 'Brand kit' },
 };
