@@ -815,7 +815,7 @@
 
 .ctaInner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.4fr);
   max-width: 1240px;
   margin: 0 auto;
   min-height: 150px;
@@ -826,23 +826,32 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding: 2rem 2.5rem;
+  min-width: 0;
 }
 
 .ctaLeft {
   background: linear-gradient(120deg, #e0332f, #9a2226);
-  clip-path: polygon(4% 0, 100% 0, 88% 100%, 0 100%, 6% 50%);
+  clip-path: polygon(24px 0, 100% 0, calc(100% - 60px) 100%, 0 100%, 36px 50%);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.25);
 }
 
+/* Tagli della diagonale in px: non mangiano più i pulsanti, qualunque sia la larghezza */
 .ctaRight {
-  justify-content: flex-end;
   flex-wrap: wrap;
-  margin-left: -12%;
-  padding-left: 16%;
+  justify-content: flex-end;
+  margin-left: -60px;
+  padding-left: calc(60px + 2rem);
   background: linear-gradient(120deg, #25386f, #1a2852);
-  clip-path: polygon(12% 0, 100% 0, 96% 50%, 100% 100%, 0 100%);
+  clip-path: polygon(60px 0, 100% 0, calc(100% - 20px) 50%, 100% 100%, 0 100%);
+}
+
+.ctaRight :global(.btn) {
+  flex: 1 1 200px;
+  max-width: 300px;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .ctaTitle {
@@ -865,7 +874,13 @@
 }
 
 .ctaArrowRight {
-  margin-left: 0.5rem;
+  margin-left: 0.25rem;
+}
+
+@media (max-width: 1300px) {
+  .ctaArrowRight {
+    display: none;
+  }
 }
 
 /* ================================================================== */
@@ -910,6 +925,26 @@
 
   .resultGrid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .ctaInner {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaLeft {
+    clip-path: polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%);
+    padding: 1.5rem 1.25rem;
+  }
+
+  .ctaRight {
+    margin-left: 0;
+    padding: 1.5rem 1.25rem;
+    justify-content: center;
+    clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .ctaArrow {
+    display: none;
   }
 
   .hotspots {
@@ -1004,27 +1039,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ctaInner {
-    grid-template-columns: 1fr;
-  }
-
-  .ctaLeft {
-    clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
-    padding: 1.5rem 1.25rem;
-  }
-
-  .ctaRight {
-    margin-left: 0;
-    padding: 1.5rem 1.25rem;
-    clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
-  }
-
   .ctaRight :global(.btn) {
     flex: 1 1 100%;
-  }
-
-  .ctaArrow {
-    display: none;
+    max-width: none;
   }
 }
 
