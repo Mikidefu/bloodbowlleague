@@ -3,6 +3,8 @@
 // Le skill con parametro (es. "Loner (4+)") mantengono il testo del libro; per collegarle alla
 // tabella skills si usa il nome base (vedi skillBaseName).
 
+import type { AgilityValue, ArmourValue, Characteristics, MovementValue, PassingValue, StrengthValue } from '@/lib/characteristics';
+
 export type SpecialRule =
   | 'Brawlin Brutes'
   | 'Bribery and Corruption'
@@ -26,17 +28,14 @@ export type TeamLeague =
 
 export type SkillCategory = 'A' | 'D' | 'G' | 'M' | 'P' | 'S';
 
-export type RosterPosition = {
+// Il profilo stampato sul roster usa gli stessi valori ammessi del profilo di un giocatore
+// (src/lib/characteristics.ts): un refuso di trascrizione non compila.
+export type RosterPosition = Characteristics & {
   key: string;
   name: string;
   keywords: string[];
   max: number;          // QTY 0-X
   cost: number;
-  ma: number;
-  st: number;
-  ag: string;
-  pa: string;           // '-' se il giocatore non ha PA
-  av: string;
   skills: string[];
   primary: SkillCategory[];
   secondary: SkillCategory[];
@@ -66,7 +65,7 @@ export const ANY_ALIGNMENT = ['Hashut', 'Khorne', 'Nurgle', 'Slaanesh', 'Tzeentc
 
 const p = (
   key: string, name: string, keywords: string[], max: number, cost: number,
-  ma: number, st: number, ag: string, pa: string, av: string,
+  ma: MovementValue, st: StrengthValue, ag: AgilityValue, pa: PassingValue, av: ArmourValue,
   skills: string[], primary: string, secondary: string,
 ): RosterPosition => ({
   key, name, keywords, max, cost, ma, st, ag, pa, av, skills,

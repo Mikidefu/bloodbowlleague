@@ -1,5 +1,10 @@
 // Tipi condivisi tra API e pagine: rispecchiano le risposte JSON delle route in src/app/api.
 // SQLite restituisce i booleani come 0/1, per questo alcuni campi accettano entrambi.
+// I giocatori fanno eccezione: passano tutti da toPlayer (src/lib/players.ts), che normalizza
+// bandiere, caratteristiche e stato, quindi il tipo Player è già quello definitivo.
+
+import type { AgilityValue, ArmourValue, MovementValue, PassingValue, StatKey, StrengthValue } from '@/lib/characteristics';
+import type { CasualtyResult } from '@/lib/leagueRules';
 
 export type SqlBoolean = boolean | 0 | 1;
 
@@ -32,34 +37,38 @@ export type Team = {
   favoured_of: string | null;
 };
 
+// Colonna "status", tenuta per le partite legacy: lo stato vero si legge dalle bandiere
+// (dead, mng, temp_retired, left_team, journeyman) con playerState di src/lib/players.ts.
+export type PlayerStatus = 'Active' | 'Injured' | 'Dead';
+
 export type Player = {
   id: string;
   team_id: string;
   jersey_number: number | null;
   name: string;
-  role: string;
+  role: string;                     // nome della posizione del roster, o libero per le squadre senza roster
   value: number;
-  primary_skills: string | null;
+  primary_skills: string | null;    // categorie primarie, es. "G, A" (vedi categoryLetters)
   secondary_skills: string | null;
-  ma: number;
-  st: number;
-  ag: string;
-  pa: string;
-  av: string;
+  ma: MovementValue;
+  st: StrengthValue;
+  ag: AgilityValue;
+  pa: PassingValue;
+  av: ArmourValue;
   spp: number;
   advancements: number;
-  status: string;
-  mng: SqlBoolean;
-  dead: SqlBoolean;
+  status: PlayerStatus;
+  mng: boolean;
+  dead: boolean;
   skills: Skill[];
   position_key: string | null;
   hiring_fee: number | null;
   niggling_injuries: number;
-  temp_retired: SqlBoolean;
-  left_team: SqlBoolean;
-  journeyman: SqlBoolean;
+  temp_retired: boolean;
+  left_team: boolean;
+  journeyman: boolean;
   journeyman_match_id: string | null;
-  is_captain: SqlBoolean;
+  is_captain: boolean;
   hatreds: string | null;
   lasting_injuries: number;       // Lasting Injury subiti (per Temporarily Retiring)
 };
@@ -161,8 +170,8 @@ export type MatchInjury = {
   id: string;
   match_id: string;
   player_id: string;
-  result: 'BH' | 'SH' | 'SI' | 'LI' | 'DEAD';
-  stat: 'ma' | 'st' | 'ag' | 'pa' | 'av' | null;
+  result: CasualtyResult;
+  stat: StatKey | null;
   stat_applied: SqlBoolean;
   hatred: string | null;
 };

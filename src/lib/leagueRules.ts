@@ -1,6 +1,7 @@
 // Regole di League Play del Rulebook Blood Bowl 2025 (Third Season Edition), condivise tra API e pagine.
 // Ogni blocco indica la pagina del libro da cui è preso.
 
+import type { StatKey } from '@/lib/characteristics';
 import { getPosition, hasRule, type Roster, type RosterPosition } from '@/lib/rosters';
 
 // ------------------------------------------------------------------
@@ -120,7 +121,8 @@ export const mistakeExtraRoll = (result: MistakeResult | null): 'd3' | '2d6' | n
 // ------------------------------------------------------------------
 
 export type CasualtyResult = 'BH' | 'SH' | 'SI' | 'LI' | 'DEAD';
-export type InjuryStat = 'ma' | 'st' | 'ag' | 'pa' | 'av';
+// La caratteristica ridotta da un Lasting Injury: le stesse cinque colonne del profilo
+export type InjuryStat = StatKey;
 
 export const CASUALTY_RESULTS: { key: CasualtyResult; name: string; d16: string; missNextGame: boolean; niggling: boolean }[] = [
   { key: 'BH', name: 'Badly Hurt', d16: '1-8', missNextGame: false, niggling: false },
@@ -144,27 +146,8 @@ export const LASTING_INJURIES: { d6: number[]; name: string; stat: InjuryStat }[
 
 export const lastingInjuryForRoll = (d6: number) => LASTING_INJURIES.find(l => l.d6.includes(d6)) ?? null;
 
-// Minimi delle caratteristiche (p. 37): MA 1, ST 1, AG 6+, PA 6+, AV 3+
-// Restituisce il nuovo valore, oppure null se la riduzione non si può applicare
-// (in quel caso il risultato vale come Miss Next Game, che il Lasting Injury già comporta).
-export function reduceStat(stat: InjuryStat, current: number | string | null | undefined): number | string | null {
-  if (stat === 'ma' || stat === 'st') {
-    const value = Number(current);
-    return Number.isNaN(value) || value <= 1 ? null : value - 1;
-  }
-  const text = String(current ?? '').trim();
-  const value = parseInt(text, 10);
-  if (Number.isNaN(value)) return null;   // PA "-": non si può peggiorare
-  if (stat === 'av') return value <= 3 ? null : `${value - 1}+`;
-  return value >= 6 ? null : `${value + 1}+`;
-}
-
-// Operazione inversa, per annullare una riduzione quando si corregge un referto
-export function restoreStat(stat: InjuryStat, current: number | string | null | undefined): number | string {
-  if (stat === 'ma' || stat === 'st') return Number(current) + 1;
-  const value = parseInt(String(current), 10);
-  return stat === 'av' ? `${value + 1}+` : `${value - 1}+`;
-}
+// La riduzione della caratteristica e il suo ripristino (minimi di p. 37) sono in
+// src/lib/characteristics.ts: reduceCharacteristic e restoreCharacteristic.
 
 // Getting Even (p. 68): dopo SH, SI o LI con Miss Next Game, con 4+ su D6 il giocatore ottiene Hatred (X),
 // dove X è una keyword del giocatore che ha causato la Casualty, escluse le keyword di posizione.

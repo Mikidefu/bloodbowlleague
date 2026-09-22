@@ -3,9 +3,11 @@ import db from '@/lib/db';
 import { signData } from '@/lib/auth';
 import {
   MAX_ADVANCEMENTS, MAX_IMPROVEMENTS_PER_STAT, advancementCost, categoryLetters, categoryName,
-  improveStat, isEliteSkill, skillFromTable, statsForRoll, type StatKey,
+  isEliteSkill, isSkillCategory, skillFromTable, statsForRoll,
 } from '@/lib/advancement';
+import { improveCharacteristic } from '@/lib/characteristics';
 import { rollDie } from '@/lib/leagueRules';
+import { toPlayer } from '@/lib/players';
 
 // Tiri degli avanzamenti (pp. 97-98). Tira il server e restituisce un token firmato:
 // il giocatore sceglie tra i risultati usciti e POST /advance verifica che siano quelli.
@@ -23,22 +25,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       db.execute({ sql: 'SELECT skill_id FROM skills_players WHERE player_id = ?', args: [id] }),
       db.execute('SELECT id, name, type FROM skills'),
     ]);
-    const player = playerRes.rows[0];
-    if (!player) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+    if (!playerRes.rows[0]) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+    const player = toPlayer(playerRes.rows[0]);
     if (player.dead) return NextResponse.json({ error: 'Dead players cannot advance' }, { status: 400 });
 
-    const advancements = Number(player.advancements || 0);
+    const { advancements, spp } = player;
     if (advancements >= MAX_ADVANCEMENTS) {
       return NextResponse.json({ error: 'Player has reached the maximum number of advancements' }, { status: 400 });
     }
     const cost = advancementCost(kind, advancements);
-    const spp = Number(player.spp || 0);
     if (spp < cost) return NextResponse.json({ error: `Not enough SPP (${spp}/${cost})` }, { status: 400 });
 
     if (kind === 'randomPrimary') {
-      const letters = categoryLetters(player.primary_skills as string | null);
+      const letters = categoryLetters(player.primary_skills);
       const category = String(body.category ?? '').toUpperCase();
-      if (!letters.includes(category)) {
+      if (!isSkillCategory(category) || !letters.includes(category)) {
         return NextResponse.json({ error: `This player has no ${categoryName(category) || 'such'} Primary Skills` }, { status: 400 });
       }
       const owned = new Set(ownedRes.rows.map(r => String(r.skill_id)));
@@ -78,7 +79,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const stats = row.stats.map(stat => {
       const times = improvedTimes.get(stat) ?? 0;
-      const atCap = improveStat(stat as StatKey, player[stat] as string | number) === null;
+      const atCap = improveCharacteristic(stat, player[stat]) === null;
       return {
         stat,
         current: player[stat],

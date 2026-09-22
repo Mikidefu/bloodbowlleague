@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { LIMITS } from '@/lib/leagueRules';
+import { PlayerInputError, canPlayNextMatch, onDraftList, parsePlayerProfile, toPlayer } from '@/lib/players';
 import { getPosition, getRoster } from '@/lib/rosters';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,17 +11,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const existing = rows[0];
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const skillsQuery = await db.execute({
-      sql: `SELECT s.* FROM skills s JOIN skills_players sp ON s.id = sp.skill_id WHERE sp.player_id = ?`,
-      args: [id]
-    });
+    const [skillsQuery, injuriesQuery] = await Promise.all([
+      db.execute({
+        sql: `SELECT s.* FROM skills s JOIN skills_players sp ON s.id = sp.skill_id WHERE sp.player_id = ?`,
+        args: [id]
+      }),
+      db.execute({ sql: "SELECT COUNT(*) AS n FROM player_injuries WHERE player_id = ? AND result = 'LI'", args: [id] }),
+    ]);
 
-    return NextResponse.json({
-      ...existing,
+    return NextResponse.json(toPlayer(existing, {
       skills: skillsQuery.rows,
-      mng: !!existing.mng,
-      dead: !!existing.dead
-    });
+      lasting_injuries: Number(injuriesQuery.rows[0]?.n ?? 0),
+    }));
   } catch (error) {
     console.error('Error fetching player:', error);
     return NextResponse.json({ error: 'Failed to fetch player' }, { status: 500 });
@@ -31,8 +33,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await request.json();
-    // Gli SPP non si modificano da qui: sono calcolati (vedi lib/spp.ts) e spesi tramite /advance
-    const { jersey_number, name, role, value, primary_skills, secondary_skills, advancements, status, skills, ma, st, ag, pa, av, mng, dead } = body;
+    // Gli SPP non si modificano da qui: sono calcolati (vedi lib/spp.ts) e spesi tramite /advance.
+    // Il profilo passa da parsePlayerProfile: caratteristiche e categorie fuori regolamento sono rifiutate.
+    const profile = parsePlayerProfile(body);
+    const { skills, mng, dead } = body;
 
     const { rows: [player] } = await db.execute({
       sql: 'SELECT p.*, t.roster FROM players p JOIN teams t ON t.id = p.team_id WHERE p.id = ?',
@@ -71,9 +75,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         WHERE id = ?
       `,
       args: [
-        jersey_number ?? null, name ?? null, role ?? null, value ?? null,
-        primary_skills ?? null, secondary_skills ?? null, advancements ?? null,
-        status ?? null, ma ?? null, st ?? null, ag ?? null, pa ?? null, av ?? null,
+        profile.jersey_number ?? null, profile.name ?? null, profile.role ?? null, profile.value ?? null,
+        profile.primary_skills ?? null, profile.secondary_skills ?? null, profile.advancements ?? null,
+        profile.status ?? null, profile.ma ?? null, profile.st ?? null, profile.ag ?? null, profile.pa ?? null, profile.av ?? null,
         mng !== undefined ? (mng ? 1 : 0) : null, dead !== undefined ? (dead ? 1 : 0) : null, tempRetired,
         positionKey, hiringFee, id
       ]
@@ -88,6 +92,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof PlayerInputError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error('Error updating player:', error);
     return NextResponse.json({ error: 'Failed to update player' }, { status: 500 });
   }
@@ -101,14 +106,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { rows: [player] } = await db.execute({ sql: 'SELECT * FROM players WHERE id = ?', args: [id] });
-    if (!player) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const { rows: [row] } = await db.execute({ sql: 'SELECT * FROM players WHERE id = ?', args: [id] });
+    if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const player = toPlayer(row);
 
-    if (!player.dead && !player.left_team) {
-      const isEligible = (p: Record<string, unknown>) => !p.dead && !p.left_team && !p.mng && !p.temp_retired && !p.journeyman;
-      if (isEligible(player)) {
-        const { rows: teammates } = await db.execute({ sql: 'SELECT * FROM players WHERE team_id = ?', args: [String(player.team_id)] });
-        const eligible = teammates.filter(isEligible).length;
+    if (onDraftList(player)) {
+      // Chi conta per il minimo di 11: i giocatori disponibili per la prossima partita (p. 99)
+      if (canPlayNextMatch(player)) {
+        const { rows: teammates } = await db.execute({ sql: 'SELECT * FROM players WHERE team_id = ?', args: [player.team_id] });
+        const eligible = teammates.filter(canPlayNextMatch).length;
         if (eligible - 1 < LIMITS.minPlayers) {
           return NextResponse.json({ error: `Players may not be fired if it would take the number of players eligible for the next game below ${LIMITS.minPlayers} (p. 99)` }, { status: 400 });
         }

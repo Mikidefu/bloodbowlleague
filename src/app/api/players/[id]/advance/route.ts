@@ -5,9 +5,11 @@ import { recalcSppStatement } from '@/lib/spp';
 import { verifyData } from '@/lib/auth';
 import {
   ELITE_VALUE_INCREASE, MAX_ADVANCEMENTS, MAX_IMPROVEMENTS_PER_STAT, SKILL_VALUE_INCREASE, STAT_VALUE_INCREASE,
-  advancementCost, improveStat, isEliteSkill, skillsForCategories, statsForRoll,
+  advancementCost, isEliteSkill, skillsForCategories, statsForRoll,
   type AdvancementKind, type StatKey,
 } from '@/lib/advancement';
+import { improveCharacteristic, type Characteristic } from '@/lib/characteristics';
+import { toPlayer } from '@/lib/players';
 
 const KINDS: AdvancementKind[] = ['randomPrimary', 'choosePrimary', 'chooseSecondary', 'stat', 'statDeclined'];
 const STATS: StatKey[] = ['ma', 'st', 'ag', 'pa', 'av'];
@@ -32,17 +34,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       db.execute('SELECT id, name, type, description FROM skills'),
     ]);
 
-    const player = playerRes.rows[0];
-    if (!player) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+    if (!playerRes.rows[0]) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+    const player = toPlayer(playerRes.rows[0]);
     if (player.dead) return NextResponse.json({ error: 'Dead players cannot advance' }, { status: 400 });
 
-    const advancements = Number(player.advancements || 0);
+    const { advancements, spp } = player;
     if (advancements >= MAX_ADVANCEMENTS) {
       return NextResponse.json({ error: 'Player has reached the maximum number of advancements' }, { status: 400 });
     }
 
     const cost = advancementCost(kind, advancements);
-    const spp = Number(player.spp || 0);
     if (spp < cost) {
       return NextResponse.json({ error: `Not enough SPP (${spp}/${cost})` }, { status: 400 });
     }
@@ -62,7 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     let valueIncrease = 0;
     let newSkill: SkillRow | null = null;
-    let statUpdate: { column: StatKey; value: number | string } | null = null;
+    let statUpdate: { column: StatKey; value: Characteristic } | null = null;
 
     if (kind === 'stat') {
       const stat = body.stat as StatKey;
@@ -85,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (Number(already.n) >= MAX_IMPROVEMENTS_PER_STAT) {
         return NextResponse.json({ error: `${stat.toUpperCase()} has already been improved ${MAX_IMPROVEMENTS_PER_STAT} times (p. 98)` }, { status: 400 });
       }
-      const improved = improveStat(stat, player[stat] as string | number);
+      const improved = improveCharacteristic(stat, player[stat]);
       if (improved === null) {
         return NextResponse.json({ error: `${stat.toUpperCase()} is already at its limit` }, { status: 400 });
       }
@@ -96,7 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const isSecondary = kind === 'chooseSecondary';
       const fromSecondary = kind === 'statDeclined' && body.from === 'secondary';
       const categories = isSecondary || fromSecondary ? player.secondary_skills : player.primary_skills;
-      const candidates = skillsForCategories(allSkills, categories as string | null, ownedIds);
+      const candidates = skillsForCategories(allSkills, categories, ownedIds);
 
       newSkill = candidates.find(s => s.id === body.skill_id) || null;
       if (!newSkill) {

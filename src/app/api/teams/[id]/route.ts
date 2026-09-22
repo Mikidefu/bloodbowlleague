@@ -8,6 +8,7 @@ import { getActiveSeason, seasonStatusSql } from '@/lib/seasons';
 import { LIMITS } from '@/lib/leagueRules';
 import { favouredOptions, getRoster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
+import { toPlayer } from '@/lib/players';
 
 export async function GET(
     request: Request,
@@ -43,23 +44,12 @@ export async function GET(
       args: [id]
     });
 
-    // 3. Mappiamo i giocatori assegnando a ciascuno le proprie skill REALI (come oggetti)
-    const mappedPlayers = playersRes.rows.map(p => {
-      // Filtriamo l'array globale delle skill per prendere solo quelle di questo giocatore
-      const playerSkills = skillsRes.rows.filter(s => s.player_id === p.id);
-
-      return {
-        ...p,
-        skills: playerSkills, // Ora è un array di oggetti {id, name, type, description...}
-        mng: !!p.mng,         // Convertiamo 1/0 di SQLite in true/false per React
-        dead: !!p.dead,       // Convertiamo 1/0 di SQLite in true/false per React
-        left_team: !!p.left_team,
-        temp_retired: !!p.temp_retired,
-        journeyman: !!p.journeyman,
-        is_captain: !!p.is_captain,
-        lasting_injuries: injuriesRes.rows.filter(i => i.player_id === p.id && i.result === 'LI').length,
-      };
-    });
+    // 3. Ogni riga diventa un Player tipizzato (toPlayer normalizza bandiere e caratteristiche)
+    //    con le sue skill e il numero di Lasting Injury subiti.
+    const mappedPlayers = playersRes.rows.map(p => toPlayer(p, {
+      skills: skillsRes.rows.filter(s => s.player_id === p.id),
+      lasting_injuries: injuriesRes.rows.filter(i => i.player_id === p.id && i.result === 'LI').length,
+    }));
 
     // Sequenza post-partita ancora aperta: partite applicate con Expensive Mistakes da tirare
     const { rows: pending } = await db.execute({
@@ -93,7 +83,7 @@ export async function GET(
 
     return NextResponse.json({
       ...team,
-      ...computeTeamValue(team as never, playersRes.rows as never),
+      ...computeTeamValue(team, mappedPlayers),
       pending_postgame: pending,
       players: mappedPlayers,
       in_active_season: !!activeEntry,
