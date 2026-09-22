@@ -1576,3 +1576,19 @@
 .declineBtn {
   align-self: flex-start;
 }
+
+/* Arrivo dal post-partita guidato: striscia per tornare alla partita */
+.backToMatch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1.2rem;
+  font-weight: 700;
+  color: var(--bb-ink);
+  background: #fff1c4;
+  border-left: 6px solid var(--bb-mustard-deep);
+  box-shadow: var(--shadow-hard);
+}

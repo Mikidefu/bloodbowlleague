@@ -2,7 +2,7 @@
 import { use, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, GraduationCap, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, GraduationCap, MonitorSmartphone, XCircle } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
 import TutorialDiagram from '@/components/tutorial/TutorialDiagram';
@@ -105,7 +105,8 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
             <article className={`card ${styles.pill}`}>
               <header className={styles.pillHead}>
                 <h2 className={styles.pillTitle}>{pill.title[language]}</h2>
-                <span className={styles.pillPage}><BookOpen size={14} aria-hidden="true" /> {pill.page}</span>
+                {pill.page && <span className={styles.pillPage}><BookOpen size={14} aria-hidden="true" /> {pill.page}</span>}
+                {pill.app && <span className={styles.pillPage}><MonitorSmartphone size={14} aria-hidden="true" /> {pill.app[language]}</span>}
               </header>
 
               <div className={styles.pillBody}>

@@ -830,7 +830,56 @@ function Postgame({ lang }: { lang: Lang }) {
   );
 }
 
+// --- formazione: come si usa il sito -------------------------------------------
+
+/** Il giro di una partita nel sito: le quattro fasi della pagina partita, nell'ordine. */
+function AppMatchday({ lang }: { lang: Lang }) {
+  const steps: [string, string, string, 'navy' | 'gold' | 'red' | 'green'][] = [
+    ['01', t(lang, 'Pre-partita', 'Pre-game'), t(lang, 'Tifosi, meteo, Journeymen, incentivi, chi calcia', 'Fans, weather, Journeymen, inducements, who kicks'), 'navy'],
+    ['02', t(lang, 'In campo', 'On the pitch'), t(lang, 'Si gioca, con le Tabelle di partita a portata', 'You play, with the Match tables at hand'), 'green'],
+    ['03', t(lang, 'Referto', 'Match report'), t(lang, 'Esito, statistiche, infortuni, MVP, incassi e fan', 'Outcome, stats, injuries, MVP, winnings and fans'), 'navy'],
+    ['04', t(lang, 'Post-partita', 'Post-game'), t(lang, 'Avanzamenti, ingaggi, Journeymen', 'Advancements, hiring, Journeymen'), 'gold'],
+    ['END', 'Expensive Mistakes', t(lang, 'Chiudono la partita: poi la prossima', 'They close the match: then the next one'), 'red'],
+  ];
+  return (
+      <Plate label={t(lang, 'IL GIRO DI UNA PARTITA NEL SITO', 'A MATCH, STEP BY STEP, IN THE APP')} animated lang={lang}>
+        {steps.map(([badge, text, note, tone], i) => (
+            <g key={badge} className={styles.step} style={at(0.1 + i * 0.3)}>
+              <Row y={8 + i * 34} badge={badge} tone={tone} text={text} note={note} />
+            </g>
+        ))}
+        <g className={styles.step} style={at(1.7)}>
+          <Note x={14} y={186}>{t(lang, 'Tutto dalla pagina della partita, un passo alla volta: un passo non chiuso blocca quelli dopo.', 'All from the match page, one step at a time: an open step locks the ones after it.')}</Note>
+        </g>
+      </Plate>
+  );
+}
+
+/** Chi può fare cosa: chiunque consulta, solo l'admin di lega modifica. */
+function AppRoles({ lang }: { lang: Lang }) {
+  const rows: [string, string, 'green' | 'red'][] = [
+    [t(lang, 'TUTTI', 'ALL'), t(lang, 'Consultare squadre, calendario, classifica e statistiche', 'Browse teams, fixtures, standings and stats'), 'green'],
+    [t(lang, 'TUTTI', 'ALL'), t(lang, 'Tirare sulle Tabelle di partita, sfogliare Star Player e tutorial', 'Roll on the Match tables, browse Star Players and the tutorial'), 'green'],
+    ['ADMIN', t(lang, 'Creare squadre, generare il calendario, gestire le stagioni', 'Draft teams, generate fixtures, manage seasons'), 'red'],
+    ['ADMIN', t(lang, 'Pre-partita, referti, avanzamenti, ingaggi', 'Pre-game, match reports, advancements, hiring'), 'red'],
+  ];
+  return (
+      <Plate label={t(lang, 'CHI PUÒ FARE COSA', 'WHO CAN DO WHAT')} animated lang={lang}>
+        {rows.map(([badge, text, tone], i) => (
+            <g key={text} className={styles.step} style={at(0.1 + i * 0.3)}>
+              <Row y={12 + i * 34} badge={badge} tone={tone} text={text} />
+            </g>
+        ))}
+        <g className={styles.step} style={at(1.4)}>
+          <Note x={14} y={168}>{t(lang, 'Si entra come admin dal pulsante con il lucchetto in alto a destra, con la password del commissario.', 'You sign in as admin from the padlock button at the top right, with the commissioner\'s password.')}</Note>
+        </g>
+      </Plate>
+  );
+}
+
 const DIAGRAMS: Record<string, (p: { lang: Lang }) => React.ReactElement> = {
+  appMatchday: AppMatchday,
+  appRoles: AppRoles,
   pitch: PitchDiagram,
   profile: Profile,
   dice: TargetNumber,

@@ -1,0 +1,408 @@
+/* Percorso guidato di una partita: tappe in alto, un passo alla volta su pergamena,
+   dadi con campo da compilare e pulsanti Tira / Ritira. Stessa grammatica del sito. */
+
+/* ------------------------------------------------------------------ */
+/*  TAPPE                                                              */
+/* ------------------------------------------------------------------ */
+.steps {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.stepItem {
+  min-width: 0;
+}
+
+.stepBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.35rem 0.8rem;
+  border: 2px solid var(--bb-tan-dark);
+  background: var(--bb-paper);
+  color: var(--bb-ink-soft);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.98rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+button.stepBtn {
+  cursor: pointer;
+}
+
+button.stepBtn:hover {
+  background: var(--bb-parchment);
+}
+
+button.stepBtn:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
+}
+
+.stepNum {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--bb-tan);
+  color: var(--bb-paper);
+  font-style: normal;
+  font-size: 0.85rem;
+}
+
+.stepDone .stepBtn {
+  color: var(--bb-ink);
+  border-color: var(--bb-success);
+}
+
+.stepDone .stepNum {
+  background: var(--bb-success);
+}
+
+.stepNow .stepBtn {
+  color: var(--bb-paper);
+  background: var(--bb-red);
+  border-color: var(--bb-red);
+}
+
+.stepNow .stepNum {
+  background: var(--bb-paper);
+  color: var(--bb-red);
+}
+
+/* ------------------------------------------------------------------ */
+/*  PASSO                                                              */
+/* ------------------------------------------------------------------ */
+.card.card {
+  margin: 0;
+  padding: 1.8rem 2rem 1.6rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.5rem 1rem;
+  border-bottom: 2px solid var(--bb-blood-700);
+  padding-bottom: 0.35rem;
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+}
+
+.explain {
+  display: grid;
+  gap: 0.6rem;
+  font-family: var(--font-read);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.explain p {
+  margin: 0;
+}
+
+.body {
+  display: grid;
+  gap: 1rem;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed rgba(29, 26, 24, 0.3);
+}
+
+.footRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem 1rem;
+}
+
+.blocker {
+  font-weight: 700;
+  color: var(--bb-blood-700);
+}
+
+/* ------------------------------------------------------------------ */
+/*  BLOCCHI RICORRENTI                                                 */
+/* ------------------------------------------------------------------ */
+/* Due squadre affiancate */
+.teams {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.team {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(29, 26, 24, 0.2);
+  border-top: 5px solid var(--team-color, var(--bb-navy));
+  min-width: 0;
+}
+
+.teamName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.facts {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px dotted rgba(29, 26, 24, 0.25);
+  padding: 0.15rem 0;
+}
+
+.facts dt {
+  font-weight: 600;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Esito di un tiro: nome del risultato come nel libro + spiegazione */
+.outcome {
+  padding: 0.7rem 0.9rem;
+  background: #fff1c4;
+  border-left: 6px solid var(--bb-mustard-deep);
+}
+
+.outcomeBad { border-left-color: var(--bb-red); }
+.outcomeGood { border-left-color: var(--bb-success); }
+
+.outcomeName {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.outcome p {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
+.note {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  background: rgba(37, 56, 111, 0.1);
+  border-left: 4px solid var(--bb-navy);
+}
+
+.warn {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+  color: var(--bb-blood-700);
+  background: rgba(200, 37, 44, 0.08);
+  border-left: 4px solid var(--bb-red);
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 700;
+}
+
+.field select,
+.field input[type='text'] {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  margin-top: 0.1rem;
+  flex: none;
+}
+
+.list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(29, 26, 24, 0.18);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  DADI                                                               */
+/* ------------------------------------------------------------------ */
+.dice {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-tan-dark);
+}
+
+.diceHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.diceLabel {
+  font-weight: 800;
+}
+
+.diceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dieInput.dieInput {
+  width: 3.4rem;
+  min-height: 3.2rem;
+  padding: 0.2rem !important;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.6rem;
+  color: var(--bb-mustard);
+  background: linear-gradient(160deg, #2d323a, #101318) !important;
+  border: 2px solid #101318 !important;
+  border-radius: 6px !important;
+}
+
+.dieInput::placeholder {
+  color: rgba(234, 178, 42, 0.45);
+}
+
+.dieInput:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
+}
+
+.dieInput[aria-invalid='true'] {
+  border-color: var(--bb-red) !important;
+}
+
+.diceTotal {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+
+.diceActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.diceActions :global(.btn) {
+  min-height: 44px;
+}
+
+.diceHint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--bb-ink-soft);
+}
+
+.diceError {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--bb-blood-700);
+}
+
+@media (max-width: 760px) {
+  .card.card { padding: 1.3rem 1.1rem 1.2rem; }
+  .teams { grid-template-columns: 1fr; }
+  .diceActions { margin-left: 0; }
+}

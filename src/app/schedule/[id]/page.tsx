@@ -11,6 +11,11 @@ import SectionTitle from '@/components/brand/SectionTitle';
 import TapeStrip from '@/components/brand/TapeStrip';
 import styles from './MatchDetails.module.css';
 import PregamePanel from './PregamePanel';
+import PregameWizard from './PregameWizard';
+import InPlayPanel from './InPlayPanel';
+import ReportWizard from './ReportWizard';
+import PostgameWizard from './PostgameWizard';
+import { toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import MatchTables from '@/components/match/MatchTables';
 import { isTrue, type MatchDetails } from '@/lib/types';
 import {
@@ -18,27 +23,6 @@ import {
   type CasualtyResult, type InjuryStat, type MatchOutcome,
 } from '@/lib/leagueRules';
 
-// Valore di un campo numerico mentre l'utente scrive: '' = campo svuotato
-type NumericInput = number | '';
-type StatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'mvp';
-type PlayerStatDraft = {
-  player_id: string;
-  jersey_number: number | null;
-  name: string;
-  team_id: string;
-  status: string;
-  unavailable: 'mng' | 'retired' | null;
-  advancements: number;
-  injury: CasualtyResult | '';
-  injuryStat: InjuryStat | '';
-  hatred: string;
-} & Record<StatField, NumericInput>;
-
-type TeamResultDraft = { stalling: boolean; df_roll: string; commitments_roll: string; quit_rolls: Record<string, string> };
-
-const toNumericInput = (value: string): NumericInput => (value === '' ? '' : Math.max(0, parseInt(value, 10) || 0));
-// Lo zero si mostra come campo vuoto con placeholder "0", così si può scrivere subito sopra
-const zeroAsEmpty = (value: NumericInput) => (value === 0 ? '' : value);
 
 // Il colore squadra arriva dal DB: lo passiamo come variabile CSS e lo usiamo solo come accento
 const teamAccent = (color: string | null | undefined) =>
@@ -49,7 +33,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export default function MatchDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { isAdmin } = useAuth();
 
   const [match, setMatch] = useState<MatchDetails | null>(null);
@@ -72,6 +56,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const [concededTeam, setConcededTeam] = useState('');
   const [penaltyWinner, setPenaltyWinner] = useState('');
   const [teamResults, setTeamResults] = useState<Record<string, TeamResultDraft>>({});
+
+  // Percorso guidato: la fase si ricava dalla partita, questi flag spostano avanti o indietro a mano
+  const [reportOpen, setReportOpen] = useState(false);     // "la partita è finita": dal campo al referto
+  const [correcting, setCorrecting] = useState(false);     // correzione del referto dal post-partita
+  const [redoPregame, setRedoPregame] = useState(false);   // rifare il pre-partita prima di giocare
 
   const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
     { field: 'td', label: 'TD', title: 'Touchdowns (3 SPP)' },
@@ -119,6 +108,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               team_id: p.team_id,
               unavailable: p.unavailable,
               advancements: p.advancements || 0,
+              niggling: p.niggling_injuries || 0,
               td: existing ? existing.touchdowns : 0,
               cas: existing ? existing.casualties : 0,
               int: existing ? existing.interceptions : 0,
@@ -144,6 +134,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     load();
   }, [load]);
+
+  // Aprendo la partita (es. da "Gioca partita") si arriva dritti al percorso guidato, se c'è
+  useEffect(() => {
+    if (!loading) document.getElementById('match-flow')?.scrollIntoView({ block: 'start' });
+  }, [loading]);
 
   // Ora accetta stringhe vuote
   const handleStatChange = (playerId: string, field: StatField, value: NumericInput) => {
@@ -200,8 +195,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleSave = async () => {
-    if (!match) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!match) return false;
     setSaving(true);
     try {
       // Puliamo i dati vuoti forzandoli a 0 prima di inviarli al DB
@@ -242,13 +237,17 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
       if (res.ok) {
         router.refresh();
+        setReportOpen(false);
+        setCorrecting(false);
         load();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || 'Failed to save match results');
+        return true;
       }
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Failed to save match results');
+      return false;
     } catch {
       alert('Error saving match');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -274,6 +273,22 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const needsConceder = outcome !== 'played' && outcome !== 'forfeit_both';
   const mistakesDone = match.reports.some(r => r.mistake_result);
   const teamName = (teamId: string) => (teamId === match.home_team_id ? match.home_name : match.away_name);
+
+  // Per l'admin le partite di lega si fanno con il percorso guidato:
+  // Pre-partita -> In campo -> Referto -> Post-partita
+  const wizardMode = !!canEdit && rulesMode;
+  const phase = !wizardMode ? null
+      : !isTrue(match.pregame_done) || (redoPregame && !isTrue(match.is_played)) ? 'pre'
+      : !isTrue(match.rules_applied) ? (reportOpen ? 'report' : 'field')
+      : correcting ? 'report' : 'post';
+  const PHASES = [
+    { key: 'pre', it: 'Pre-partita', en: 'Pre-game' },
+    { key: 'field', it: 'In campo', en: 'On the pitch' },
+    { key: 'report', it: 'Referto', en: 'Match report' },
+    { key: 'post', it: 'Post-partita', en: 'Post-game' },
+  ];
+  const phaseIndex = PHASES.findIndex(ph => ph.key === phase);
+  const toFlow = () => requestAnimationFrame(() => document.getElementById('match-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
   // Anteprima del risultato registrato (il server applica le stesse regole, pp. 101-102)
   const projected = (() => {
@@ -485,11 +500,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
         <div className={styles.scoreItem}>
           <label htmlFor={`${side}-td`} className={styles.scoreLabel}>TD</label>
-          <input id={`${side}-td`} type="number" min="0" value={zeroAsEmpty(score)} placeholder="0" onChange={e => setScore(toNumericInput(e.target.value))} className={styles.scoreInput} />
+          <input id={`${side}-td`} type="number" min="0" readOnly={wizardMode} value={zeroAsEmpty(score)} placeholder="0" onChange={e => setScore(toNumericInput(e.target.value))} className={styles.scoreInput} />
         </div>
         <div className={styles.casItem}>
           <label htmlFor={`${side}-cas`} className={styles.scoreLabel}>CAS</label>
-          <input id={`${side}-cas`} type="number" min="0" value={zeroAsEmpty(cas)} placeholder="0" onChange={e => setCas(toNumericInput(e.target.value))} className={styles.casInput} />
+          <input id={`${side}-cas`} type="number" min="0" readOnly={wizardMode} value={zeroAsEmpty(cas)} placeholder="0" onChange={e => setCas(toNumericInput(e.target.value))} className={styles.casInput} />
         </div>
       </div>
   );
@@ -569,12 +584,51 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   <button type="button" className="btn btn-slate" onClick={handleSaveDate} disabled={saving}>
                     <Clock size={20} /> {t.match.saveDateOnly}
                   </button>
-                  <button type="button" className="btn btn-gold" onClick={handleSave} disabled={saving || (rulesMode && mistakesDone)}>
-                    <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
-                  </button>
+                  {!wizardMode && (
+                      <button type="button" className="btn btn-gold" onClick={handleSave} disabled={saving || (rulesMode && mistakesDone)}>
+                        <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
+                      </button>
+                  )}
                 </>
             ) : undefined}
         />
+
+        {wizardMode && phase && (
+            <section id="match-flow" className={styles.flow} aria-label={language === 'it' ? 'Svolgimento della partita' : 'Match flow'}>
+              <ol className={styles.flowBar}>
+                {PHASES.map((ph, i) => (
+                    <li key={ph.key} className={`${styles.flowItem} ${i < phaseIndex ? styles.flowDone : i === phaseIndex ? styles.flowNow : ''}`} aria-current={i === phaseIndex ? 'step' : undefined}>
+                      <span className={styles.flowNum}>{String(i + 1).padStart(2, '0')}</span> {language === 'it' ? ph.it : ph.en}
+                    </li>
+                ))}
+              </ol>
+              {phase === 'pre' && <PregameWizard match={match} onSaved={() => { setRedoPregame(false); load(); toFlow(); }} />}
+              {phase === 'field' && <InPlayPanel match={match} onReport={() => { setReportOpen(true); toFlow(); }} onRedoPregame={() => { setRedoPregame(true); toFlow(); }} />}
+              {phase === 'report' && (
+                  <ReportWizard
+                      match={match}
+                      playerStats={playerStats}
+                      onStatChange={handleStatChange}
+                      updatePlayer={updatePlayer}
+                      outcome={outcome}
+                      setOutcome={setOutcome}
+                      concededTeam={concededTeam}
+                      setConcededTeam={setConcededTeam}
+                      penaltyWinner={penaltyWinner}
+                      setPenaltyWinner={setPenaltyWinner}
+                      teamResults={teamResults}
+                      updateTeamResult={updateTeamResult}
+                      scores={{ home: homeScore, away: awayScore, setHome: setHomeScore, setAway: setAwayScore }}
+                      projected={projected}
+                      winningsPreview={winningsPreview}
+                      onSave={async () => { const ok = await handleSave(); if (ok) toFlow(); return ok; }}
+                      saving={saving}
+                      onExit={() => { setReportOpen(false); setCorrecting(false); toFlow(); }}
+                  />
+              )}
+              {phase === 'post' && <PostgameWizard match={match} onChanged={load} onCorrectReport={() => { setCorrecting(true); toFlow(); }} />}
+            </section>
+        )}
 
         {/* Per i non-admin tutti i campi sono in sola lettura (le tabelle di partita restano fuori: si tirano sempre) */}
         <fieldset disabled={!canEdit} className={styles.fieldset}>
@@ -643,9 +697,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               {friendly && <p className={styles.rulesNote}>{t.rules.friendlyNote}</p>}
               {legacy && <p className={styles.rulesNote}>{t.rules.legacyNote}</p>}
 
-              {rulesMode && <PregamePanel match={match} canEdit={!!canEdit} onSaved={load} />}
+              {rulesMode && !wizardMode && <PregamePanel match={match} />}
 
-              {rulesMode && (
+              {rulesMode && !wizardMode && (
                   <section className={`card ${styles.rulesCard}`}>
                     <h3 className="subhead">{t.rules.resultTitle}</h3>
                     <div className={styles.outcomeRow}>
@@ -681,8 +735,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   </section>
               )}
 
-              {renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
-              {renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
+              {!wizardMode && renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
+              {!wizardMode && renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
             </fieldset>
           </div>
         </section>

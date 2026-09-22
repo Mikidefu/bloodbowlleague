@@ -15,7 +15,8 @@ export type Pill = {
   id: string;
   title: Text;
   body: Paragraphs;
-  page: string;                 // pagina/e del regolamento
+  page?: string;                // pagina/e del regolamento
+  app?: Text;                   // dove si trova nel sito (percorso Formazione, al posto della pagina)
   diagram?: string;             // chiave in TutorialDiagram
   gallery?: Shot[];             // immagini vere (i dadi), al posto o accanto al diagramma
   video?: string;               // file in public/tutorial/ (facoltativo)
@@ -37,6 +38,7 @@ export type Track = {
   summary: Text;
   pills: Pill[];
   quiz: QuizQuestion[];
+  guide?: boolean;              // spiega il sito, non il regolamento (esclusa dalla pillola del giorno)
 };
 
 // --- Immagini dei dadi (generate da scripts/make-dice.mjs) ------------------
@@ -659,6 +661,318 @@ export const TRACKS: Track[] = [
         ],
         answer: 1,
         why: { it: 'Differenza di CTV più quanto ha speso l\'altra squadra: 200.000 + 50.000 (p. 94).', en: 'The CTV difference plus whatever the other team spent: 200,000 + 50,000 (p. 94).' },
+      },
+    ],
+  },
+  // ----------------------------------------------------------------
+  // Formazione: come si usa il sito, sezione per sezione. Niente pagine del Rulebook:
+  // ogni pillola dice dove si trova la cosa nel sito (campo "app") e ci porta con "link".
+  {
+    id: 'formazione',
+    number: '06',
+    guide: true,
+    title: { it: 'Formazione: usare il sito', en: 'Training: using the app' },
+    summary: {
+      it: 'Tutto il gestionale passo per passo: stagioni, squadre, calendario, pre-partita, referto e post-partita.',
+      en: 'The whole manager step by step: seasons, teams, fixtures, pre-game, match report and post-game.',
+    },
+    pills: [
+      {
+        id: 'panoramica',
+        app: { it: 'Tutto il sito', en: 'The whole app' },
+        diagram: 'appRoles',
+        title: { it: 'Il sito in due minuti', en: 'The app in two minutes' },
+        body: {
+          it: [
+            'In alto trovi le sezioni: Squadre, Calendario, Classifica, Statistiche, Allenatori, Abilità e Star Player. A destra ci sono il Tutorial, l\'accesso Admin e la lingua, italiano o inglese.',
+            'Sotto il menu c\'è la barra della stagione: dice quale stagione stai guardando e quante partite sono state giocate. Da lì puoi aprire una stagione passata, che si consulta in sola lettura.',
+            'Chiunque può consultare tutto e tirare i dadi sulle Tabelle di partita. Creare squadre, compilare referti e gestire le stagioni spetta solo all\'admin di lega.',
+          ],
+          en: [
+            'At the top are the sections: Teams, Fixtures, Standings, Stats, Coaches, Skills and Star Players. On the right are the Tutorial, the Admin sign-in and the language, Italian or English.',
+            'Below the menu is the season bar: it tells you which season you are looking at and how many matches have been played. From there you can open a past season, which is read-only.',
+            'Anyone can browse everything and roll on the Match tables. Drafting teams, filling in match reports and managing seasons is for the league admin only.',
+          ],
+        },
+        link: { href: '/', label: { it: 'Vai alla home', en: 'Go to the home page' } },
+      },
+      {
+        id: 'admin',
+        app: { it: 'Admin', en: 'Admin' },
+        title: { it: 'Entrare come admin', en: 'Signing in as admin' },
+        body: {
+          it: [
+            'Il pulsante con il lucchetto, in alto a destra, apre l\'accesso admin: serve la password del commissario di lega. Una volta dentro compaiono i pulsanti per modificare: crea squadra, genera calendario, salva risultati, avanzamenti, ingaggi.',
+            'Senza accesso le pagine restano uguali ma i campi sono in sola lettura. Per uscire usa lo stesso pulsante, che diventa Esci.',
+          ],
+          en: [
+            'The padlock button at the top right opens the admin sign-in: you need the league commissioner\'s password. Once in, the editing buttons appear: draft team, generate fixtures, save results, advancements, hiring.',
+            'Without signing in the pages look the same but the fields are read-only. To leave, use the same button, which becomes Log out.',
+          ],
+        },
+        link: { href: '/login', label: { it: 'Accesso admin', en: 'Admin sign-in' } },
+      },
+      {
+        id: 'stagioni',
+        app: { it: 'Stagioni', en: 'Seasons' },
+        title: { it: 'Stagioni: avviarle, chiuderle, metterle in pausa', en: 'Seasons: start, close, pause' },
+        body: {
+          it: [
+            'Si gestiscono da "Gestisci stagioni" nella barra della stagione. Con Nuova stagione scegli il nome, le squadre che partecipano e chi le allena; la stagione in corso viene chiusa e diventa di sola lettura.',
+            'Se la stagione in corso non ha ancora un campione, il sito chiede cosa farne. In pausa diventa di sola lettura e si può riprendere. Annullata resta consultabile ma non conta nelle carriere degli allenatori. Eliminata cancella partite e statistiche, e toglie gli SPP guadagnati in quelle partite.',
+            'Ogni scheda di stagione mostra squadre, partite giocate e campione, con i pulsanti per rinominarla, metterla in pausa, annullarla o riprenderla. Una sola stagione alla volta è in corso: squadre e partite nuove vanno sempre lì.',
+          ],
+          en: [
+            'They are managed from "Manage seasons" in the season bar. With New season you pick the name, the teams taking part and who coaches them; the current season is closed and becomes read-only.',
+            'If the current season has no champion yet, the app asks what to do with it. Paused, it becomes read-only and can be resumed. Cancelled, it stays browsable but does not count in coach careers. Deleted, its matches and stats are erased, and the SPP earned in those matches are removed.',
+            'Each season card shows teams, matches played and champion, with buttons to rename, pause, cancel or resume it. Only one season is running at a time: new teams and matches always go there.',
+          ],
+        },
+        link: { href: '/seasons', label: { it: 'Apri Stagioni', en: 'Open Seasons' } },
+      },
+      {
+        id: 'allenatori',
+        app: { it: 'Allenatori', en: 'Coaches' },
+        title: { it: 'Allenatori e carriere', en: 'Coaches and careers' },
+        body: {
+          it: [
+            'Gli allenatori non si creano da una pagina a parte: quando crei o modifichi una squadra, nel campo Allenatore scegli uno esistente oppure "+ Nuovo allenatore" e scrivi il nome.',
+            'La pagina Allenatori mette in fila le carriere: stagioni, squadre allenate, vittorie-pareggi-sconfitte, punti, titoli, finali e playoff. La scheda di ogni allenatore ha il dettaglio stagione per stagione.',
+            'Un allenatore può cambiare squadra da una stagione all\'altra: la carriera lo segue. Le stagioni annullate compaiono nello storico ma non si sommano ai totali.',
+          ],
+          en: [
+            'Coaches are not created on a page of their own: when you draft or edit a team, the Coach field lets you pick an existing one or "+ New coach" and type the name.',
+            'The Coaches page lines up the careers: seasons, teams coached, wins-draws-losses, points, titles, finals and play-offs. Each coach\'s card has the season-by-season detail.',
+            'A coach can switch teams from one season to the next: the career follows them. Cancelled seasons appear in the history but are not added to the totals.',
+          ],
+        },
+        link: { href: '/coaches', label: { it: 'Apri Allenatori', en: 'Open Coaches' } },
+      },
+      {
+        id: 'draft',
+        app: { it: 'Squadre › Crea squadra', en: 'Teams › Draft team' },
+        title: { it: 'Creare una squadra', en: 'Drafting a team' },
+        body: {
+          it: [
+            'Da Squadre premi Crea squadra. Scegli nome, Team Roster e League: la League è una sola, e dopo la prima partita non si cambia più (lo stesso vale per il Favoured of, se la squadra ne ha uno). Poi l\'allenatore.',
+            'Aggiungi i giocatori scegliendo la posizione dal roster, con nome e numero: il sito rispetta i limiti di ogni posizione, da 11 a 16 giocatori. Se la squadra ha il Team Captain, spunta il capitano (mai un Big Guy).',
+            'Poi lo staff: Team Re-roll, Assistant Coach, Cheerleader, Apothecary se il roster lo permette, e Dedicated Fans da 1 a 3. Il riquadro del budget conta quanto hai speso su 1.200.000 (la regola della casa): quello che avanza diventa la Treasury.',
+            'Colori e logo sono facoltativi. Registra squadra: la squadra entra nella stagione in corso.',
+          ],
+          en: [
+            'From Teams press Draft team. Pick the name, Team Roster and League: a team has one League, and after its first match it can no longer change (the same goes for Favoured of, if the team has one). Then the coach.',
+            'Add players by picking their position from the roster, with name and number: the app enforces each position\'s limit and 11 to 16 players. If the team has Team Captain, tick the captain (never a Big Guy).',
+            'Then the staff: Team Re-rolls, Assistant Coaches, Cheerleaders, an Apothecary if the roster allows it, and 1 to 3 Dedicated Fans. The budget box counts what you spent out of 1,200,000 (the house rule): whatever is left becomes the Treasury.',
+            'Colours and logo are optional. Register team: it joins the running season.',
+          ],
+        },
+        link: { href: '/teams/new', label: { it: 'Crea una squadra', en: 'Draft a team' } },
+      },
+      {
+        id: 'pagina-squadra',
+        app: { it: 'Squadre › una squadra', en: 'Teams › a team' },
+        title: { it: 'Leggere la pagina di una squadra', en: 'Reading a team page' },
+        body: {
+          it: [
+            'Il roster ha una riga per giocatore: numero, nome, ruolo con una stella per ogni avanzamento, caratteristiche, SPP, Niggling Injury, skill e valore. Le skill guadagnate sono evidenziate, e un clic apre la loro descrizione.',
+            'Lo stato è in fondo alla riga: MNG salta la prossima partita, TR è a riposo per la stagione, RIP è morto. Accanto al nome: C per il capitano, J per un Journeyman, "Deve avanzare" per chi ha abbastanza SPP e deve spenderli.',
+            'In fondo al roster ci sono il valore della squadra e il CTV, quello che conta per gli incentivi. In alto ci sono Treasury, Dedicated Fans e staff. Con Modifica squadra cambi nome, colori, logo e allenatore.',
+          ],
+          en: [
+            'The roster has one row per player: number, name, role with a star for each advancement, characteristics, SPP, Niggling Injuries, skills and value. Earned skills are highlighted, and a click opens their description.',
+            'Status is at the end of the row: MNG misses the next game, TR is resting for the season, RIP is dead. Next to the name: C for the captain, J for a Journeyman, "Must advance" for anyone with enough SPP who has to spend them.',
+            'At the foot of the roster are the team value and the CTV, the one that counts for inducements. At the top are Treasury, Dedicated Fans and staff. Edit team changes name, colours, logo and coach.',
+          ],
+        },
+        link: { href: '/teams', label: { it: 'Apri Squadre', en: 'Open Teams' } },
+      },
+      {
+        id: 'avanzamenti',
+        app: { it: 'Squadra › freccia accanto al giocatore', en: 'Team › arrow next to the player' },
+        title: { it: 'Spendere gli SPP', en: 'Spending SPP' },
+        body: {
+          it: [
+            'Quando un giocatore ha abbastanza SPP compare una freccia nella sua riga. Si apre la scheda dell\'avanzamento con quattro scelte, ognuna con il suo costo: skill primaria a caso, skill primaria a scelta, skill secondaria a scelta, miglioramento di caratteristica.',
+            'Per la skill a caso il sito tira due volte 2D6 sulla tabella e tu scegli tra le due uscite. Per la caratteristica tira il D8 e ti propone solo quelle ammesse; puoi anche rinunciare e prendere una skill con gli stessi SPP. I dadi li tira il server: ripetere la scheda non cambia il risultato.',
+            'Costo, valore del giocatore e limiti (6 avanzamenti, 2 miglioramenti per caratteristica) sono calcolati dal sito. Se un giocatore ha il badge "Deve avanzare", non si chiude il post-partita finché non spende.',
+          ],
+          en: [
+            'When a player has enough SPP an arrow appears on their row. It opens the advancement sheet with four choices, each with its cost: random primary skill, chosen primary skill, chosen secondary skill, characteristic improvement.',
+            'For the random skill the app rolls 2D6 twice on the table and you pick one of the two results. For the characteristic it rolls the D8 and offers only the allowed ones; you may also turn it down and take a skill for the same SPP. The server rolls the dice: reopening the sheet does not change the result.',
+            'Cost, player value and limits (6 advancements, 2 improvements per characteristic) are worked out by the app. If a player shows "Must advance", the post-game cannot be closed until they spend.',
+          ],
+        },
+        link: { href: '/teams', label: { it: 'Scegli una squadra', en: 'Pick a team' } },
+      },
+      {
+        id: 'ingaggi',
+        app: { it: 'Squadra › roster e staff', en: 'Team › roster and staff' },
+        title: { it: 'Ingaggi, staff e licenziamenti', en: 'Hiring, staff and firing' },
+        body: {
+          it: [
+            'Ingaggia giocatore apre la scelta della posizione: costo e profilo vengono dal roster e si pagano dalla Treasury. Nella barra dello staff compri Team Re-roll (in lega costano il doppio e non si tolgono più), Assistant Coach, Cheerleader e Apothecary.',
+            'Il cestino licenzia: il sito non ti lascia scendere sotto 11 giocatori disponibili, e il capitano si licenzia solo dopo che ha perso una caratteristica. Chi ha uno storico resta nelle statistiche come "ha lasciato la squadra".',
+            'Il pulsante TR mette a riposo per il resto della stagione un giocatore che ha appena subito un Lasting Injury.',
+            'Tutto questo si fa solo finché il post-partita è aperto. Una volta risolti gli Expensive Mistakes i pulsanti si spengono fino al referto della partita dopo. Le squadre che non hanno ancora giocato con le regole di lega sono sempre libere.',
+          ],
+          en: [
+            'Hire player opens the position picker: cost and profile come from the roster and are paid from the Treasury. The staff bar buys Team Re-rolls (in a league they cost double and can never be removed), Assistant Coaches, Cheerleaders and an Apothecary.',
+            'The bin fires a player: the app will not let you drop below 11 available players, and the captain can only be fired after losing a characteristic. Anyone with a history stays in the stats as "left the team".',
+            'The TR button rests a player who has just suffered a Lasting Injury for the rest of the season.',
+            'All of this is only possible while the post-game is open. Once Expensive Mistakes are resolved the buttons switch off until the next match report. Teams that have not yet played with the league rules are always free.',
+          ],
+        },
+        link: { href: '/teams', label: { it: 'Scegli una squadra', en: 'Pick a team' } },
+      },
+      {
+        id: 'calendario',
+        app: { it: 'Calendario', en: 'Fixtures' },
+        title: { it: 'Calendario e playoff', en: 'Fixtures and play-offs' },
+        body: {
+          it: [
+            'Genera gironi crea il calendario tutti contro tutti della stagione in corso. Attenzione: rigenerarlo cancella partite e statistiche già inserite.',
+            'Ogni partita ha la sua pagina: Gioca partita la apre direttamente sul percorso guidato, che parte dal pre-partita. Lì puoi anche impostare la data del kick-off e salvarla con "Salva solo la data". Una partita si può eliminare; se era già giocata, spariscono anche le sue statistiche e gli SPP guadagnati.',
+            'Finito il girone, Inizia Final Four crea le semifinali (1ª contro 4ª, 2ª contro 3ª), poi Genera finali. Nei playoff un pareggio si decide ai rigori, e nel referto indichi chi li ha vinti.',
+          ],
+          en: [
+            'Generate round robin creates the everyone-plays-everyone fixture list for the running season. Careful: generating it again erases matches and stats already entered.',
+            'Each match has its own page: Play match opens it straight on the guided flow, starting from the pre-game. There you can also set the kick-off date and save it with "Save date only". A match can be deleted; if it was played, its stats and the SPP earned go with it.',
+            'When the round robin is done, Start Final Four creates the semi-finals (1st v 4th, 2nd v 3rd), then Generate finals. In the play-offs a draw goes to penalties, and the report records who won them.',
+          ],
+        },
+        link: { href: '/schedule', label: { it: 'Apri Calendario', en: 'Open Fixtures' } },
+      },
+      {
+        id: 'pre-partita',
+        app: { it: 'Partita › 01 Pre-partita', en: 'Match › 01 Pre-game' },
+        diagram: 'appMatchday',
+        title: { it: 'Il pre-partita, passo per passo', en: 'The pre-game, step by step' },
+        body: {
+          it: [
+            'In cima alla pagina della partita c\'è una barra con le quattro fasi: Pre-partita, In campo, Referto, Post-partita. Il sito ti porta sempre a quella in corso, e dentro ogni fase va avanti un passo alla volta. Ogni passo spiega cosa succede e dice la pagina del regolamento.',
+            'Il pre-partita ha sette passi: prima di iniziare (chi è disponibile e chi salta la partita), tifosi (un D3 a testa), meteo (un D6 per allenatore), Journeymen, incentivi, chi calcia (roll-off) e riepilogo.',
+            'Per ogni tiro puoi usare i dadi veri e scrivere nel campo quello che è uscito, oppure premere Tira. Ritira svuota il tiro per ripeterlo: un re-roll, un pareggio nel roll-off, un errore di battitura. Poi premi Conferma e continua. Finché non premi Conferma il pre-partita nell\'ultimo passo non viene salvato niente, e se ricarichi la pagina ritrovi i tiri già fatti.',
+          ],
+          en: [
+            'At the top of the match page there is a bar with the four phases: Pre-game, On the pitch, Match report, Post-game. The app always takes you to the current one, and inside each phase it moves one step at a time. Every step explains what happens and gives the rulebook page.',
+            'The pre-game has seven steps: before you start (who is available and who misses the match), fans (a D3 each), weather (one D6 per coach), Journeymen, inducements, who kicks (roll-off) and summary.',
+            'For each roll you can use real dice and type what came up in the field, or press Roll. Re-roll clears the roll to repeat it: a re-roll, a roll-off tie, a typo. Then press Confirm and continue. Nothing is saved until you press Confirm the pre-game on the last step, and if you reload the page the rolls already made are still there.',
+          ],
+        },
+        link: { href: '/schedule', label: { it: 'Scegli una partita', en: 'Pick a match' } },
+      },
+      {
+        id: 'in-campo',
+        app: { it: 'Partita › 02 In campo', en: 'Match › 02 On the pitch' },
+        title: { it: 'In campo', en: 'On the pitch' },
+        body: {
+          it: [
+            'Confermato il pre-partita si gioca. La fase In campo tiene a portata di mano meteo, chi calcia il primo drive, Fan Factor, Journeymen e incentivi di ogni squadra.',
+            'Sotto ci sono le Tabelle di partita, già aperte sul Kick-off: tiri e leggi il risultato senza cambiare pagina. Se sono state comprate Prayers to Nuffle, il sito ricorda di tirarle.',
+            'Se ti accorgi di un errore puoi ancora premere Rifai il pre-partita. Quando la partita è finita, premi "La partita è finita: compila il referto".',
+          ],
+          en: [
+            'Once the pre-game is confirmed, you play. The On the pitch phase keeps weather, who kicks the first drive, Fan Factor, Journeymen and each team\'s inducements at hand.',
+            'Below are the Match tables, already open on Kick-off: roll and read the result without changing page. If Prayers to Nuffle were bought, the app reminds you to roll them.',
+            'If you spot a mistake you can still press Redo the pre-game. When the match is over, press "The match is over: fill in the report".',
+          ],
+        },
+        link: { href: '/tables', label: { it: 'Apri le Tabelle di partita', en: 'Open the Match tables' } },
+      },
+      {
+        id: 'referto',
+        app: { it: 'Partita › 03 Referto', en: 'Match › 03 Match report' },
+        title: { it: 'Il referto, passo per passo', en: 'The match report, step by step' },
+        body: {
+          it: [
+            'Esito: giocata, concessa, oppure non giocata. Poi le statistiche: per ogni giocatore TD, CAS, INT, CMP, TTM e atterraggi, e il sito calcola SPP e punteggio. Se ha segnato uno Star Player o un Mercenario, che non sono nel roster, correggi a mano i touchdown della squadra.',
+            'Infortuni: scegli il giocatore e tira il D16 della Casualty. Il sito aggiunge da solo +1 per ogni Niggling Injury che ha già. Con un Lasting Injury chiede il D6 della caratteristica; dopo SH, SI o LI chiede il D6 del Getting Even e, con 4+, la keyword della Hatred. Con Apothecary, Regeneration o Stunty scegli a mano il risultato finale.',
+            'MVP: sceglilo direttamente, oppure come dice il libro, nominando fino a 6 giocatori e tirando un D6. Poi incassi e Dedicated Fans: la spunta di Stalling e il D6 dei fan; con una concessione, i D6 di chi rischia di andarsene.',
+            'Conferma il referto: il sito assegna SPP, incassi, fan e infortuni. Finché non tiri gli Expensive Mistakes puoi ancora correggerlo dal post-partita.',
+          ],
+          en: [
+            'Outcome: played, conceded, or not played. Then the stats: TD, CAS, INT, CMP, TTM and landings for each player, and the app works out SPP and score. If a Star Player or a Mercenary scored, since they are not on the roster, fix the team\'s touchdowns by hand.',
+            'Injuries: pick the player and roll the Casualty D16. The app adds +1 by itself for each Niggling Injury they already have. On a Lasting Injury it asks for the characteristic D6; after SH, SI or LI it asks for the Getting Even D6 and, on a 4+, the Hatred keyword. With an Apothecary, Regeneration or Stunty pick the final result by hand.',
+            'MVP: pick them directly, or the book\'s way by nominating up to 6 players and rolling a D6. Then winnings and Dedicated Fans: the Stalling tick and the fans D6; after a concession, the D6 for players who may leave.',
+            'Confirm the report: the app awards SPP, winnings, fans and injuries. Until Expensive Mistakes are rolled you can still correct it from the post-game.',
+          ],
+        },
+        link: { href: '/schedule', label: { it: 'Scegli una partita', en: 'Pick a match' } },
+      },
+      {
+        id: 'post-partita',
+        app: { it: 'Partita › 04 Post-partita', en: 'Match › 04 Post-game' },
+        title: { it: 'Il post-partita, passo per passo', en: 'The post-game, step by step' },
+        body: {
+          it: [
+            'Il post-partita si fa nella pagina della partita, per tutte e due le squadre. Riepilogo: incassi, Dedicated Fans e infortuni sono già applicati; da qui puoi ancora correggere il referto.',
+            'Avanzamenti: il sito elenca chi ha abbastanza SPP e chi deve avanzare per forza. "Avanzamento" apre la scheda del giocatore nella pagina della squadra; finito, "Torna alla partita" ti riporta al punto dove eri. Questi dadi li tira il sito, per non poterli ritoccare.',
+            'Ingaggi: qui ingaggi i Journeymen della partita (costano il loro valore, perdono Loner, tengono gli SPP) e, se il capitano è morto, nomini il nuovo. Per nuovi giocatori, staff e licenziamenti c\'è il collegamento alla pagina della squadra.',
+            'Expensive Mistakes: con 100.000 o più in Treasury si tira il D6 (più il D3 o il 2D6 se serve), con il campo e i pulsanti Tira e Ritira; poi Conferma. Quando le due squadre hanno confermato, la partita è chiusa. Se hai sbagliato, puoi annullarli e il post-partita si riapre.',
+          ],
+          en: [
+            'The post-game is done on the match page, for both teams. Recap: winnings, Dedicated Fans and injuries are already applied; from here you can still correct the report.',
+            'Advancements: the app lists who has enough SPP and who is forced to advance. "Advancement" opens the player\'s sheet on the team page; when done, "Back to the match" returns you to where you were. The app rolls these dice, so they cannot be tweaked.',
+            'Hiring: here you hire the match\'s Journeymen (they cost their value, lose Loner, keep their SPP) and, if the captain died, appoint a new one. For new players, staff and firing there is a link to the team page.',
+            'Expensive Mistakes: with 100,000 or more in the Treasury roll the D6 (plus the D3 or 2D6 if needed), with the field and the Roll and Re-roll buttons; then Confirm. When both teams have confirmed, the match is closed. If you made a mistake, you can undo them and the post-game reopens.',
+          ],
+        },
+        link: { href: '/schedule', label: { it: 'Scegli una partita', en: 'Pick a match' } },
+      },
+      {
+        id: 'strumenti',
+        app: { it: 'Tabelle, Star Player, Classifica, Statistiche', en: 'Tables, Star Players, Standings, Stats' },
+        title: { it: 'Gli altri strumenti', en: 'The other tools' },
+        body: {
+          it: [
+            'Tabelle di partita: meteo, kick-off, infortuni, Casualty, Argue the Call e Prayers to Nuffle, con il pulsante Tira. Le trovi in home e, richiudibili, dentro ogni referto: si usano al tavolo mentre si gioca.',
+            'Star Player: il catalogo completo, con filtro per squadra per vedere chi puoi ingaggiare. La scheda di ogni star mostra profilo, regola speciale e squadre per cui gioca.',
+            'Classifica: 3 punti a vittoria e 1 a pareggio; a pari punti conta la differenza TD, poi la differenza Casualty. Le prime quattro vanno alla Final Four. Statistiche è la Hall of Fame: marcatori, killer, MVP ed esperienza.',
+            'Abilità spiega ogni skill, e questo tutorial ricorda le pillole lette solo in questo browser.',
+          ],
+          en: [
+            'Match tables: weather, kick-off, injuries, Casualty, Argue the Call and Prayers to Nuffle, with a Roll button. They are on the home page and, collapsible, inside every match report: use them at the table while you play.',
+            'Star Players: the full catalogue, with a team filter to see who you can hire. Each star\'s card shows profile, special rule and the teams they play for.',
+            'Standings: 3 points for a win and 1 for a draw; on equal points TD difference counts, then Casualty difference. The top four go to the Final Four. Stats is the Hall of Fame: scorers, killers, MVPs and experience.',
+            'Skills explains every skill, and this tutorial remembers the pills you have read in this browser only.',
+          ],
+        },
+        link: { href: '/tables', label: { it: 'Apri le Tabelle di partita', en: 'Open the Match tables' } },
+      },
+    ],
+    quiz: [
+      {
+        id: 'q-dove-spp',
+        question: { it: 'Dove si spendono gli SPP di un giocatore?', en: 'Where do you spend a player\'s SPP?' },
+        options: [
+          { it: 'Nel referto della partita', en: 'In the match report' },
+          { it: 'Nella pagina della squadra, con la freccia accanto al giocatore', en: 'On the team page, with the arrow next to the player' },
+          { it: 'Nella pagina Statistiche', en: 'On the Stats page' },
+        ],
+        answer: 1,
+        why: { it: 'Il referto assegna gli SPP; si spendono dalla pagina della squadra, con la freccia che compare quando bastano per un avanzamento.', en: 'The report awards the SPP; you spend them on the team page, with the arrow that appears when there are enough for an advancement.' },
+      },
+      {
+        id: 'q-dopo-mistakes',
+        question: { it: 'Hai appena risolto gli Expensive Mistakes e vuoi ingaggiare un giocatore. Cosa succede?', en: 'You have just resolved Expensive Mistakes and want to hire a player. What happens?' },
+        options: [
+          { it: 'Lo ingaggi subito dalla pagina della squadra', en: 'You hire them straight away from the team page' },
+          { it: 'Lo ingaggi nel pre-partita della prossima partita', en: 'You hire them in the next match\'s pre-game' },
+          { it: 'Aspetti il referto della prossima partita: il post-partita è chiuso', en: 'You wait for the next match report: the post-game is closed' },
+        ],
+        answer: 2,
+        why: { it: 'Gli Expensive Mistakes chiudono il post-partita: ingaggi, staff e avanzamenti riaprono con il post-partita della partita dopo.', en: 'Expensive Mistakes close the post-game: hiring, staff and advancements open again with the next match\'s post-game.' },
+      },
+      {
+        id: 'q-star-lega',
+        question: { it: 'Una squadra dell\'Old World Classic vuole ingaggiare una star che gioca solo nella Lustrian Superleague. Cosa vedi nel pre-partita?', en: 'An Old World Classic team wants a star who only plays in the Lustrian Superleague. What do you see in the pre-game?' },
+        options: [
+          { it: 'La star non compare nell\'elenco', en: 'The star is not in the list' },
+          { it: 'La star compare, ma costa il doppio', en: 'The star is listed, at double cost' },
+          { it: 'La star compare e si può prendere lo stesso', en: 'The star is listed and can be taken anyway' },
+        ],
+        answer: 0,
+        why: { it: 'L\'elenco mostra solo le star che giocano per la League o il Favoured of della squadra, e il server controlla di nuovo al salvataggio.', en: 'The list only shows stars who play for the team\'s League or Favoured of, and the server checks again on save.' },
       },
     ],
   },

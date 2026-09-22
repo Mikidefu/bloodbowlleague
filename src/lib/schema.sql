@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS matches (
     penalty_winner_id TEXT,                 -- playoff finiti in parità dopo i supplementari: vincitrice ai rigori (p. 83)
     rules_applied BOOLEAN DEFAULT 0,        -- 1 = post-partita applicato (Treasury, fan, infortuni); 0 = partita legacy
     pregame_done BOOLEAN DEFAULT 0,
+    weather_roll INTEGER,                   -- 2D6 del Meteo tirato nel pre-partita (p. 46)
+    kicking_team_id TEXT,                   -- squadra che calcia il primo drive, dopo il roll-off (p. 46)
     -- Nessun CASCADE: eliminare una squadra richiede prima di eliminarne le partite (vedi DELETE /api/teams/[id])
     FOREIGN KEY(home_team_id) REFERENCES teams(id),
     FOREIGN KEY(away_team_id) REFERENCES teams(id),
