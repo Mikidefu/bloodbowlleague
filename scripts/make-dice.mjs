@@ -75,45 +75,63 @@ function cube(id, symbol) {
   </g>`;
 }
 
-// --- Simboli del dado da blocco (ridisegnati, p. 62) -----------------------
-const skull = (s = 1, tx = 0) => `
-  <g transform="translate(${tx} 0) scale(${s})" fill="${BONE}">
+// --- Simboli del dado da blocco (ridisegnati seguendo i cinque risultati di p. 62) ---
+// Player Down: teschio · Both Down: teschio dentro lo scontro · Push Back: freccia
+// Stumble: freccia con il punto esclamativo sullo scoppio · POW: solo lo scoppio.
+
+const skull = (s = 1, tx = 0, ty = 0, hollow = RED_EDGE, fill = BONE) => `
+  <g transform="translate(${tx} ${ty}) scale(${s})" fill="${fill}">
     <path d="M0 -46 c-30 0 -52 22 -52 50 0 17 8 30 19 38 l2 20 c0 7 6 12 13 12 h36 c7 0 13 -5 13 -12 l2 -20 c11 -8 19 -21 19 -38 0 -28 -22 -50 -52 -50 z"/>
-    <ellipse cx="-19" cy="4" rx="12" ry="14" fill="${RED_EDGE}"/>
-    <ellipse cx="19" cy="4" rx="12" ry="14" fill="${RED_EDGE}"/>
-    <path d="M-6 28 l6 -14 6 14 z" fill="${RED_EDGE}"/>
-    <rect x="-16" y="46" width="8" height="14" rx="2" fill="${RED_EDGE}"/>
-    <rect x="-4" y="46" width="8" height="14" rx="2" fill="${RED_EDGE}"/>
-    <rect x="8" y="46" width="8" height="14" rx="2" fill="${RED_EDGE}"/>
+    <ellipse cx="-19" cy="4" rx="12" ry="14" fill="${hollow}"/>
+    <ellipse cx="19" cy="4" rx="12" ry="14" fill="${hollow}"/>
+    <path d="M-6 28 l6 -14 6 14 z" fill="${hollow}"/>
+    <rect x="-16" y="46" width="8" height="14" rx="2" fill="${hollow}"/>
+    <rect x="-4" y="46" width="8" height="14" rx="2" fill="${hollow}"/>
+    <rect x="8" y="46" width="8" height="14" rx="2" fill="${hollow}"/>
   </g>`;
 
-const burst = (s = 1, fill = BONE) => {
+// Scoppio a punte irregolari: e' l'impatto, lo stesso segno che sul dado vero
+// sta dietro a Both Down e Stumble e da solo vale POW.
+const burst = (s = 1, fill = BONE, spikes = 11) => {
   const pts = [];
-  for (let i = 0; i < 20; i++) {
-    const a = (Math.PI * 2 * i) / 20 - Math.PI / 2;
-    const rr = i % 2 === 0 ? 78 : 40;
-    pts.push(`${(Math.cos(a) * rr).toFixed(1)},${(Math.sin(a) * rr).toFixed(1)}`);
+  for (let i = 0; i < spikes * 2; i++) {
+    const a = (Math.PI * 2 * i) / (spikes * 2) - Math.PI / 2;
+    const rr = i % 2 === 0 ? 82 : 42;
+    const jitter = i % 4 === 0 ? 0.92 : 1;
+    pts.push(`${(Math.cos(a) * rr * jitter).toFixed(1)},${(Math.sin(a) * rr * jitter).toFixed(1)}`);
   }
   return `<polygon transform="scale(${s})" points="${pts.join(' ')}" fill="${fill}"/>`;
 };
 
-const arrow = (rot = -45, s = 1) => `
-  <g transform="rotate(${rot}) scale(${s})" fill="${BONE}">
-    <path d="M0 -80 l52 58 h-28 v62 h-48 v-62 h-28 z"/>
+const arrow = (rot = -40, s = 1, tx = 0, ty = 0, fill = BONE) => `
+  <g transform="translate(${tx} ${ty}) rotate(${rot}) scale(${s})" fill="${fill}">
+    <path d="M0 -84 l56 62 h-30 v64 h-52 v-64 h-30 z"/>
   </g>`;
 
+const bang = (tx, ty, s = 1, fill = BONE) => `
+  <g transform="translate(${tx} ${ty}) scale(${s})" fill="${fill}">
+    <path d="M-10 -42 h20 l-4 50 h-12 z"/>
+    <circle cx="0" cy="22" r="11"/>
+  </g>`;
+
+// Contorno rosso sotto il simbolo bianco: cosi' il segno si stacca dallo scoppio
+const outlined = (shape, scale) => `${shape(RED, scale)}${shape(BONE, 1)}`;
+
+const skullShape = (fill, s) => skull(0.92 * s, 0, 2, fill === BONE ? RED : fill, fill);
+const arrowShape = (fill, s) => arrow(-40, 0.82 * s, -16, -8, fill);
+const bangShape = (fill, s) => bang(50, 38, 1.1 * s, fill);
+
 const BLOCK_FACES = {
-  'block-player-down': skull(0.95),
-  'block-both-down': `${burst(1.05, 'rgba(255,255,255,0.22)')}${skull(0.62, -34)}${skull(0.62, 34)}`,
-  'block-push-back': arrow(-45, 0.95),
-  'block-stumble': `${arrow(-45, 0.8)}
-    <g transform="translate(46 44)" fill="${BONE}">
-      <rect x="-9" y="-40" width="18" height="48" rx="6"/>
-      <circle cx="0" cy="26" r="11"/>
-    </g>`,
-  'block-pow': `${burst(1.15)}
-    <text x="0" y="13" text-anchor="middle" font-family="Arial Black, Arial, sans-serif"
-          font-size="38" font-weight="900" fill="${RED_DARK}">POW!</text>`,
+  // cadi tu: il teschio e basta
+  'block-player-down': skull(1),
+  // cadete tutti e due: il teschio nello scoppio
+  'block-both-down': `${burst(1.25)}${outlined(skullShape, 1.12)}`,
+  // lo spingi: freccia piena
+  'block-push-back': arrow(-40, 1),
+  // stumble: freccia e punto esclamativo sullo scoppio
+  'block-stumble': `${burst(1.1, 'rgba(246,242,234,0.3)')}${arrowShape(BONE, 1)}${bangShape(BONE, 1)}`,
+  // POW: solo lo scoppio
+  'block-pow': burst(1.28),
 };
 
 // --- Dadi numerici ----------------------------------------------------------
