@@ -226,6 +226,36 @@
   color: #2a1a05;
 }
 
+/* Tutorial: stessa sagoma della CTA ma in ottone, a sinistra del login */
+.ctaTutorial {
+  color: #2a1a05;
+  background: linear-gradient(180deg, #f7e2ab, #c99b4c);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.ctaTutorial:hover {
+  color: #2a1a05;
+}
+
+.ctaTutorialActive {
+  color: #fff4e0;
+  background: linear-gradient(180deg, #3c424c, #22262d);
+  box-shadow: inset 0 0 0 1px rgba(234, 178, 42, 0.6);
+}
+
+.ctaTutorialActive:hover {
+  color: #fff4e0;
+}
+
+.mobileCtaTutorial {
+  color: #fff4e0;
+  background: linear-gradient(180deg, #e0453c, #b8222a);
+}
+
+.mobileCtaTutorial:hover {
+  color: #fff4e0;
+}
+
 /* Switch lingua segmentato */
 .langContainer {
   display: flex;

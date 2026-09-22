@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&family=Rokkitt:wght@500..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&family=Rokkitt:wght@500..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap');
 
 /* ================================================================== */
 /*  BLOOD BOWL LEAGUE · NEW SEASON                                     */
@@ -45,6 +45,7 @@
   --font-slab: 'Rokkitt', 'Rockwell', Georgia, serif;             /* titoli slab Rulebook */
   --font-body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;    /* testo corrente */
   --font-data: 'Archivo', 'Arial Narrow', sans-serif;             /* tabelle (usare con font-stretch) */
+  --font-read: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; /* testi lunghi da leggere (tutorial) */
 
   /* --- Superfici e texture --- */
   --tex-grain: url('/brand/grain.svg');

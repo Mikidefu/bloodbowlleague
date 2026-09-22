@@ -29,6 +29,7 @@ const SECTIONS: Record<string, { index: string; code: string }> = {
   coaches: { index: '05', code: 'Coaches' },
   skills: { index: '06', code: 'Playbook' },
   seasons: { index: '07', code: 'Seasons' },
+  tutorial: { index: '08', code: 'Rookie school' },
   login: { index: '00', code: 'Locker room' },
   brand: { index: '99', code: 'Brand kit' },
 };

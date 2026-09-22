@@ -10,13 +10,43 @@ import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
 import Shards from '@/components/brand/Shards';
 import styles from './TeamDetails.module.css';
-import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, categoryLetters, categoryName, isEliteSkill, skillsForCategories } from '@/lib/advancement';
+import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, SKILL_CATEGORY_LETTERS, categoryLetters, categoryName, isEliteSkill, skillsForCategories } from '@/lib/advancement';
+import { CHARACTERISTIC_VALUES, parseCharacteristic, statLabel, type Characteristics, type StatKey } from '@/lib/characteristics';
 import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
-import { ROSTERS, favouredOptions, getRoster } from '@/lib/rosters';
+import { ROSTERS, favouredOptions, getRoster, type SkillCategory } from '@/lib/rosters';
 import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
 import PostgamePanel from './PostgamePanel';
 
 const SORTED_ROSTERS = [...ROSTERS].sort((a, b) => a.name.localeCompare(b.name));
+
+// Le caratteristiche si scelgono dai valori ammessi (p. 37), non si scrivono a mano:
+// il profilo che arriva all'API è sempre valido.
+function StatSelect<K extends StatKey>(
+    { stat, value, onChange, className }: { stat: K; value: Characteristics[K]; onChange: (value: Characteristics[K]) => void; className: string },
+) {
+  return (
+      <select aria-label={statLabel(stat)} className={className} value={String(value)}
+              onChange={e => onChange(parseCharacteristic(stat, e.target.value) ?? value)}>
+        {CHARACTERISTIC_VALUES[stat].map(option => <option key={String(option)} value={String(option)}>{option}</option>)}
+      </select>
+  );
+}
+
+// Aggiunge o toglie una categoria dall'elenco "G, A"
+const toggleCategory = (current: string, letter: SkillCategory) => {
+  const letters = categoryLetters(current);
+  return (letters.includes(letter) ? letters.filter(l => l !== letter) : [...letters, letter]).join(', ');
+};
+
+// Profilo modificabile dal form: le caratteristiche hanno gli stessi tipi del giocatore
+type PlayerFormState = Characteristics & {
+  jersey_number: string; name: string; role: string; value: number;
+  skills: Skill[]; primary_skills: string; secondary_skills: string; spp: number;
+};
+
+type EditPlayerFormState = PlayerFormState & {
+  advancements: number; mng: boolean; dead: boolean; position_key: string;
+};
 
 // Risposte di POST /api/players/[id]/advance/roll
 type RandomRoll = { category: string; cost: number; token: string; options: { id: string; name: string; type: string; elite: boolean; rolls: number[] }[] };
@@ -71,10 +101,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [skillInput, setSkillInput] = useState('');
   const [skillSuggestions, setSkillSuggestions] = useState<Skill[]>([]);
 
-  const [editPlayerForm, setEditPlayerForm] = useState({
+  const [editPlayerForm, setEditPlayerForm] = useState<EditPlayerFormState>({
     jersey_number: '', name: '', role: '', value: 0,
     primary_skills: '', secondary_skills: '', advancements: 0,
-    skills: [] as Skill[],
+    skills: [],
     ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', spp: 0,
     mng: false, dead: false, position_key: ''
   });
@@ -83,8 +113,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [hireForm, setHireForm] = useState({ position_key: '', name: '', jersey_number: '' });
   const [staffBusy, setStaffBusy] = useState(false);
 
-  const [playerForm, setPlayerForm] = useState({
-    jersey_number: '', name: '', role: 'Lineman', value: 50000, skills: [] as Skill[],
+  const [playerForm, setPlayerForm] = useState<PlayerFormState>({
+    jersey_number: '', name: '', role: 'Lineman', value: 50000, skills: [],
     primary_skills: 'G', secondary_skills: 'A', // Default per non lasciarlo vuoto
     ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', spp: 0
   });
@@ -317,7 +347,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           team_id: id, jersey_number: playerForm.jersey_number ? Number(playerForm.jersey_number) : null,
           name: playerForm.name, role: playerForm.role, value: Number(playerForm.value),
           primary_skills: playerForm.primary_skills, secondary_skills: playerForm.secondary_skills, // INVIAMO P/S SKILLS
-          skills: skillIds, ma: Number(playerForm.ma), st: Number(playerForm.st), ag: playerForm.ag, pa: playerForm.pa, av: playerForm.av,
+          skills: skillIds, ma: playerForm.ma, st: playerForm.st, ag: playerForm.ag, pa: playerForm.pa, av: playerForm.av,
           spp: Number(playerForm.spp), mng: false, dead: false
         })
       });
@@ -397,8 +427,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       jersey_number: player.jersey_number != null ? String(player.jersey_number) : '', name: player.name, role: player.role, value: player.value,
       primary_skills: player.primary_skills || '', secondary_skills: player.secondary_skills || '', advancements: player.advancements || 0,
       skills: player.skills || [], // Le skills originali (non verranno modificate dalla UI)
-      ma: player.ma ?? 6, st: player.st ?? 3, ag: player.ag ?? '3+', pa: player.pa ?? '4+', av: player.av ?? '8+',
-      spp: player.spp ?? 0, mng: isTrue(player.mng), dead: isTrue(player.dead), position_key: player.position_key || ''
+      ma: player.ma, st: player.st, ag: player.ag, pa: player.pa, av: player.av,
+      spp: player.spp, mng: player.mng, dead: player.dead, position_key: player.position_key || ''
     });
   };
 
@@ -411,7 +441,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           jersey_number: editPlayerForm.jersey_number ? Number(editPlayerForm.jersey_number) : null,
           name: editPlayerForm.name, role: editPlayerForm.role, value: Number(editPlayerForm.value),
           primary_skills: editPlayerForm.primary_skills, secondary_skills: editPlayerForm.secondary_skills, advancements: editPlayerForm.advancements,
-          ma: Number(editPlayerForm.ma), st: Number(editPlayerForm.st), ag: editPlayerForm.ag, pa: editPlayerForm.pa, av: editPlayerForm.av,
+          ma: editPlayerForm.ma, st: editPlayerForm.st, ag: editPlayerForm.ag, pa: editPlayerForm.pa, av: editPlayerForm.av,
           mng: editPlayerForm.mng, dead: editPlayerForm.dead, position_key: editPlayerForm.position_key || undefined
           // NOTA BENE: Non inviamo "skills" né "spp", così il backend non li tocca!
         })
@@ -998,16 +1028,23 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                       </div>
                     </div>
 
-                    {/* GESTIONE CATEGORIE SKILL */}
+                    {/* CATEGORIE SKILL: solo le sei del regolamento (p. 121) */}
                     <div className={styles.grid2Col}>
-                      <div className={styles.inputGroup}>
-                        <label className={styles.label}>PRIMARY SKILLS (es. G, A)</label>
-                        <input type="text" required value={playerForm.primary_skills} onChange={e => setPlayerForm({...playerForm, primary_skills: e.target.value})} className={styles.inputField} placeholder="G, A" />
-                      </div>
-                      <div className={styles.inputGroup}>
-                        <label className={styles.label}>SECONDARY SKILLS (es. S, P)</label>
-                        <input type="text" required value={playerForm.secondary_skills} onChange={e => setPlayerForm({...playerForm, secondary_skills: e.target.value})} className={styles.inputField} placeholder="S, P" />
-                      </div>
+                      {([['primary_skills', 'PRIMARY SKILLS'], ['secondary_skills', 'SECONDARY SKILLS']] as const).map(([field, label]) => (
+                          <div key={field} className={styles.inputGroup}>
+                            <label className={styles.label}>{label}</label>
+                            <div className={styles.categoryList}>
+                              {SKILL_CATEGORY_LETTERS.map(letter => (
+                                  <label key={letter} className={styles.toggle} title={categoryName(letter)}>
+                                    <input type="checkbox" className={styles.checkbox}
+                                           checked={categoryLetters(playerForm[field]).includes(letter)}
+                                           onChange={() => setPlayerForm({ ...playerForm, [field]: toggleCategory(playerForm[field], letter) })} />
+                                    {letter}
+                                  </label>
+                              ))}
+                            </div>
+                          </div>
+                      ))}
                     </div>
 
                     {/* GESTIONE SKILLS CON AUTOCOMPLETE E VALIDAZIONE */}
@@ -1054,23 +1091,23 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     <div className={styles.gridStats}>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thMA}</label>
-                        <input type="number" required value={playerForm.ma} onChange={e => setPlayerForm({...playerForm, ma: Number(e.target.value)})} className={styles.statInput} />
+                        <StatSelect stat="ma" value={playerForm.ma} className={styles.statInput} onChange={ma => setPlayerForm({ ...playerForm, ma })} />
                       </div>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thST}</label>
-                        <input type="number" required value={playerForm.st} onChange={e => setPlayerForm({...playerForm, st: Number(e.target.value)})} className={styles.statInput} />
+                        <StatSelect stat="st" value={playerForm.st} className={styles.statInput} onChange={st => setPlayerForm({ ...playerForm, st })} />
                       </div>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAG}</label>
-                        <input type="text" required value={playerForm.ag} onChange={e => setPlayerForm({...playerForm, ag: e.target.value})} className={styles.statInput} />
+                        <StatSelect stat="ag" value={playerForm.ag} className={styles.statInput} onChange={ag => setPlayerForm({ ...playerForm, ag })} />
                       </div>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thPA}</label>
-                        <input type="text" required value={playerForm.pa} onChange={e => setPlayerForm({...playerForm, pa: e.target.value})} className={styles.statInput} />
+                        <StatSelect stat="pa" value={playerForm.pa} className={styles.statInput} onChange={pa => setPlayerForm({ ...playerForm, pa })} />
                       </div>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thAV}</label>
-                        <input type="text" required value={playerForm.av} onChange={e => setPlayerForm({...playerForm, av: e.target.value})} className={styles.statInput} />
+                        <StatSelect stat="av" value={playerForm.av} className={styles.statInput} onChange={av => setPlayerForm({ ...playerForm, av })} />
                       </div>
                       <div className={styles.inputGroup}>
                         <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.thSPP}</label>
@@ -1142,11 +1179,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                                       <input type="text" value={editPlayerForm.role} onChange={e => setEditPlayerForm({...editPlayerForm, role: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
                                   )}
                                 </td>
-                                <td><input type="number" value={editPlayerForm.ma} onChange={e => setEditPlayerForm({...editPlayerForm, ma: Number(e.target.value)})} className={styles.editInput} /></td>
-                                <td><input type="number" value={editPlayerForm.st} onChange={e => setEditPlayerForm({...editPlayerForm, st: Number(e.target.value)})} className={styles.editInput} /></td>
-                                <td><input type="text" value={editPlayerForm.ag} onChange={e => setEditPlayerForm({...editPlayerForm, ag: e.target.value})} className={styles.editInput} /></td>
-                                <td><input type="text" value={editPlayerForm.pa} onChange={e => setEditPlayerForm({...editPlayerForm, pa: e.target.value})} className={styles.editInput} /></td>
-                                <td><input type="text" value={editPlayerForm.av} onChange={e => setEditPlayerForm({...editPlayerForm, av: e.target.value})} className={styles.editInput} /></td>
+                                <td><StatSelect stat="ma" value={editPlayerForm.ma} className={styles.editInput} onChange={ma => setEditPlayerForm({ ...editPlayerForm, ma })} /></td>
+                                <td><StatSelect stat="st" value={editPlayerForm.st} className={styles.editInput} onChange={st => setEditPlayerForm({ ...editPlayerForm, st })} /></td>
+                                <td><StatSelect stat="ag" value={editPlayerForm.ag} className={styles.editInput} onChange={ag => setEditPlayerForm({ ...editPlayerForm, ag })} /></td>
+                                <td><StatSelect stat="pa" value={editPlayerForm.pa} className={styles.editInput} onChange={pa => setEditPlayerForm({ ...editPlayerForm, pa })} /></td>
+                                <td><StatSelect stat="av" value={editPlayerForm.av} className={styles.editInput} onChange={av => setEditPlayerForm({ ...editPlayerForm, av })} /></td>
 
                                 {/* SPP BLOCCATI */}
                                 <td className={`num ${styles.statCell} ${styles.locked}`}>{player.spp}</td>
@@ -1184,8 +1221,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                         }
 
                         // RIGA STANDARD
-                        const isDead = player.dead === 1 || player.dead === true;
-                        const isMNG = player.mng === 1 || player.mng === true;
+                        const isDead = player.dead;
+                        const isMNG = player.mng;
 
                         const currentAdvancements = Math.min(player.advancements || 0, 5);
                         const costOfNextLevel = ADVANCEMENT_TIERS[currentAdvancements].randomPrimary;
@@ -1220,11 +1257,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                                 )}
                               </td>
 
-                              <td className={`num ${styles.statCell}`}>{player.ma ?? 6}</td>
-                              <td className={`num ${styles.statCell}`}>{player.st ?? 3}</td>
-                              <td className={`num ${styles.statCell}`}>{player.ag ?? '3+'}</td>
-                              <td className={`num ${styles.statCell}`}>{player.pa ?? '4+'}</td>
-                              <td className={`num ${styles.statCell}`}>{player.av ?? '8+'}</td>
+                              <td className={`num ${styles.statCell}`}>{player.ma}</td>
+                              <td className={`num ${styles.statCell}`}>{player.st}</td>
+                              <td className={`num ${styles.statCell}`}>{player.ag}</td>
+                              <td className={`num ${styles.statCell}`}>{player.pa}</td>
+                              <td className={`num ${styles.statCell}`}>{player.av}</td>
                               <td className={`num ${styles.statCell} ${styles.sppCell}`}>{player.spp ?? 0}</td>
                               <td className={`num ${styles.statCell}`}>{player.niggling_injuries || ''}</td>
 

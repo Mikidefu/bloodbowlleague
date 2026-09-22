@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound } from 'lucide-react';
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound, GraduationCap } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
@@ -68,6 +68,11 @@ function NavBar() {
           </div>
 
           <div className={styles.navTools}>
+            {/* Il tutorial sta qui e non tra le sezioni: e' l'ingresso per chi non sa ancora giocare */}
+            <Link href="/tutorial" className={`${styles.ctaBtn} ${styles.ctaTutorial} ${isActive('/tutorial') ? styles.ctaTutorialActive : ''}`}>
+              <GraduationCap size={16} /><span>{t.nav.tutorial}</span>
+            </Link>
+
             {isAdmin ? (
                 <button onClick={handleLogout} className={styles.ctaBtn}>
                   <LogOut size={16} /><span>{t.nav.logout}</span>
@@ -128,6 +133,10 @@ function NavBar() {
                   <Icon size={22} className={styles.mobileIcon} />
                 </Link>
             ))}
+
+            <Link href="/tutorial" className={`${styles.mobileCta} ${styles.mobileCtaTutorial}`} onClick={closeMenu}>
+              <GraduationCap size={20} />{t.nav.tutorial}
+            </Link>
 
             {isAdmin ? (
                 <button onClick={handleLogout} className={styles.mobileCta}>

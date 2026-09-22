@@ -4,8 +4,7 @@ import { seasonStatusSql } from '@/lib/seasons';
 import { applyResult, deleteMatchStatements } from '@/lib/matchRules';
 import { lockedMatchResponse, ruleErrorResponse } from '@/lib/matchApi';
 import { computeTeamValue } from '@/lib/teamValue';
-
-const flag = (v: unknown) => v === 1 || v === true;
+import { flag, toMatchPlayer, toPlayerInjury, toPlayerStats } from '@/lib/players';
 
 export async function GET(
     request: Request,
@@ -58,34 +57,27 @@ export async function GET(
           return !flag(p.left_team) && !flag(p.dead);
         })
         .map(p => {
-          const pid = String(p.id);
           const missed = match.rules_applied
-              ? recovered.has(pid)
+              ? recovered.has(String(p.id))
               : flag(p.mng) && p.mng_match_id !== id;
-          return {
-            id: pid, jersey_number: p.jersey_number, name: p.name, role: p.role, status: p.status, team_id: p.team_id,
-            mng: flag(p.mng), dead: flag(p.dead), position_key: p.position_key, advancements: Number(p.advancements || 0),
-            journeyman: flag(p.journeyman), temp_retired: flag(p.temp_retired), niggling_injuries: Number(p.niggling_injuries || 0),
-            ma: p.ma, st: p.st, ag: p.ag, pa: p.pa, av: p.av,
-            // Non disponibile per questa partita: saltava per infortunio o è Temporarily Retiring
-            unavailable: missed ? 'mng' : flag(p.temp_retired) ? 'retired' : null,
-          };
+          // Non disponibile per questa partita: saltava per infortunio o è Temporarily Retiring
+          return toMatchPlayer(p, missed ? 'mng' : flag(p.temp_retired) ? 'retired' : null);
         });
 
     const teams = teamsRes.rows.map(t => ({
       id: t.id, name: t.name, roster: t.roster, team_league: t.team_league, favoured_of: t.favoured_of,
       dedicated_fans: Number(t.fan_factor || 0), treasury: Number(t.treasury || 0), apothecary: flag(t.apothecary),
-      ...computeTeamValue(t as never, playersRes.rows.filter(p => p.team_id === t.id) as never),
+      ...computeTeamValue(t, playersRes.rows.filter(p => p.team_id === t.id)),
     }));
 
     return NextResponse.json({
       ...match,
       teams,
       reports,
-      injuries: injuriesRes.rows,
+      injuries: injuriesRes.rows.map(toPlayerInjury),
       homePlayers: players.filter(p => p.team_id === match.home_team_id),
       awayPlayers: players.filter(p => p.team_id === match.away_team_id),
-      stats: statsRes.rows
+      stats: statsRes.rows.map(toPlayerStats)
     });
   } catch (err) {
     console.error(err);

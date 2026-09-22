@@ -3,6 +3,8 @@ import db from '@/lib/db';
 import crypto from 'crypto';
 import { LIMITS } from '@/lib/leagueRules';
 import { skillLinks } from '@/lib/matchRules';
+import { DEFAULT_CHARACTERISTICS } from '@/lib/characteristics';
+import { PlayerInputError, parsePlayerProfile } from '@/lib/players';
 import { getPosition, getRoster } from '@/lib/rosters';
 
 // Ingaggio di un giocatore.
@@ -64,11 +66,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, cost: position.cost }, { status: 201 });
     }
 
-    // Squadra senza roster: profilo libero
-    const { role, value, skills, primary_skills, secondary_skills, ma, st, ag, pa, av, spp, mng, dead } = body;
-    if (!role || value === undefined) {
+    // Squadra senza roster: profilo libero, ma sempre nei valori ammessi dal regolamento
+    const { skills, mng, dead } = body;
+    const profile = parsePlayerProfile(body);
+    if (!profile.role || profile.value === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+    const spp = profile.spp ?? 0;
 
     await db.execute({
       sql: `
@@ -76,10 +80,12 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
       `,
       args: [
-        id, team_id, jersey_number ?? null, name, role, value,
-        primary_skills ?? null, secondary_skills ?? null,
+        id, team_id, profile.jersey_number ?? null, profile.name ?? String(name).trim(), profile.role, profile.value,
+        profile.primary_skills ?? null, profile.secondary_skills ?? null,
+        profile.ma ?? DEFAULT_CHARACTERISTICS.ma, profile.st ?? DEFAULT_CHARACTERISTICS.st, profile.ag ?? DEFAULT_CHARACTERISTICS.ag,
+        profile.pa ?? DEFAULT_CHARACTERISTICS.pa, profile.av ?? DEFAULT_CHARACTERISTICS.av,
         // Gli SPP inseriti alla creazione sono SPP iniziali: restano anche dopo i ricalcoli
-        ma ?? 6, st ?? 3, ag ?? '3+', pa ?? '4+', av ?? '8+', spp ?? 0, spp ?? 0,
+        spp, spp,
         mng ? 1 : 0, dead ? 1 : 0
       ]
     });
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
+    if (error instanceof PlayerInputError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error('Error adding player:', error);
     return NextResponse.json({ error: 'Failed to add player' }, { status: 500 });
   }

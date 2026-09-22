@@ -800,6 +800,11 @@
 /* ================================================================== */
 /*  INVITO FINALE (banda divisa in diagonale)                          */
 /* ================================================================== */
+.pillSection {
+  position: relative;
+  padding: 1rem 0 3rem;
+}
+
 .cta {
   position: relative;
   margin-top: 2rem;

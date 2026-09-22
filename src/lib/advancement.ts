@@ -1,4 +1,10 @@
 // Regole degli avanzamenti SPP (Rulebook 2025, pp. 97-98), condivise tra interfaccia e API.
+// I valori delle caratteristiche e il loro miglioramento stanno in src/lib/characteristics.ts.
+
+import type { StatKey } from '@/lib/characteristics';
+import type { SkillCategory } from '@/lib/rosters';
+
+export type { StatKey };
 
 export const MAX_ADVANCEMENTS = 6;
 
@@ -14,7 +20,6 @@ export const ADVANCEMENT_TIERS = [
 // statDeclined: il giocatore rifiuta il miglioramento di caratteristica tirato e prende una skill,
 // ma gli SPP del tiro restano spesi (p. 98). Costa come "stat".
 export type AdvancementKind = 'randomPrimary' | 'choosePrimary' | 'chooseSecondary' | 'stat' | 'statDeclined';
-export type StatKey = 'ma' | 'st' | 'ag' | 'pa' | 'av';
 
 export const SKILL_VALUE_INCREASE = { primary: 20000, secondary: 40000 };
 export const STAT_VALUE_INCREASE: Record<StatKey, number> = { ma: 20000, st: 60000, ag: 30000, pa: 20000, av: 10000 };
@@ -26,7 +31,7 @@ export const ELITE_SKILLS = ['Block', 'Dodge', 'Guard', 'Mighty Blow'];
 export const isEliteSkill = (name: string | null | undefined) =>
   ELITE_SKILLS.some(elite => elite.toLowerCase() === String(name ?? '').trim().toLowerCase());
 
-const SKILL_CATEGORIES_MAP: Record<string, string> = {
+const SKILL_CATEGORIES_MAP: Record<SkillCategory, string> = {
   A: 'Agility',
   D: 'Devious',
   G: 'General',
@@ -35,8 +40,10 @@ const SKILL_CATEGORIES_MAP: Record<string, string> = {
   S: 'Strength',
 };
 
-export const SKILL_CATEGORY_LETTERS = Object.keys(SKILL_CATEGORIES_MAP);
-export const categoryName = (letter: string) => SKILL_CATEGORIES_MAP[letter.toUpperCase()] ?? letter;
+export const SKILL_CATEGORY_LETTERS = Object.keys(SKILL_CATEGORIES_MAP) as SkillCategory[];
+export const isSkillCategory = (value: unknown): value is SkillCategory =>
+  SKILL_CATEGORY_LETTERS.includes(String(value).toUpperCase() as SkillCategory);
+export const categoryName = (letter: string) => SKILL_CATEGORIES_MAP[letter.toUpperCase() as SkillCategory] ?? letter;
 
 // Skill Table (p. 121): primo D6 = metà della tabella (1-3 / 4-6), secondo D6 = riga.
 export const SKILL_TABLE: Record<string, [string[], string[]]> = {
@@ -116,27 +123,18 @@ export function skillsForCategories<T extends SkillLike>(allSkills: T[], categor
 }
 
 // Lettere delle categorie di un giocatore, es. "G, A" -> ['G', 'A']
-export const categoryLetters = (value: string | null | undefined) =>
+export const categoryLetters = (value: string | null | undefined): SkillCategory[] =>
   String(value ?? '')
     .split(',')
     .map(l => l.trim().toUpperCase())
-    .filter(l => SKILL_CATEGORY_LETTERS.includes(l));
+    .filter(isSkillCategory);
 
-// Migliora una caratteristica. Restituisce null se è già al limite.
-// MA max 9, ST max 8, AG/PA min 1+, AV max 11+. Un PA "-" migliorato diventa 6+.
-export function improveStat(stat: StatKey, current: number | string | null | undefined): number | string | null {
-  if (stat === 'ma' || stat === 'st') {
-    const value = Number(current);
-    const cap = stat === 'ma' ? 9 : 8;
-    return value >= cap ? null : value + 1;
-  }
-
-  const text = String(current ?? '').trim();
-  if (stat === 'pa' && (text === '' || text === '-')) return '6+';
-
-  const value = parseInt(text, 10);
-  if (Number.isNaN(value)) return null;
-
-  if (stat === 'av') return value >= 11 ? null : `${value + 1}+`;
-  return value <= 1 ? null : `${value - 1}+`; // AG e PA: più basso è meglio
+// Categorie in arrivo da una richiesta: "G,A", "ga" e "G, A" diventano "G, A".
+// null se contiene lettere che non sono categorie (l'API rifiuta il valore).
+export function parseCategories(value: unknown): string | null {
+  const text = String(value ?? '').trim();
+  if (text === '') return null;
+  const letters = (text.includes(',') ? text.split(',') : text.split('')).map(l => l.trim().toUpperCase()).filter(Boolean);
+  if (!letters.length || !letters.every(isSkillCategory)) return null;
+  return [...new Set(letters)].join(', ');
 }

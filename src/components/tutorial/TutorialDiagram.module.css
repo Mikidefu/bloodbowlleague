@@ -1,0 +1,513 @@
+/* Diagrammi del tutorial: disegni originali, nessuna immagine del manuale.
+   Stessa tavolozza del sito (globals.css): carta, rosso Rulebook, blu, ottone. */
+.figure {
+  margin: 0;
+  position: relative;   /* ancora il pulsante "rivedi" */
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 16px rgba(20, 8, 4, 0.28));
+}
+
+/* --- tavola ------------------------------------------------------------- */
+.paper { fill: var(--bb-paper); }
+
+.frame {
+  fill: none;
+  stroke: var(--bb-ink);
+  stroke-width: 2;
+}
+
+.head { fill: var(--bb-blood-700); }
+.headCorner { fill: var(--bb-mustard); }
+
+.headText {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  fill: var(--bb-parchment);
+}
+
+/* --- campo -------------------------------------------------------------- */
+.turfA { fill: #6f8f43; }
+.turfB { fill: #648339; }
+
+.chalk line {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 0.5;
+}
+
+.pitchEdge {
+  fill: none;
+  stroke: #eef3e4;
+  stroke-width: 1.6;
+}
+
+.endzone {
+  fill: rgba(37, 56, 111, 0.55);
+  stroke: #eef3e4;
+  stroke-width: 1;
+}
+
+.wide { fill: rgba(255, 255, 255, 0.1); }
+
+.wideEdge line {
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+.scrimmage {
+  stroke: var(--bb-mustard);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+
+.zone { fill: rgba(200, 37, 44, 0.42); }
+.zoneHole { fill: rgba(0, 0, 0, 0); }
+
+/* --- pedine ------------------------------------------------------------- */
+.tokenShadow { fill: rgba(0, 0, 0, 0.35); }
+.tokenHome { fill: #1b2a52; stroke: #eef3e4; stroke-width: 1.4; }
+.tokenAway { fill: #7a1a1c; stroke: #eef3e4; stroke-width: 1.4; }
+.tokenBall { fill: var(--bb-tan-dark); stroke: #eef3e4; stroke-width: 1.4; }
+.tokenInner { fill: rgba(255, 255, 255, 0.12); }
+.tokenHelmet { fill: rgba(255, 255, 255, 0.35); }
+
+.tokenLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 8px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.ball { fill: #8a5a28; stroke: #f2e3c6; stroke-width: 1; }
+.ballSeam { stroke: #f2e3c6; stroke-width: 0.8; }
+
+/* --- righe tabella ------------------------------------------------------ */
+.rowBg {
+  fill: rgba(37, 56, 111, 0.07);
+  stroke: rgba(29, 26, 24, 0.18);
+  stroke-width: 0.8;
+}
+
+.rowBgAlt {
+  fill: rgba(200, 37, 44, 0.1);
+  stroke: rgba(122, 26, 28, 0.35);
+  stroke-width: 0.8;
+}
+
+.badgeNavy { fill: var(--bb-navy); }
+.badgeRed { fill: var(--bb-blood-700); }
+.badgeGreen { fill: var(--bb-success); }
+.badgeGold { fill: var(--bb-mustard-deep); }
+
+.badgeText {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 11px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.rowTitle {
+  font-family: var(--font-slab);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  fill: var(--bb-ink);
+}
+
+.body {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--bb-ink);
+}
+
+.caption {
+  font-family: var(--font-body);
+  font-size: 8.5px;
+  fill: var(--bb-ink-soft);
+}
+
+.captionLight {
+  font-family: var(--font-body);
+  font-size: 8.5px;
+  fill: rgba(246, 242, 234, 0.85);
+}
+
+.captionStrong {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-blood-700);
+}
+
+.vLabel {
+  font-family: var(--font-data);
+  font-stretch: 75%;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  fill: #eef3e4;
+  text-anchor: middle;
+}
+
+.mod {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
+}
+
+/* --- pannelli ----------------------------------------------------------- */
+.panelRed { fill: rgba(200, 37, 44, 0.12); stroke: var(--bb-blood-700); stroke-width: 1.5; }
+.panelGreen { fill: rgba(61, 122, 52, 0.14); stroke: var(--bb-success); stroke-width: 1.5; }
+.panelNavy { fill: var(--bb-navy); }
+.panelGold { fill: var(--bb-mustard); }
+.panelPaper { fill: rgba(37, 56, 111, 0.07); stroke: var(--bb-navy); stroke-width: 1.2; }
+
+.panelTitle {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-parchment);
+}
+
+.panelTitleGreen {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-success);
+}
+
+.panelTitleDark {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-blood-700);
+}
+
+/* --- pasticche ---------------------------------------------------------- */
+.chipNavy { fill: var(--bb-navy); }
+.chipRed { fill: var(--bb-blood-700); }
+.chipGreen { fill: var(--bb-success); }
+.chipGold { fill: var(--bb-mustard); }
+.chipPaper { fill: var(--bb-parchment); stroke: var(--bb-tan-dark); stroke-width: 1; }
+
+.chipText {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 9.5px;
+  font-weight: 800;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.chipTextDark {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 9.5px;
+  font-weight: 800;
+  fill: var(--bb-ink);
+  text-anchor: middle;
+}
+
+/* --- scheda giocatore --------------------------------------------------- */
+.cardHead { fill: var(--bb-slate-900); }
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  fill: var(--bb-mustard);
+}
+
+.statBox { fill: var(--bb-sky); stroke: var(--bb-navy); stroke-width: 1.2; }
+.statHead { fill: var(--bb-navy); }
+
+.statKey {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.statValue {
+  font-family: var(--font-slab);
+  font-size: 24px;
+  font-weight: 900;
+  fill: var(--bb-ink);
+  text-anchor: middle;
+}
+
+.statNote {
+  font-family: var(--font-body);
+  font-size: 8px;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+/* --- numeri bersaglio --------------------------------------------------- */
+.faceOk { fill: rgba(61, 122, 52, 0.2); stroke: var(--bb-success); stroke-width: 1.5; }
+.faceNo { fill: rgba(200, 37, 44, 0.12); stroke: var(--bb-blood-700); stroke-width: 1.5; }
+
+.faceNumOk {
+  font-family: var(--font-slab);
+  font-size: 22px;
+  font-weight: 900;
+  fill: var(--bb-success);
+  text-anchor: middle;
+}
+
+.faceNumNo {
+  font-family: var(--font-slab);
+  font-size: 22px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
+  text-anchor: middle;
+}
+
+.braceNo { stroke: var(--bb-blood-700); stroke-width: 2; }
+.braceOk { stroke: var(--bb-success); stroke-width: 2; }
+
+/* --- struttura della partita -------------------------------------------- */
+.halfBox { fill: var(--bb-slate-900); }
+
+.halfNum {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
+  fill: var(--bb-mustard);
+  text-anchor: middle;
+}
+
+.halfLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  fill: var(--bb-parchment);
+  text-anchor: middle;
+}
+
+.roundBox { fill: var(--bb-parchment); stroke: var(--bb-tan-dark); stroke-width: 1; }
+
+.roundNum {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9px;
+  font-weight: 900;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+.turnA { fill: var(--bb-navy); }
+.turnB { fill: var(--bb-blood-700); }
+
+.turnLabel {
+  font-family: var(--font-data);
+  font-size: 7px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.halfTime {
+  stroke: var(--bb-mustard-deep);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+/* --- gittate ------------------------------------------------------------ */
+.rangeName {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+}
+
+.rangeMod {
+  font-family: var(--font-slab);
+  font-size: 15px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+/* --- catena degli infortuni e passi ------------------------------------- */
+.stepNavy { fill: rgba(37, 56, 111, 0.12); stroke: var(--bb-navy); stroke-width: 1.4; }
+.stepGold { fill: rgba(234, 178, 42, 0.22); stroke: var(--bb-mustard-deep); stroke-width: 1.4; }
+.stepRed { fill: rgba(200, 37, 44, 0.16); stroke: var(--bb-blood-700); stroke-width: 1.4; }
+.stepArrow { fill: var(--bb-ink-soft); }
+.dotNavy { fill: var(--bb-navy); }
+.dotRed { fill: var(--bb-blood-700); }
+
+.stepNumber {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+/* --- dadi in miniatura (solo per contarli) ------------------------------ */
+.miniDie { fill: var(--bb-blood-700); stroke: var(--bb-blood-950); stroke-width: 1; }
+.miniDieAlt { fill: var(--bb-slate-700); stroke: var(--bb-slate-950); stroke-width: 1; }
+.miniDieMark { fill: var(--bb-parchment); }
+
+/* --- formule e tifosi ---------------------------------------------------- */
+.formulaBox { fill: rgba(234, 178, 42, 0.18); stroke: var(--bb-mustard-deep); stroke-width: 1.4; }
+
+.formula {
+  font-family: var(--font-slab);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--bb-ink);
+}
+
+.fanOn { fill: var(--bb-blood-700); }
+.fanOff { fill: var(--bb-parchment-2); stroke: var(--bb-tan-dark); stroke-width: 1; }
+
+.fanNumOn {
+  font-family: var(--font-slab);
+  font-size: 14px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.fanNumOff {
+  font-family: var(--font-slab);
+  font-size: 14px;
+  font-weight: 900;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+/* --- frecce -------------------------------------------------------------- */
+.arrowLine {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.arrowRed { stroke: var(--bb-blood-700); fill: var(--bb-blood-700); }
+.arrowNavy { stroke: var(--bb-navy); fill: var(--bb-navy); }
+
+.arrowLabel {
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
+}
+
+/* --- animazioni ---------------------------------------------------------- */
+/* Si animano solo transform e opacity: girano sulla GPU e si comportano allo
+   stesso modo su tutti i browser, cosa non scontata per le altre proprietà
+   dentro un SVG (transform-origin e transform-box hanno default diversi).
+   Le classi sono tre mattoncini riusabili, il ritmo lo decide --d nel JSX. */
+/* Nessuno stato nascosto di partenza: senza .play la figura e' il diagramma
+   statico di sempre. Durante il delay ci pensa animation-fill-mode: both a
+   tenere l'opacita' a zero, quindi se l'osservatore non scatta - browser vecchio,
+   JS spento, pagina mai dipinta - si vede il disegno, non una tavola vuota. */
+.play .step {
+  animation: stepIn 420ms ease-out both;
+  animation-delay: var(--d, 0s);
+}
+
+.play .slide {
+  animation: slide 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: var(--d, 0s);
+}
+
+.play .fade {
+  animation: fadeOut 260ms ease-in both;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slide {
+  from { transform: translate(0, 0); }
+  to { transform: translate(var(--dx, 0), var(--dy, 0)); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Compare sulla figura al passaggio del mouse: chi vuole rivedere la scena la
+   rivede, chi sta leggendo non ha un pulsante che gli galleggia sul testo. */
+.replay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--bb-tan-dark);
+  border-radius: 50%;
+  background: var(--bb-parchment-2);
+  color: var(--bb-ink-soft);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 160ms ease, background 160ms ease;
+}
+
+.figure:hover .replay,
+.replay:focus-visible {
+  opacity: 1;
+}
+
+.replay:hover {
+  background: var(--bb-parchment);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Niente movimento: resta la composizione statica di partenza, che è esattamente
+     il diagramma di prima. Lo stato finale no: lì il token copre la palla. */
+  .play .step,
+  .play .slide,
+  .play .fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .replay { display: none; }
+}

@@ -8,15 +8,18 @@ import crypto from 'crypto';
 import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
 import { isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
+import { isStatKey, reduceCharacteristic, restoreCharacteristic, type Characteristics, type StatKey } from '@/lib/characteristics';
 import {
   CONCEDE_QUIT_MAX_ROLL, CONCEDE_QUIT_MIN_ADVANCEMENTS, HATRED_FORBIDDEN_KEYWORDS, LIMITS, MATCH_OUTCOMES,
   MISTAKE_THRESHOLD, PETTY_CASH_TREASURY_TOP_UP, casualtyInfo, concededScore, dedicatedFansChange, expensiveMistake, fanFactor,
-  getInducement, inducementChoiceCost, isDieValue, mistakeExtraRoll, pettyCash, reduceStat, restoreStat, sppEarned,
+  getInducement, inducementChoiceCost, isDieValue, mistakeExtraRoll, pettyCash, sppEarned,
   treasuryAfterMistake, winnings,
   type CasualtyResult, type InducementChoice, type InjuryStat, type MatchOutcome, type MatchResult, type MistakeResult, type SppStats,
 } from '@/lib/leagueRules';
+import { canPlayNextMatch, flag, hatredList, isPlayerStatus, onDraftList, playerStatus, toPlayer, toPlayerInjury } from '@/lib/players';
 import { getPosition, getRoster, hasRule, journeymanPositions, skillBaseName, type Roster } from '@/lib/rosters';
-import { computeTeamValue, onDraftList } from '@/lib/teamValue';
+import { computeTeamValue } from '@/lib/teamValue';
+import type { MatchInjury, Player, PlayerStatus } from '@/lib/types';
 
 type Row = Record<string, unknown>;
 type Arg = string | number | null;
@@ -30,7 +33,6 @@ export class RuleError extends Error {
   }
 }
 
-const flag = (v: unknown) => v === 1 || v === true || v === '1';
 const num = (v: unknown) => Number(v ?? 0) || 0;
 const str = (v: unknown) => (v === null || v === undefined ? null : String(v));
 const parseJson = <T>(v: unknown, fallback: T): T => {
@@ -46,13 +48,17 @@ export const isKnockout = (matchType: unknown) => !isFriendly(matchType) && !isL
 // Caricamento
 // ------------------------------------------------------------------
 
+// Il giocatore come lo modifica il referto: un Player più la partita che gli fa saltare la prossima
+// (mng_match_id), che serve solo qui per poter annullare l'infortunio correggendo il referto.
+export type MatchPlayerState = Player & { mng_match_id: string | null };
+
 export type MatchContext = {
   match: Row;
   teamIds: [string, string];
   teams: Map<string, Row>;
-  players: Row[];
+  players: MatchPlayerState[];
   reports: Map<string, Row>;
-  injuries: Row[];
+  injuries: MatchInjury[];
 };
 
 export async function loadMatch(matchId: string): Promise<MatchContext> {
@@ -72,9 +78,9 @@ export async function loadMatch(matchId: string): Promise<MatchContext> {
     match,
     teamIds,
     teams: new Map(teams.rows.map(t => [String(t.id), { ...t }])),
-    players: players.rows.map(p => ({ ...p })),
+    players: players.rows.map(p => ({ ...toPlayer(p), mng_match_id: str(p.mng_match_id) })),
     reports: new Map(reports.rows.map(r => [String(r.team_id), { ...r }])),
-    injuries: injuries.rows.map(i => ({ ...i })),
+    injuries: injuries.rows.map(toPlayerInjury),
   };
 }
 
@@ -89,8 +95,8 @@ export function skillLinks(playerId: string, skills: string[], ids: Map<string, 
   return unique.map(skillId => ({ sql: 'INSERT OR IGNORE INTO skills_players (player_id, skill_id) VALUES (?, ?)', args: [playerId, skillId] }));
 }
 
-// Chi può scendere in campo nella prossima partita: in lista, non MNG, non Temporarily Retiring, non Journeyman di altre partite
-const canPlayNext = (p: Row) => onDraftList(p as never) && !flag(p.mng) && !flag(p.temp_retired) && !flag(p.journeyman);
+// Chi può scendere in campo nella prossima partita: vedi canPlayNextMatch in src/lib/players.ts
+const canPlayNext = canPlayNextMatch;
 
 const upsertReport = (matchId: string, teamId: string, fields: Record<string, Arg>): Statement => {
   const keys = Object.keys(fields);
@@ -115,7 +121,7 @@ export type PregameTeamInput = {
 export type PregameInput = { teams: Record<string, PregameTeamInput> };
 
 function validateInducements(
-    choices: InducementChoice[], roster: Roster | null, favouredOf: string | null, players: Row[], journeymenCount: number,
+    choices: InducementChoice[], roster: Roster | null, favouredOf: string | null, players: Player[], journeymenCount: number,
 ) {
   const ctx = { roster, favouredOf };
   let total = 0;
@@ -149,7 +155,7 @@ function validateInducements(
 
   if (mercenaries > 3) throw new RuleError('Mercenary Players: at most 3 (p. 147)');
   // I Mercenari non possono superare i limiti di posizione; chi salta la partita non conta (p. 147)
-  const playing = players.filter(p => onDraftList(p as never) && !flag(p.mng));
+  const playing = players.filter(p => onDraftList(p) && !p.mng);
   for (const [positionKey, qty] of mercsByPosition) {
     const position = getPosition(roster, positionKey);
     if (!position) throw new RuleError('Mercenary Player: unknown position');
@@ -157,7 +163,7 @@ function validateInducements(
     if (current + qty > position.max) throw new RuleError(`Mercenary ${position.name}: the team would have more than ${position.max} (p. 147)`);
     const group = roster?.groups?.find(g => g.positions.includes(positionKey));
     if (group) {
-      const inGroup = playing.filter(p => group.positions.includes(String(p.position_key))).length
+      const inGroup = playing.filter(p => group.positions.includes(p.position_key ?? '')).length
           + [...mercsByPosition].filter(([k]) => group.positions.includes(k)).reduce((s, [, q]) => s + q, 0);
       if (inGroup > group.max) throw new RuleError(`Mercenary ${group.label}: at most ${group.max}`);
     }
@@ -187,8 +193,8 @@ export async function applyPregame(matchId: string, input: PregameInput) {
     // Annulla un eventuale pre-partita precedente: Treasury spesa e Journeymen creati per questa partita
     const previous = ctx.reports.get(teamId);
     const treasury = num(team.treasury) + num(previous?.treasury_spent);
-    const oldJourneymen = ctx.players.filter(p => p.team_id === teamId && flag(p.journeyman) && p.journeyman_match_id === matchId);
-    for (const j of oldJourneymen) statements.push({ sql: 'DELETE FROM players WHERE id = ?', args: [String(j.id)] });
+    const oldJourneymen = ctx.players.filter(p => p.team_id === teamId && p.journeyman && p.journeyman_match_id === matchId);
+    for (const j of oldJourneymen) statements.push({ sql: 'DELETE FROM players WHERE id = ?', args: [j.id] });
     const players = ctx.players.filter(p => p.team_id === teamId && !oldJourneymen.includes(p));
 
     const choices = Array.isArray(t.inducements) ? t.inducements.filter(c => c && c.qty > 0) : [];
@@ -199,7 +205,7 @@ export async function applyPregame(matchId: string, input: PregameInput) {
       if (!isDieValue(t.riotous_roll, 3, 7)) throw new RuleError(`${team.name}: Riotous Rookies needs the 2D3+1 roll (3-7)`);
       journeymen += t.riotous_roll as number;
     }
-    const newJourneymen: Row[] = [];
+    const newJourneymen: Player[] = [];
     if (journeymen > 0) {
       const options = journeymanPositions(roster);
       if (!options.length) throw new RuleError(`${team.name} needs ${journeymen} Journeymen: link the team to its Team Roster first.`);
@@ -207,16 +213,17 @@ export async function applyPregame(matchId: string, input: PregameInput) {
       if (!position) throw new RuleError(`${team.name}: choose which Lineman position the Journeymen come from`);
       for (let i = 1; i <= journeymen; i++) {
         const id = crypto.randomUUID();
-        const row: Row = {
+        const journeyman = toPlayer({
           id, team_id: teamId, name: `Journeyman ${i}`, role: position.name, position_key: position.key,
           value: position.cost, hiring_fee: position.cost, journeyman: 1, journeyman_match_id: matchId,
-        };
-        newJourneymen.push(row);
+          ma: position.ma, st: position.st, ag: position.ag, pa: position.pa, av: position.av,
+        });
+        newJourneymen.push(journeyman);
         statements.push({
           sql: `INSERT INTO players (id, team_id, name, role, position_key, value, hiring_fee, primary_skills, secondary_skills,
                                      ma, st, ag, pa, av, spp, spp_base, advancements, status, mng, dead, journeyman, journeyman_match_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'Active', 0, 0, 1, ?)`,
-          args: [id, teamId, String(row.name), position.name, position.key, position.cost, position.cost,
+          args: [id, teamId, journeyman.name, position.name, position.key, position.cost, position.cost,
                  position.primary.join(', '), position.secondary.join(', '),
                  position.ma, position.st, position.ag, position.pa, position.av, matchId],
         });
@@ -225,7 +232,7 @@ export async function applyPregame(matchId: string, input: PregameInput) {
       }
     }
 
-    const { ctv } = computeTeamValue(team as never, [...players, ...newJourneymen] as never);
+    const { ctv } = computeTeamValue(team, [...players, ...newJourneymen]);
     const cost = validateInducements(choices, roster, str(team.favoured_of), players, newJourneymen.length);
     plan.set(teamId, { team, roster, ctv, treasury, cost, fanFactor: fanFactor(num(team.fan_factor), t.fair_weather), fairWeather: t.fair_weather, journeymen, choices });
   }
@@ -273,7 +280,7 @@ export type PlayerResultInput = {
   player_id: string;
   td: number; cas: number; int: number; comp: number; ttm: number; landing: number; mvp: number;
   injury?: InjuryInput | null;
-  status?: string;   // solo partite legacy: Active | Injured | Dead
+  status?: PlayerStatus;   // solo partite legacy
 };
 
 export type TeamResultInput = {
@@ -298,36 +305,42 @@ export type ResultInput = {
 
 const PLAYER_STATE_COLUMNS = ['ma', 'st', 'ag', 'pa', 'av', 'mng', 'mng_match_id', 'dead', 'left_team', 'niggling_injuries', 'hatreds', 'journeyman', 'status'] as const;
 
-const playerUpdate = (p: Row): Statement => ({
+// SQLite non ha booleani: le bandiere tornano 0/1
+const toArg = (value: string | number | boolean | null): Arg => (typeof value === 'boolean' ? (value ? 1 : 0) : value);
+
+const playerUpdate = (p: MatchPlayerState): Statement => ({
   sql: `UPDATE players SET ${PLAYER_STATE_COLUMNS.map(c => `${c} = ?`).join(', ')} WHERE id = ?`,
-  args: [...PLAYER_STATE_COLUMNS.map(c => (c === 'status' ? (flag(p.dead) ? 'Dead' : flag(p.mng) ? 'Injured' : 'Active') : (p[c] as Arg) ?? null)), String(p.id)],
+  args: [...PLAYER_STATE_COLUMNS.map(c => (c === 'status' ? playerStatus(p) : toArg(p[c]))), p.id],
 });
 
-const hatredList = (value: unknown) => String(value ?? '').split(',').map(s => s.trim()).filter(Boolean);
+// Assegnazione tipata di una caratteristica (ag non può ricevere un AV)
+function setCharacteristic<K extends StatKey>(p: Characteristics, stat: K, value: Characteristics[K]) {
+  p[stat] = value;
+}
 
 // Annulla in memoria gli effetti del referto già applicato (non Expensive Mistakes né pre-partita)
 function revertResultInMemory(ctx: MatchContext) {
   const matchId = String(ctx.match.id);
-  const byId = new Map(ctx.players.map(p => [String(p.id), p]));
+  const byId = new Map(ctx.players.map(p => [p.id, p]));
   for (const [teamId, report] of ctx.reports) {
     const team = ctx.teams.get(teamId)!;
     team.treasury = num(team.treasury) - num(report.winnings);
     team.fan_factor = num(team.fan_factor) - num(report.df_change);
-    for (const id of parseJson<string[]>(report.quit_player_ids, [])) { const p = byId.get(id); if (p) p.left_team = 0; }
-    for (const id of parseJson<string[]>(report.recovered_player_ids, [])) { const p = byId.get(id); if (p) p.mng = 1; }
+    for (const id of parseJson<string[]>(report.quit_player_ids, [])) { const p = byId.get(id); if (p) p.left_team = false; }
+    for (const id of parseJson<string[]>(report.recovered_player_ids, [])) { const p = byId.get(id); if (p) p.mng = true; }
     Object.assign(report, { winnings: 0, df_roll: null, df_change: 0, quit_player_ids: null, recovered_player_ids: null, stalling: 0 });
   }
   for (const injury of ctx.injuries) {
-    const p = byId.get(String(injury.player_id));
+    const p = byId.get(injury.player_id);
     if (!p) continue;
-    const stat = str(injury.stat) as InjuryStat | null;
-    if (stat && flag(injury.stat_applied)) p[stat] = restoreStat(stat, p[stat] as string | number);
-    if (injury.result === 'SI') p.niggling_injuries = Math.max(0, num(p.niggling_injuries) - 1);
-    if (injury.result === 'DEAD') p.dead = 0;
-    if (casualtyInfo(str(injury.result))?.missNextGame && p.mng_match_id === matchId) { p.mng = 0; p.mng_match_id = null; }
+    const { stat } = injury;
+    if (stat && flag(injury.stat_applied)) setCharacteristic(p, stat, restoreCharacteristic(stat, p[stat]));
+    if (injury.result === 'SI') p.niggling_injuries = Math.max(0, p.niggling_injuries - 1);
+    if (injury.result === 'DEAD') p.dead = false;
+    if (casualtyInfo(injury.result)?.missNextGame && p.mng_match_id === matchId) { p.mng = false; p.mng_match_id = null; }
     if (injury.hatred) {
       const list = hatredList(p.hatreds);
-      const index = list.indexOf(String(injury.hatred));
+      const index = list.indexOf(injury.hatred);
       if (index >= 0) list.splice(index, 1);
       p.hatreds = list.join(', ') || null;
     }
@@ -356,7 +369,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
   if (played && !flag(match.pregame_done)) throw new RuleError('Complete the pre-game first: Fan Factor is needed to work out Winnings.', 409);
 
   revertResultInMemory(ctx);
-  const byId = new Map(ctx.players.map(p => [String(p.id), p]));
+  const byId = new Map(ctx.players.map(p => [p.id, p]));
 
   // --- Punteggio ---
   const intOr0 = (v: unknown, label: string) => {
@@ -398,9 +411,9 @@ export async function applyResult(matchId: string, input: ResultInput) {
   // --- Recupero di chi ha saltato questa partita (p. 100) ---
   const recovered = new Map<string, string[]>(teamIds.map(id => [id, []]));
   for (const p of ctx.players) {
-    if (flag(p.mng) && p.mng_match_id !== matchId && !flag(p.dead)) {
-      recovered.get(String(p.team_id))!.push(String(p.id));
-      p.mng = 0;
+    if (p.mng && p.mng_match_id !== matchId && !p.dead) {
+      recovered.get(p.team_id)!.push(p.id);
+      p.mng = false;
     }
   }
   const missed = new Set([...recovered.values()].flat());
@@ -415,15 +428,15 @@ export async function applyResult(matchId: string, input: ResultInput) {
   for (const s of stats) {
     const p = byId.get(String(s?.player_id));
     if (!p) throw new RuleError('Unknown player in the match report');
-    const teamId = String(p.team_id);
+    const teamId = p.team_id;
     const values: SppStats = { td: s.td, cas: s.cas, int: s.int, comp: s.comp, ttm: s.ttm ?? 0, landing: s.landing ?? 0, mvp: s.mvp };
     for (const [k, v] of Object.entries(values)) if (!isCount(v)) throw new RuleError(`${p.name}: ${k} must be a whole number`);
     const any = Object.values(values).some(v => v > 0);
     const injury = s.injury && s.injury.result ? s.injury : null;
     if (!any && !injury) continue;
 
-    const eligible = !missed.has(String(p.id)) && !flag(p.dead) && !flag(p.left_team) && !flag(p.temp_retired)
-        && (!flag(p.journeyman) || p.journeyman_match_id === matchId);
+    const eligible = !missed.has(p.id) && !p.dead && !p.left_team && !p.temp_retired
+        && (!p.journeyman || p.journeyman_match_id === matchId);
     if (!eligible) throw new RuleError(`${p.name} could not play this match`);
     if (!played) {
       const onlyMvp = values.mvp > 0 && Object.entries(values).every(([k, v]) => k === 'mvp' || v === 0);
@@ -437,9 +450,9 @@ export async function applyResult(matchId: string, input: ResultInput) {
     statements.push({
       sql: `INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, ttm, landings, mvp, spp_earned)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [crypto.randomUUID(), matchId, String(p.id), values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
+      args: [crypto.randomUUID(), matchId, p.id, values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
     });
-    recalc.add(String(p.id));
+    recalc.add(p.id);
 
     if (injury) {
       if (!played) throw new RuleError('Injuries can only be recorded for matches that were played');
@@ -449,13 +462,13 @@ export async function applyResult(matchId: string, input: ResultInput) {
       let applied = false;
       if (injury.result === 'LI') {
         stat = injury.stat ?? null;
-        if (!stat || !['ma', 'st', 'ag', 'pa', 'av'].includes(stat)) throw new RuleError(`${p.name}: choose the characteristic reduced by the Lasting Injury`);
-        const reduced = reduceStat(stat, p[stat] as string | number);
-        if (reduced !== null) { p[stat] = reduced; applied = true; }
+        if (!stat || !isStatKey(stat)) throw new RuleError(`${p.name}: choose the characteristic reduced by the Lasting Injury`);
+        const reduced = reduceCharacteristic(stat, p[stat]);
+        if (reduced !== null) { setCharacteristic(p, stat, reduced); applied = true; }
       }
-      if (info.niggling) p.niggling_injuries = num(p.niggling_injuries) + 1;
-      if (info.missNextGame) { p.mng = 1; p.mng_match_id = matchId; }
-      if (injury.result === 'DEAD') p.dead = 1;
+      if (info.niggling) p.niggling_injuries += 1;
+      if (info.missNextGame) { p.mng = true; p.mng_match_id = matchId; }
+      if (injury.result === 'DEAD') p.dead = true;
       const hatred = injury.hatred?.trim() || null;
       if (hatred) {
         if (!info.missNextGame) throw new RuleError(`${p.name}: Getting Even only follows a Seriously Hurt, Serious Injury or Lasting Injury (p. 68)`);
@@ -464,7 +477,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
       }
       injuries.push({
         sql: 'INSERT INTO player_injuries (id, match_id, player_id, result, stat, stat_applied, hatred) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        args: [crypto.randomUUID(), matchId, String(p.id), injury.result, stat, applied ? 1 : 0, hatred],
+        args: [crypto.randomUUID(), matchId, p.id, injury.result, stat, applied ? 1 : 0, hatred],
       });
     }
   }
@@ -505,10 +518,10 @@ export async function applyResult(matchId: string, input: ResultInput) {
 
     const quit: string[] = [];
     if (outcome === 'conceded' && isConceder) {
-      for (const p of ctx.players.filter(p => p.team_id === teamId && onDraftList(p as never) && !flag(p.journeyman) && num(p.advancements) >= CONCEDE_QUIT_MIN_ADVANCEMENTS)) {
-        const roll = t.quit_rolls?.[String(p.id)];
-        if (!isDieValue(roll, 1, 6)) throw new RuleError(`${p.name} has ${num(p.advancements)} advancements: roll a D6 to see if they quit (p. 101)`);
-        if ((roll as number) <= CONCEDE_QUIT_MAX_ROLL) { p.left_team = 1; quit.push(String(p.id)); }
+      for (const p of ctx.players.filter(p => p.team_id === teamId && onDraftList(p) && !p.journeyman && p.advancements >= CONCEDE_QUIT_MIN_ADVANCEMENTS)) {
+        const roll = t.quit_rolls?.[p.id];
+        if (!isDieValue(roll, 1, 6)) throw new RuleError(`${p.name} has ${p.advancements} advancements: roll a D6 to see if they quit (p. 101)`);
+        if ((roll as number) <= CONCEDE_QUIT_MAX_ROLL) { p.left_team = true; quit.push(p.id); }
       }
     }
 
@@ -541,7 +554,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
 // Amichevoli (p. 103: niente SPP, niente Winnings, Casualty = Badly Hurt, gli MNG restano) e partite legacy
 async function applySimpleResult(ctx: MatchContext, input: ResultInput, friendly: boolean) {
   const matchId = String(ctx.match.id);
-  const byId = new Map(ctx.players.map(p => [String(p.id), p]));
+  const byId = new Map(ctx.players.map(p => [p.id, p]));
   const statements: Statement[] = [];
   const recalc = new Set<string>();
   const { rows: previous } = await db.execute({ sql: 'SELECT DISTINCT player_id FROM player_stats WHERE match_id = ?', args: [matchId] });
@@ -567,23 +580,24 @@ async function applySimpleResult(ctx: MatchContext, input: ResultInput, friendly
     const p = byId.get(String(s?.player_id));
     if (!p) throw new RuleError('Unknown player in the match report');
     const values: SppStats = { td: count(s.td), cas: count(s.cas), int: count(s.int), comp: count(s.comp), ttm: count(s.ttm), landing: count(s.landing), mvp: count(s.mvp) };
-    mvps.set(String(p.team_id), (mvps.get(String(p.team_id)) ?? 0) + values.mvp);
-    const roster = getRoster(str(ctx.teams.get(String(p.team_id))?.roster));
+    mvps.set(p.team_id, (mvps.get(p.team_id) ?? 0) + values.mvp);
+    const roster = getRoster(str(ctx.teams.get(p.team_id)?.roster));
     const spp = friendly ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes') });
     if (Object.values(values).some(v => v > 0)) {
       statements.push({
         sql: `INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, ttm, landings, mvp, spp_earned)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [crypto.randomUUID(), matchId, String(p.id), values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
+        args: [crypto.randomUUID(), matchId, p.id, values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
       });
     }
     // Partite legacy: lo stato si imposta a mano come prima. Le amichevoli non cambiano lo stato dei giocatori.
     if (!friendly && s.status) {
+      if (!isPlayerStatus(s.status)) throw new RuleError(`${p.name}: unknown status`);
       const dead = s.status === 'Dead' ? 1 : 0;
       const mng = s.status === 'Injured' ? 1 : 0;
-      statements.push({ sql: 'UPDATE players SET status = ?, mng = ?, dead = ? WHERE id = ?', args: [s.status, mng, dead, String(p.id)] });
+      statements.push({ sql: 'UPDATE players SET status = ?, mng = ?, dead = ? WHERE id = ?', args: [s.status, mng, dead, p.id] });
     }
-    recalc.add(String(p.id));
+    recalc.add(p.id);
   }
   for (const [teamId, total] of mvps) {
     if (total > 1) throw new RuleError(`${ctx.teams.get(teamId)?.name} can award at most 1 MVP`);
@@ -617,7 +631,7 @@ export async function applyExpensiveMistakes(matchId: string, teamId: string, ro
   }
 
   // Step 5 del post-partita concluso: i Journeymen non ingaggiati se ne vanno
-  const released = ctx.players.filter(p => p.team_id === teamId && flag(p.journeyman) && p.journeyman_match_id === matchId && !flag(p.left_team)).map(p => String(p.id));
+  const released = ctx.players.filter(p => p.team_id === teamId && p.journeyman && p.journeyman_match_id === matchId && !p.left_team).map(p => p.id);
   const statements: Statement[] = released.map(id => ({ sql: 'UPDATE players SET left_team = 1 WHERE id = ?', args: [id] }));
   statements.push({ sql: 'UPDATE teams SET treasury = ? WHERE id = ?', args: [after, teamId] });
   statements.push(upsertReport(matchId, teamId, {
@@ -653,9 +667,9 @@ export async function deleteMatchStatements(matchId: string): Promise<Statement[
   for (const [teamId, report] of ctx.reports) {
     if (report.mistake_result) statements.push(...mistakesRevertStatements(matchId, teamId, ctx.teams.get(teamId)!, report));
   }
-  const byId = new Map(ctx.players.map(p => [String(p.id), p]));
+  const byId = new Map(ctx.players.map(p => [p.id, p]));
   for (const id of ctx.reports.size ? [...ctx.reports.values()].flatMap(r => parseJson<string[]>(r.released_player_ids, [])) : []) {
-    const p = byId.get(id); if (p) p.left_team = 0;
+    const p = byId.get(id); if (p) p.left_team = false;
   }
   if (flag(ctx.match.rules_applied)) {
     revertResultInMemory(ctx);
