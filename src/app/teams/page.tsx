@@ -95,11 +95,11 @@ export default function TeamsPage() {
                             {`BBL // ${team.race}`}
                           </span>
 
-                          <span className={styles.logoWrapper}>
+                          <span className={`team-patch ${styles.logoWrapper}`}>
                             {team.logo_url ? (
-                                <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
+                                <img src={team.logo_url} alt={team.name} />
                             ) : (
-                                <ShieldAlert size={80} className={styles.fallbackLogo} aria-hidden="true" />
+                                <ShieldAlert size={80} aria-hidden="true" />
                             )}
                           </span>
 

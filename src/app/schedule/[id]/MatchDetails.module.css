@@ -201,35 +201,14 @@
   color: rgba(243, 216, 151, 0.7);
 }
 
-/* Stemma grande con anello squadra e doppia cornice d'ottone */
+/* Toppa grande di cuoio ricamato (stile in globals.css, .team-patch): il logo ci esce sopra */
 .logoRing {
-  display: grid;
-  place-items: center;
   flex: none;
   width: 164px;
   height: 164px;
-  overflow: hidden;
-  border-radius: 50%;
-  color: var(--team-color, var(--bb-slate-500));
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cbb58e);
-  box-shadow:
-    0 0 0 5px var(--team-color, var(--bb-slate-500)),
-    0 0 0 9px #d9b268,
-    0 0 0 11px #6b4e22,
-    0 0 0 13px rgba(243, 216, 151, 0.45),
-    0 22px 40px -12px rgba(0, 0, 0, 0.85);
-  margin-bottom: 0.6rem;
-}
-
-.logoImage {
-  width: 80%;
-  height: 80%;
-  object-fit: contain;
-}
-
-.logoFallback {
-  flex: none;
-  color: var(--bb-slate-700);
+  margin: 2.2rem 0 2.4rem;
+  --patch-color: var(--team-color, var(--bb-slate-500));
+  --patch-pop: 1.4;
 }
 
 .teamName {
@@ -612,6 +591,7 @@
   .logoRing {
     width: 120px;
     height: 120px;
+    margin: 1.6rem 0 1.8rem;
   }
 }
 
@@ -661,17 +641,7 @@
   .logoRing {
     width: 82px;
     height: 82px;
-    margin-bottom: 0.3rem;
-    box-shadow:
-      0 0 0 3px var(--team-color, var(--bb-slate-500)),
-      0 0 0 6px #d9b268,
-      0 0 0 7px #6b4e22,
-      0 14px 24px -10px rgba(0, 0, 0, 0.85);
-  }
-
-  .logoFallback {
-    width: 36px;
-    height: 36px;
+    margin: 1rem 0 1.1rem;
   }
 
   .teamName {

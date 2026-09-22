@@ -43,25 +43,10 @@
 /*  LOGO NELLA TESTATA                                                 */
 /* ================================================================== */
 .logoFrame {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 64px;
   height: 64px;
-  padding: 5px;
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px var(--team-accent), 0 0 0 5px #d9b268, 0 8px 14px -6px rgba(0, 0, 0, 0.6);
-}
-
-.teamLogo {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.logoFallback {
-  color: var(--bb-ink-soft);
+  margin: 0.7rem;
+  --patch-color: var(--team-accent);
 }
 
 /* ================================================================== */
@@ -183,28 +168,11 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: min(280px, 70%);
+  width: min(250px, 62%);
   aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cdb994);
-  box-shadow:
-    0 0 0 5px var(--team-accent),
-    0 0 0 14px #2a1a05,
-    0 0 0 16px #d9b268,
-    0 30px 50px -18px rgba(0, 0, 0, 0.9);
+  --patch-color: var(--team-accent);
+  --patch-pop: 1.4;
   animation: bb-badge-in 0.9s var(--ease-out) backwards 0.15s;
-}
-
-/* Anello d'ottone vero (gradiente conico) tra i due filetti */
-.badge::before {
-  content: '';
-  position: absolute;
-  inset: -14px;
-  z-index: -1;
-  border-radius: 50%;
-  background: conic-gradient(from 20deg, #f7e2ab, #8d6831, #f3d897, #b8893f, #f7e2ab, #8d6831, #d9b268, #f7e2ab);
-  -webkit-mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
-  mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
 }
 
 @keyframes bb-badge-in {
@@ -214,16 +182,6 @@
   }
 }
 
-.badgeLogo {
-  width: 74%;
-  height: 74%;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
-}
-
-.badgeFallback {
-  color: var(--team-accent);
-}
 
 .portraitRace {
   position: absolute;
@@ -1258,7 +1216,7 @@
   .logoFrame {
     width: 48px;
     height: 48px;
-    padding: 3px;
+    margin: 0.5rem;
   }
 
   .profileBand {
@@ -1277,7 +1235,7 @@
   }
 
   .badge {
-    width: min(200px, 60%);
+    width: min(180px, 56%);
   }
 
   .portraitCount {

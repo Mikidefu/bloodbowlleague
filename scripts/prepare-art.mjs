@@ -16,6 +16,7 @@ const JOBS = {
   'trivium': { type: 'cutout', height: 240 },
   'hero-player': { type: 'cutout', height: 1200 },
   'trophy': { type: 'cutout', height: 500 },
+  'patch': { type: 'cutout', height: 600 },
   'star-player': { type: 'cutout', height: 800 },
   'header-teams': { type: 'cutout', height: 700 },
   'header-schedule': { type: 'cutout', height: 700 },

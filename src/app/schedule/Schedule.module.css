@@ -489,31 +489,15 @@
   min-width: 0;
 }
 
-/* Stemma con anello squadra e cerchio d'ottone */
+/* Toppa di cuoio con il bordo nel colore squadra (stile in globals.css, .team-patch) */
 .logoRing {
   display: grid;
   place-items: center;
   flex: none;
   width: 64px;
   height: 64px;
-  overflow: hidden;
-  border-radius: 50%;
-  color: var(--team-color, var(--bb-slate-500));
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
-  box-shadow:
-    0 0 0 3px var(--team-color, var(--bb-slate-500)),
-    0 0 0 6px #d9b268,
-    0 10px 18px -6px rgba(0, 0, 0, 0.6);
-}
-
-.logoImage {
-  width: 82%;
-  height: 82%;
-  object-fit: contain;
-}
-
-.logoFallback {
-  flex: none;
+  margin: 0.6rem 0 0.4rem;
+  --patch-color: var(--team-color, var(--bb-slate-500));
 }
 
 .teamName {

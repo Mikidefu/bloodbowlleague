@@ -557,11 +557,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             title={team.name}
             kicker={team.race}
             icon={
-              <span className={styles.logoFrame}>
+              <span className={`team-patch ${styles.logoFrame}`}>
                 {team.logo_url ? (
-                    <img src={team.logo_url} alt="" className={styles.teamLogo} />
+                    <img src={team.logo_url} alt="" />
                 ) : (
-                    <ShieldAlert size={40} className={styles.logoFallback} />
+                    <ShieldAlert size={40} />
                 )}
               </span>
             }
@@ -592,11 +592,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               <span className={styles.portraitCount} aria-hidden="true">{pad(activePlayers.length)}</span>
               <span className={styles.portraitMicro} aria-hidden="true">{`Roster // ${activePlayers.length} of 16`}</span>
 
-              <span className={styles.badge}>
+              <span className={`team-patch ${styles.badge}`}>
                 {team.logo_url ? (
-                    <img src={team.logo_url} alt={team.name} className={styles.badgeLogo} />
+                    <img src={team.logo_url} alt={team.name} />
                 ) : (
-                    <ShieldAlert size={120} className={styles.badgeFallback} />
+                    <ShieldAlert size={120} />
                 )}
               </span>
 

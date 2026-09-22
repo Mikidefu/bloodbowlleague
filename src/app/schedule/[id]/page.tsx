@@ -492,11 +492,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   ) => (
       <div className={`${styles.side} ${side === 'home' ? styles.sideHome : styles.sideAway}`} style={teamAccent(color)}>
         <span className={styles.sideCode} aria-hidden="true">{side === 'home' ? 'HOME // H' : 'AWAY // A'}</span>
-        <div className={styles.logoRing}>
+        <div className={`team-patch ${styles.logoRing}`}>
           {logo ? (
-              <img src={logo} alt={side === 'home' ? 'Home Logo' : 'Away Logo'} className={styles.logoImage} />
+              <img src={logo} alt={side === 'home' ? 'Home Logo' : 'Away Logo'} />
           ) : (
-              <ShieldAlert size={56} className={styles.logoFallback} />
+              <ShieldAlert size={56} />
           )}
         </div>
         <div className={styles.teamName}>{name}</div>

@@ -102,11 +102,11 @@ export default function StandingsPage() {
                                                     <span className={styles.podiumMicro}>
                                                         {`P${pad(place)} // ${team.wins}W ${team.draws}D ${team.losses}L`}
                                                     </span>
-                                                    <span className={styles.podiumBadge}>
+                                                    <span className={`team-patch ${styles.podiumBadge}`}>
                                                         {team.logo_url ? (
                                                             <img src={team.logo_url} alt={team.name} />
                                                         ) : (
-                                                            <ShieldAlert size={isLeader ? 44 : 32} />
+                                                            <ShieldAlert size={isLeader ? 56 : 44} />
                                                         )}
                                                     </span>
                                                     <span className={styles.podiumName}>{team.name}</span>
@@ -195,13 +195,13 @@ export default function StandingsPage() {
                                                     <td className={styles.teamCell}>
                                                         <Link href={`/teams/${team.id}`} className={styles.teamLink}>
                                                             <span
-                                                                className={styles.logoRing}
-                                                                style={{ borderColor: team.primary_color || undefined }}
+                                                                className={`team-patch ${styles.logoRing}`}
+                                                                style={team.primary_color ? { ['--patch-color' as string]: team.primary_color } : undefined}
                                                             >
                                                                 {team.logo_url ? (
-                                                                    <img src={team.logo_url} alt={team.name} className={styles.teamLogo} />
+                                                                    <img src={team.logo_url} alt={team.name} />
                                                                 ) : (
-                                                                    <ShieldAlert size={20} color={team.primary_color || 'currentColor'} />
+                                                                    <ShieldAlert size={28} color={team.primary_color || 'currentColor'} />
                                                                 )}
                                                             </span>
                                                             <span className={styles.teamText}>

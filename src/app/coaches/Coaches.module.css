@@ -519,11 +519,9 @@
   flex: none;
   width: 40px;
   height: 40px;
-  object-fit: contain;
-  padding: 3px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
-  box-shadow: 0 0 0 2px #d9b268;
+  margin: 0.4rem;
+  --patch-color: var(--team-accent);
+  --patch-pop: 1.4;
 }
 
 .portraitTeam > span {
@@ -957,11 +955,9 @@
   flex: none;
   width: 40px;
   height: 40px;
-  object-fit: contain;
-  padding: 3px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
-  box-shadow: 0 0 0 2px var(--team-color, var(--bb-tan-dark)), 0 0 0 4px #d9b268;
+  margin: 0.4rem;
+  --patch-color: var(--team-color, var(--bb-tan-dark));
+  --patch-pop: 1.4;
 }
 
 .teamShield {

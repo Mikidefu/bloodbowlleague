@@ -822,6 +822,82 @@ main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
   }
 }
 
+/* ================================================================== */
+/*  TOPPA SQUADRA: cerchio di cuoio ricamato, il logo ci esce sopra     */
+/* ================================================================== */
+/* Il contenitore ha la misura della toppa; --patch-color = filo del bordo (colore squadra),
+   --patch-pop = quanto il logo è più grande della toppa. Se esiste public/art/patch.webp
+   (vedi docs/MIDJOURNEY.md) il cuoio usa quella texture, altrimenti il gradiente. */
+/* Valori predefiniti a specificità zero: i moduli di pagina li sovrascrivono sempre */
+:where(.team-patch) {
+  --patch-color: var(--bb-slate-500);
+  --patch-pop: 1.45;
+  display: grid;
+  place-items: center;
+}
+
+.team-patch {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  color: var(--patch-color);
+}
+
+/* Cuoio + bordo cucito a punto festone nel colore squadra */
+.team-patch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  border: max(2px, 7cqw) solid transparent;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 226, 180, 0.3), transparent 55%) padding-box,
+    url('/art/patch.webp') center / cover padding-box,
+    var(--tex-grain) padding-box,
+    radial-gradient(circle at 50% 45%, #8a5630 0%, #6b3f1f 55%, #43250f 100%) padding-box,
+    repeating-conic-gradient(
+      var(--patch-color) 0deg 4deg,
+      color-mix(in srgb, var(--patch-color) 62%, #000) 4deg 6deg
+    ) border-box;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.45),
+    inset 0 max(3px, 5cqw) max(6px, 10cqw) rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 max(4px, 6cqw) max(8px, 12cqw) -4px rgba(0, 0, 0, 0.7);
+}
+
+/* Impuntura dorata all'interno del bordo */
+.team-patch::after {
+  content: '';
+  position: absolute;
+  inset: max(4px, 11cqw);
+  z-index: -1;
+  border-radius: 50%;
+  border: max(1px, 1.6cqw) dashed rgba(243, 216, 151, 0.85);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Logo più grande della toppa, centrato e sporgente */
+.team-patch > img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% * var(--patch-pop));
+  height: calc(100% * var(--patch-pop));
+  max-width: none;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 max(3px, 5cqw) max(4px, 6cqw) rgba(0, 0, 0, 0.6));
+}
+
+.team-patch > svg {
+  width: 55%;
+  height: 55%;
+  color: #f3d897;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

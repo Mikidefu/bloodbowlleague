@@ -44,7 +44,7 @@ type Result = {
 
 function TeamBadge({ logo, color, name, size = 56 }: { logo: string | null; color: string | null; name: string; size?: number }) {
     return (
-        <span className={styles.teamBadge} style={{ ['--team' as string]: color || 'var(--bb-slate-500)', width: size, height: size }}>
+        <span className={`team-patch ${styles.teamBadge}`} style={{ ['--patch-color' as string]: color || 'var(--bb-slate-500)', width: size, height: size }}>
             {logo ? <img src={logo} alt={name} /> : <ShieldAlert size={size * 0.5} />}
         </span>
     );
@@ -350,9 +350,11 @@ export default function Home() {
                                 <Users size={20} /> {t.home.draftNewTeam}
                             </Link>
                         )}
-                        <Link href="/schedule" className="btn btn-gold">
-                            <Calendar size={20} /> {t.home.generateSchedule}
-                        </Link>
+                        {isAdmin && isViewingActive && (
+                            <Link href="/schedule" className="btn btn-gold">
+                                <Calendar size={20} /> {t.home.generateSchedule}
+                            </Link>
+                        )}
                         <Link href="/tables" className="btn btn-slate">
                             <Dices size={20} /> {t.tables.shortcut}
                         </Link>
