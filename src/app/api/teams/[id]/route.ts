@@ -5,6 +5,9 @@ import { recalcSppStatement } from '@/lib/spp';
 import { uploadTeamLogo, UploadError } from '@/lib/upload';
 import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
 import { getActiveSeason, seasonStatusSql } from '@/lib/seasons';
+import { LIMITS } from '@/lib/leagueRules';
+import { favouredOptions, getRoster } from '@/lib/rosters';
+import { computeTeamValue } from '@/lib/teamValue';
 
 export async function GET(
     request: Request,
@@ -24,6 +27,11 @@ export async function GET(
 
     // 2. Recuperiamo tutte le skill associate ai giocatori di QUESTA squadra
     // Facciamo una JOIN tra skills, la tabella ponte, e i players di questo team
+    const injuriesRes = await db.execute({
+      sql: 'SELECT i.player_id, i.result, i.stat, i.stat_applied FROM player_injuries i JOIN players p ON p.id = i.player_id WHERE p.team_id = ?',
+      args: [id]
+    });
+
     const skillsRes = await db.execute({
       sql: `
         SELECT sp.player_id, s.*
@@ -44,8 +52,28 @@ export async function GET(
         ...p,
         skills: playerSkills, // Ora è un array di oggetti {id, name, type, description...}
         mng: !!p.mng,         // Convertiamo 1/0 di SQLite in true/false per React
-        dead: !!p.dead        // Convertiamo 1/0 di SQLite in true/false per React
+        dead: !!p.dead,       // Convertiamo 1/0 di SQLite in true/false per React
+        left_team: !!p.left_team,
+        temp_retired: !!p.temp_retired,
+        journeyman: !!p.journeyman,
+        is_captain: !!p.is_captain,
+        lasting_injuries: injuriesRes.rows.filter(i => i.player_id === p.id && i.result === 'LI').length,
       };
+    });
+
+    // Sequenza post-partita ancora aperta: partite applicate con Expensive Mistakes da tirare
+    const { rows: pending } = await db.execute({
+      sql: `
+        SELECT m.id AS match_id, m.round, m.match_type, r.winnings, r.df_change, r.mistake_result,
+               CASE WHEN m.home_team_id = ? THEN ta.name ELSE th.name END AS opponent_name
+        FROM match_team_reports r
+        JOIN matches m ON m.id = r.match_id
+        JOIN teams th ON th.id = m.home_team_id
+        JOIN teams ta ON ta.id = m.away_team_id
+        WHERE r.team_id = ? AND m.rules_applied = 1 AND r.mistake_result IS NULL
+        ORDER BY m.round
+      `,
+      args: [id, id]
     });
 
     // Storico partecipazioni: stagione e allenatore (la prima riga è la più recente)
@@ -65,6 +93,8 @@ export async function GET(
 
     return NextResponse.json({
       ...team,
+      ...computeTeamValue(team as never, playersRes.rows as never),
+      pending_postgame: pending,
       players: mappedPlayers,
       in_active_season: !!activeEntry,
       coach_id: activeEntry?.coach_id ?? history[0]?.coach_id ?? null,
@@ -98,6 +128,34 @@ export async function PUT(
     const apothecary = formData.has('apothecary') ? (formData.get('apothecary') === 'true' ? 1 : 0) : null;
     const treasury = formData.has('treasury') ? parseInt(formData.get('treasury') as string, 10) : null;
     const bank = formData.has('bank') ? parseInt(formData.get('bank') as string, 10) : null;
+
+    // Roster, League e Favoured of: si possono impostare per collegare una squadra creata prima dei roster
+    const { rows: [current] } = await db.execute({ sql: 'SELECT roster, team_league, favoured_of FROM teams WHERE id = ?', args: [id] });
+    if (!current) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+    const rosterKey = formData.has('roster') ? formData.get('roster')?.toString() || null : (current.roster as string | null);
+    const roster = getRoster(rosterKey);
+    if (rosterKey && !roster) return NextResponse.json({ error: 'Unknown Team Roster' }, { status: 400 });
+    const teamLeague = formData.has('team_league') ? formData.get('team_league')?.toString() || null : (current.team_league as string | null);
+    if (roster && teamLeague && !roster.leagues.includes(teamLeague as never)) {
+      return NextResponse.json({ error: `${roster.name} teams cannot play in ${teamLeague}` }, { status: 400 });
+    }
+    const favouredOf = formData.has('favoured_of') ? formData.get('favoured_of')?.toString() || null : (current.favoured_of as string | null);
+    const favouredChoices = favouredOptions(roster, teamLeague);
+    if (favouredOf && !favouredChoices.includes(favouredOf)) {
+      return NextResponse.json({ error: `Favoured of ${favouredOf} is not an option for this team` }, { status: 400 });
+    }
+
+    // Limiti del regolamento (pp. 90-91)
+    const outOfRange = (value: number | null, min: number, max: number) => value !== null && (Number.isNaN(value) || value < min || value > max);
+    const rangeErrors = [
+      outOfRange(rerolls, 0, LIMITS.maxRerolls) && `Team Re-rolls: 0-${LIMITS.maxRerolls}`,
+      outOfRange(assistant_coaches, 0, LIMITS.maxAssistantCoaches) && `Assistant Coaches: 0-${LIMITS.maxAssistantCoaches}`,
+      outOfRange(cheerleaders, 0, LIMITS.maxCheerleaders) && `Cheerleaders: 0-${LIMITS.maxCheerleaders}`,
+      outOfRange(fan_factor, LIMITS.dedicatedFansMin, LIMITS.dedicatedFansMax) && `Dedicated Fans: ${LIMITS.dedicatedFansMin}-${LIMITS.dedicatedFansMax}`,
+      outOfRange(treasury, 0, Number.MAX_SAFE_INTEGER) && 'Treasury cannot be negative',
+      roster && apothecary === 1 && !roster.apothecary && `${roster.name} teams cannot hire an Apothecary`,
+    ].filter(Boolean);
+    if (rangeErrors.length) return NextResponse.json({ error: rangeErrors.join(' · ') }, { status: 400 });
 
     const logoFile = formData.get('logo_file') as File | null;
 
@@ -141,12 +199,16 @@ export async function PUT(
             fan_factor = COALESCE(?, fan_factor),
             apothecary = COALESCE(?, apothecary),
             treasury = COALESCE(?, treasury),
-            bank = COALESCE(?, bank)
+            bank = COALESCE(?, bank),
+            roster = ?,
+            team_league = ?,
+            favoured_of = ?
         WHERE id = ?
       `,
       args: [
         name, logo_url, primary_color, secondary_color,
-        rerolls, reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank,
+        rerolls, roster ? roster.rerollCost : reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank,
+        roster?.key ?? null, roster ? teamLeague : null, favouredChoices.length ? favouredOf : null,
         id
       ]
     });

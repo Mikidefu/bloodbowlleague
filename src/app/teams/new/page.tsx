@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
@@ -10,6 +10,14 @@ import styles from './NewTeam.module.css';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
 import { useSeason } from '@/lib/SeasonContext';
 import type { Coach } from '@/lib/types';
+import { ROSTERS, favouredOptions, getRoster, hasRule } from '@/lib/rosters';
+import { DRAFT_BUDGET, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
+import { checkDraft, type DraftInput } from '@/lib/draft';
+
+type DraftRow = { uid: number; position_key: string; name: string; jersey_number: string };
+
+const SORTED_ROSTERS = [...ROSTERS].sort((a, b) => a.name.localeCompare(b.name));
+const gp = (value: number) => value.toLocaleString();
 
 export default function NewTeamPage() {
   const router = useRouter();
@@ -27,21 +35,25 @@ export default function NewTeamPage() {
         .then(data => setCoaches(Array.isArray(data) ? data : []))
         .catch(() => setCoaches([]));
   }, []);
+
   const [formData, setFormData] = useState({
     name: '',
-    race: 'Amazons',
     primary_color: '#2d4a22',
     secondary_color: '#8b0000',
     logo_url: '',
-    rerolls: 0,
-    reroll_cost: 50000,
-    cheerleaders: 0,
-    assistant_coaches: 0,
-    fan_factor: 0,
-    apothecary: false,
-    treasury: 1000000, // budget iniziale standard
-    bank: 0
   });
+
+  // Draft (pp. 88-91)
+  const [rosterKey, setRosterKey] = useState('');
+  const [teamLeague, setTeamLeague] = useState('');
+  const [favouredOf, setFavouredOf] = useState('');
+  const [rows, setRows] = useState<DraftRow[]>([]);
+  const uidRef = useRef(0);
+  const [captainUid, setCaptainUid] = useState<number | null>(null);
+  const [staff, setStaff] = useState({ rerolls: 0, assistant_coaches: 0, cheerleaders: 0, apothecary: false, dedicated_fans: 1 });
+
+  const roster = getRoster(rosterKey);
+  const favouredChoices = favouredOptions(roster, teamLeague);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -55,14 +67,54 @@ export default function NewTeamPage() {
     }
   };
 
-  const RACES = [
-    'Amazons', 'Black Orcs', 'Bretonnian', 'Chaos Chosen', 'Chaos Dwarves',
-    'Chaos Renegades', 'Dark Elf', 'Dwarves', 'Elf Union', 'Gnomes',
-    'Goblins', 'Halflings', 'High Elves', 'Humans', 'Imperial Nobility',
-    'Khorne', 'Lizardmen', 'Necromantics', 'Norse', 'Nurgle', 'Ogre',
-    'Old World Alliance', 'Orcs', 'Shambling Undead', 'Skaven', 'Slanns',
-    'Snotlings', 'Tomb Kings', 'Underworlds Denizens', 'Vampires', 'Wood Elves'
-  ];
+  const chooseRoster = (key: string) => {
+    const next = getRoster(key);
+    setRosterKey(key);
+    setRows([]);
+    setCaptainUid(null);
+    setTeamLeague(next?.leagues.length === 1 ? next.leagues[0] : '');
+    const favoured = favouredOptions(next, next?.leagues.length === 1 ? next.leagues[0] : '');
+    setFavouredOf(favoured.length === 1 ? favoured[0] : '');
+    setStaff(s => ({ ...s, apothecary: next?.apothecary ? s.apothecary : false }));
+  };
+
+  const chooseLeague = (league: string) => {
+    setTeamLeague(league);
+    const favoured = favouredOptions(roster, league);
+    setFavouredOf(favoured.length === 1 ? favoured[0] : '');
+  };
+
+  // Aggiornamenti funzionali: più click rapidi non si perdono
+  const addPlayer = (positionKey: string) => {
+    const position = roster?.positions.find(p => p.key === positionKey);
+    if (!position) return;
+    uidRef.current += 1;
+    const uid = uidRef.current;
+    setRows(prev => {
+      const count = prev.filter(r => r.position_key === positionKey).length;
+      if (count >= position.max || prev.length >= LIMITS.maxPlayers) return prev;
+      return [...prev, { uid, position_key: positionKey, name: `${position.name} ${count + 1}`, jersey_number: '' }];
+    });
+  };
+
+  const removePlayer = (positionKey: string) => {
+    setRows(prev => {
+      const last = [...prev].reverse().find(r => r.position_key === positionKey);
+      if (!last) return prev;
+      setCaptainUid(current => (current === last.uid ? null : current));
+      return prev.filter(r => r.uid !== last.uid);
+    });
+  };
+
+  const draft: DraftInput = useMemo(() => ({
+    roster: rosterKey,
+    team_league: teamLeague || null,
+    favoured_of: favouredOf || null,
+    ...staff,
+    players: rows.map(r => ({ position_key: r.position_key, name: r.name, jersey_number: r.jersey_number ? Number(r.jersey_number) : null })),
+    captain_index: captainUid === null ? null : rows.findIndex(r => r.uid === captainUid),
+  }), [rosterKey, teamLeague, favouredOf, staff, rows, captainUid]);
+  const check = checkDraft(draft);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,25 +122,21 @@ export default function NewTeamPage() {
       alert(t.coachPicker.choose);
       return;
     }
+    if (check.errors.length) {
+      alert(check.errors.join('\n'));
+      return;
+    }
     setLoading(true);
 
     try {
       const submitData = new FormData();
       submitData.append('name', formData.name);
-      submitData.append('race', formData.race);
       for (const [key, value] of Object.entries(coachChoicePayload(coachChoice))) {
         if (value) submitData.append(key, value);
       }
       submitData.append('primary_color', formData.primary_color);
       submitData.append('secondary_color', formData.secondary_color);
-      submitData.append('rerolls', formData.rerolls.toString());
-      submitData.append('reroll_cost', formData.reroll_cost.toString());
-      submitData.append('cheerleaders', formData.cheerleaders.toString());
-      submitData.append('assistant_coaches', formData.assistant_coaches.toString());
-      submitData.append('fan_factor', formData.fan_factor.toString());
-      submitData.append('apothecary', formData.apothecary.toString());
-      submitData.append('treasury', formData.treasury.toString());
-      submitData.append('bank', formData.bank.toString());
+      submitData.append('draft', JSON.stringify(draft));
 
       if (logoFile) {
         submitData.append('logo_file', logoFile);
@@ -130,6 +178,18 @@ export default function NewTeamPage() {
     );
   }
 
+  const stepper = (label: string, value: number, min: number, max: number, onChange: (v: number) => void, hint?: string) => (
+      <div className={styles.statInputGroup}>
+        <span className={styles.statLabel}>{label}</span>
+        <div className={styles.stepper}>
+          <button type="button" className={styles.stepBtn} onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label={`${label} -1`}><Minus size={16} /></button>
+          <span className={styles.stepValue}>{value}</span>
+          <button type="button" className={styles.stepBtn} onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label={`${label} +1`}><Plus size={16} /></button>
+        </div>
+        {hint && <span className={styles.hint}>{hint}</span>}
+      </div>
+  );
+
   return (
       <div>
         <PageHeader
@@ -140,7 +200,7 @@ export default function NewTeamPage() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
 
-          {/* IDENTITÀ */}
+          {/* IDENTITÀ E ROSTER */}
           <section className={`card ${styles.section}`}>
             <h2 className="subhead">Team</h2>
             <div className={styles.fieldGrid}>
@@ -158,16 +218,41 @@ export default function NewTeamPage() {
               </div>
 
               <div className={styles.inputGroup}>
-                <label htmlFor="team-race" className={styles.label}>{t.draft.race}</label>
-                <select
-                    id="team-race"
-                    value={formData.race}
-                    onChange={(e) => setFormData({...formData, race: e.target.value})}
-                    className={styles.inputField}
-                >
-                  {RACES.map(r => <option key={r} value={r}>{r}</option>)}
+                <label htmlFor="team-roster" className={styles.label}>{t.rules.teamRoster}</label>
+                <select id="team-roster" required value={rosterKey} onChange={(e) => chooseRoster(e.target.value)} className={styles.inputField}>
+                  <option value="">{t.rules.chooseRoster}</option>
+                  {SORTED_ROSTERS.map(r => <option key={r.key} value={r.key}>{r.name} (p. {r.page})</option>)}
                 </select>
               </div>
+
+              {roster && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="team-league" className={styles.label}>{t.rules.league}</label>
+                    <select id="team-league" required value={teamLeague} onChange={(e) => chooseLeague(e.target.value)} className={styles.inputField}>
+                      {roster.leagues.length > 1 && <option value="">{t.rules.chooseLeague}</option>}
+                      {roster.leagues.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+              )}
+
+              {roster && favouredChoices.length > 0 && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="team-favoured" className={styles.label}>{t.rules.favouredOf}</label>
+                    <select id="team-favoured" required value={favouredOf} onChange={(e) => setFavouredOf(e.target.value)} className={styles.inputField}>
+                      {favouredChoices.length > 1 && <option value="">{t.rules.chooseFavoured}</option>}
+                      {favouredChoices.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+              )}
+
+              {roster && (
+                  <p className={`${styles.coachGroup} ${styles.rosterRules}`}>
+                    <strong>{t.rules.specialRules}:</strong>{' '}
+                    {[...roster.specialRules.map(r => (r === 'Favoured of' && favouredOf ? `Favoured of ${favouredOf}` : r === 'Brawlin Brutes' ? "Brawlin' Brutes" : r)),
+                      ...(roster.favouredIfLeague && favouredOf ? [`Favoured of ${favouredOf}`] : [])].join(', ') || t.rules.none}
+                    {' · '}Apothecary: {roster.apothecary ? 'YES' : 'NO'}
+                  </p>
+              )}
 
               {/* Allenatore della squadra nella stagione in corso */}
               <div className={`${styles.inputGroup} ${styles.coachGroup}`}>
@@ -183,6 +268,111 @@ export default function NewTeamPage() {
               </div>
             </div>
           </section>
+
+          {/* GIOCATORI DAL ROSTER */}
+          {roster && (
+              <section className={`card ${styles.section}`}>
+                <h2 className="subhead">{t.rules.players} ({rows.length} / {LIMITS.maxPlayers})</h2>
+                <div className={styles.tableScroll}>
+                  <table className={`data-table ${styles.rosterTable}`}>
+                    <thead>
+                    <tr>
+                      <th>{t.rules.qty}</th>
+                      <th>{t.rules.position}</th>
+                      <th className="num">{t.rules.cost}</th>
+                      <th className="num">MA</th>
+                      <th className="num">ST</th>
+                      <th className="num">AG</th>
+                      <th className="num">PA</th>
+                      <th className="num">AV</th>
+                      <th>Skills &amp; Traits</th>
+                      <th>P / S</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {roster.positions.map(pos => {
+                      const count = rows.filter(r => r.position_key === pos.key).length;
+                      return (
+                          <tr key={pos.key}>
+                            <td>
+                              <div className={styles.stepper}>
+                                <button type="button" className={styles.stepBtn} onClick={() => removePlayer(pos.key)} disabled={count === 0} aria-label={`${pos.name} -1`}><Minus size={14} /></button>
+                                <span className={styles.stepValue}>{count}<small>/{pos.max}</small></span>
+                                <button type="button" className={styles.stepBtn} onClick={() => addPlayer(pos.key)} disabled={count >= pos.max || rows.length >= LIMITS.maxPlayers} aria-label={`${pos.name} +1`}><Plus size={14} /></button>
+                              </div>
+                            </td>
+                            <td>
+                              <strong>{pos.name}</strong>
+                              <span className={styles.keywords}>{pos.keywords.join(', ')}</span>
+                            </td>
+                            <td className="num">{gp(pos.cost)}</td>
+                            <td className="num">{pos.ma}</td>
+                            <td className="num">{pos.st}</td>
+                            <td className="num">{pos.ag}</td>
+                            <td className="num">{pos.pa}</td>
+                            <td className="num">{pos.av}</td>
+                            <td className={styles.skills}>{pos.skills.join(', ') || '—'}</td>
+                            <td>{pos.primary.join('') || '—'} / {pos.secondary.join('') || '—'}</td>
+                          </tr>
+                      );
+                    })}
+                    </tbody>
+                  </table>
+                </div>
+                {roster.groups?.map(g => (
+                    <p key={g.label} className={styles.hint}>{g.label}: max {g.max} ({g.positions.map(k => roster.positions.find(p => p.key === k)?.name).join(', ')})</p>
+                ))}
+
+                {rows.length > 0 && (
+                    <ul className={styles.draftList}>
+                      {rows.map(row => {
+                        const position = roster.positions.find(p => p.key === row.position_key)!;
+                        return (
+                            <li key={row.uid} className={styles.draftRow}>
+                              <input type="number" min="1" max="99" value={row.jersey_number} placeholder="#"
+                                     onChange={e => setRows(rows.map(r => r.uid === row.uid ? { ...r, jersey_number: e.target.value } : r))}
+                                     className={`${styles.inputField} ${styles.jerseyInput}`} aria-label="N°" />
+                              <input type="text" required value={row.name} aria-label={t.rules.playerName}
+                                     onChange={e => setRows(rows.map(r => r.uid === row.uid ? { ...r, name: e.target.value } : r))}
+                                     className={styles.inputField} />
+                              <span className={styles.draftPosition}>{position.name}</span>
+                              {hasRule(roster, 'Team Captain') && !position.keywords.includes('Big Guy') && (
+                                  <label className={styles.captainPick}>
+                                    <input type="radio" name="captain" checked={captainUid === row.uid} onChange={() => setCaptainUid(row.uid)} />
+                                    {t.rules.captain}
+                                  </label>
+                              )}
+                            </li>
+                        );
+                      })}
+                    </ul>
+                )}
+                {hasRule(roster, 'Team Captain') && (
+                    <p className={styles.hint}>
+                      {t.rules.captain}: {t.rules.captainHint}{' '}
+                      {captainUid !== null && <button type="button" className={styles.linkBtn} onClick={() => setCaptainUid(null)}>{t.rules.noCaptain}</button>}
+                    </p>
+                )}
+              </section>
+          )}
+
+          {/* STAFF */}
+          {roster && (
+              <section className={`card ${styles.section}`}>
+                <h2 className="subhead">{t.rules.staff}</h2>
+                <div className={styles.statsGrid}>
+                  {stepper(t.rules.rerollsEach.replace('{cost}', gp(roster.rerollCost)), staff.rerolls, 0, LIMITS.maxRerolls, v => setStaff({ ...staff, rerolls: v }))}
+                  {stepper(`${t.rules.assistantCoach} (${gp(STAFF_COSTS.assistantCoach)})`, staff.assistant_coaches, 0, LIMITS.maxAssistantCoaches, v => setStaff({ ...staff, assistant_coaches: v }))}
+                  {stepper(`${t.rules.cheerleader} (${gp(STAFF_COSTS.cheerleader)})`, staff.cheerleaders, 0, LIMITS.maxCheerleaders, v => setStaff({ ...staff, cheerleaders: v }))}
+                  {stepper(t.rules.dedicatedFansDraft, staff.dedicated_fans, LIMITS.dedicatedFansStart, LIMITS.dedicatedFansDraftMax, v => setStaff({ ...staff, dedicated_fans: v }))}
+                  <label className={styles.apothecaryCheck}>
+                    <span className={styles.statLabel}>{t.rules.apothecary} ({gp(STAFF_COSTS.apothecary)})</span>
+                    <input type="checkbox" checked={staff.apothecary} disabled={!roster.apothecary} onChange={e => setStaff({ ...staff, apothecary: e.target.checked })} className={styles.checkbox} />
+                    {!roster.apothecary && <span className={styles.hint}>{t.rules.apothecaryNotAllowed}</span>}
+                  </label>
+                </div>
+              </section>
+          )}
 
           {/* COLORI E LOGO */}
           <section className={`card ${styles.section}`}>
@@ -243,49 +433,27 @@ export default function NewTeamPage() {
             </div>
           </section>
 
-          {/* GESTIONE */}
-          <section className={`card ${styles.section}`}>
-            <h2 className="subhead">Management</h2>
-            <div className={styles.statsGrid}>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-rerolls" className={styles.statLabel}>REROLLS</label>
-                <input id="stat-rerolls" type="number" min="0" max="8" value={formData.rerolls} onChange={e => setFormData({...formData, rerolls: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-reroll-cost" className={styles.statLabel}>R. COST</label>
-                <input id="stat-reroll-cost" type="number" min="0" step="10000" value={formData.reroll_cost} onChange={e => setFormData({...formData, reroll_cost: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-cheerleaders" className={styles.statLabel}>CHEERLEADERS</label>
-                <input id="stat-cheerleaders" type="number" min="0" max="16" value={formData.cheerleaders} onChange={e => setFormData({...formData, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-coaches" className={styles.statLabel}>ASST. COACHES</label>
-                <input id="stat-coaches" type="number" min="0" max="16" value={formData.assistant_coaches} onChange={e => setFormData({...formData, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-fans" className={styles.statLabel}>FANS</label>
-                <input id="stat-fans" type="number" min="0" max="18" value={formData.fan_factor} onChange={e => setFormData({...formData, fan_factor: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-treasury" className={styles.statLabel}>TREASURY</label>
-                <input id="stat-treasury" type="number" min="0" step="10000" value={formData.treasury} onChange={e => setFormData({...formData, treasury: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <div className={styles.statInputGroup}>
-                <label htmlFor="stat-bank" className={styles.statLabel}>BANK</label>
-                <input id="stat-bank" type="number" min="0" step="10000" value={formData.bank} onChange={e => setFormData({...formData, bank: parseInt(e.target.value) || 0})} className={styles.statInput} />
-              </div>
-              <label className={styles.apothecaryCheck}>
-                <span className={styles.statLabel}>MEDIC</span>
-                <input type="checkbox" checked={formData.apothecary} onChange={e => setFormData({...formData, apothecary: e.target.checked})} className={styles.checkbox} />
-              </label>
+          {/* BUDGET */}
+          <section className={`card ${styles.section} ${styles.budget}`} aria-live="polite">
+            <div className={styles.budgetFigures}>
+              <span><small>{t.rules.budget}</small><strong>{gp(DRAFT_BUDGET)}</strong></span>
+              <span><small>{t.rules.spent}</small><strong>{gp(check.total)}</strong></span>
+              <span className={check.remaining < 0 ? styles.over : ''}><small>{t.rules.remaining}</small><strong>{gp(check.remaining)}</strong></span>
             </div>
+            <p className={styles.hint}>{t.rules.houseRuleBudget.replace('{budget}', gp(DRAFT_BUDGET))}</p>
+            {check.errors.length > 0 ? (
+                <div className={styles.errors}>
+                  <strong>{t.rules.draftErrors}</strong>
+                  <ul>{check.errors.map(err => <li key={err}>{err}</li>)}</ul>
+                </div>
+            ) : (
+                <p className={styles.ok}>{t.rules.draftOk}</p>
+            )}
           </section>
 
           <div className={styles.actionButtons}>
             <button type="button" onClick={() => router.back()} className="btn">CANCEL</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button type="submit" className="btn btn-primary" disabled={loading || check.errors.length > 0}>
               {loading ? t.draft.drafting : t.draft.registerBtn}
             </button>
           </div>

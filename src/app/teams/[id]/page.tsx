@@ -10,8 +10,17 @@ import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
 import Shards from '@/components/brand/Shards';
 import styles from './TeamDetails.module.css';
-import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, skillsForCategories } from '@/lib/advancement';
+import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, categoryLetters, categoryName, isEliteSkill, skillsForCategories } from '@/lib/advancement';
 import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
+import { ROSTERS, favouredOptions, getRoster } from '@/lib/rosters';
+import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
+import PostgamePanel from './PostgamePanel';
+
+const SORTED_ROSTERS = [...ROSTERS].sort((a, b) => a.name.localeCompare(b.name));
+
+// Risposte di POST /api/players/[id]/advance/roll
+type RandomRoll = { category: string; cost: number; token: string; options: { id: string; name: string; type: string; elite: boolean; rolls: number[] }[] };
+type StatRoll = { cost: number; token: string; d8: number; label: string; stats: { stat: string; current: string | number; times: number; available: boolean; reason: string | null }[] };
 
 export default function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -30,8 +39,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '', primary_color: '', secondary_color: '', logo_url: '',
-    rerolls: 0, reroll_cost: 50000, cheerleaders: 0, assistant_coaches: 0, fan_factor: 0, apothecary: false,
-    treasury: 0, bank: 0
+    rerolls: 0, reroll_cost: 50000, cheerleaders: 0, assistant_coaches: 0, fan_factor: 1, apothecary: false,
+    treasury: 0, bank: 0, roster: '', team_league: '', favoured_of: ''
   });
   // Allenatore nella stagione attiva (modificabile solo se la squadra partecipa)
   const [coaches, setCoaches] = useState<Coach[]>([]);
@@ -48,6 +57,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [levelUpPlayer, setLevelUpPlayer] = useState<Player | null>(null);
   const [levelUpChoice, setLevelUpChoice] = useState<string>('');
   const [selectedAdvancement, setSelectedAdvancement] = useState<Skill | null>(null);
+  // Tiri fatti dal server (pp. 97-98): la scelta è vincolata ai risultati usciti
+  const [randomRoll, setRandomRoll] = useState<RandomRoll | null>(null);
+  const [statRoll, setStatRoll] = useState<StatRoll | null>(null);
+  const [rollCategory, setRollCategory] = useState('');
+  const [rolling, setRolling] = useState(false);
+  const [declinedFrom, setDeclinedFrom] = useState<'primary' | 'secondary'>('primary');
 
   // NUOVO STATO: Modale Celebrazione Skill Random
   const [celebrationSkill, setCelebrationSkill] = useState<Skill | null>(null);
@@ -61,8 +76,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     primary_skills: '', secondary_skills: '', advancements: 0,
     skills: [] as Skill[],
     ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', spp: 0,
-    mng: false, dead: false
+    mng: false, dead: false, position_key: ''
   });
+
+  // Ingaggio da Team Roster
+  const [hireForm, setHireForm] = useState({ position_key: '', name: '', jersey_number: '' });
+  const [staffBusy, setStaffBusy] = useState(false);
 
   const [playerForm, setPlayerForm] = useState({
     jersey_number: '', name: '', role: 'Lineman', value: 50000, skills: [] as Skill[],
@@ -166,6 +185,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         return null;
       }
       setLevelUpPlayer(null); setSelectedAdvancement(null); setLevelUpChoice('');
+      setRandomRoll(null); setStatRoll(null); setRollCategory('');
       fetchTeamAndSkills();
       return data;
     } catch {
@@ -174,9 +194,31 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  // --- TENTATIVO CASUALE: il server estrae la skill, qui mostriamo la celebrazione ---
-  const handleRandomRoll = async () => {
-    const data = await requestAdvancement({ kind: 'randomPrimary' });
+  // --- TIRI (il server tira e firma il risultato, vedi /advance/roll) ---
+  const rollFor = async (kind: 'randomPrimary' | 'stat', category?: string) => {
+    if (!levelUpPlayer) return;
+    setRolling(true);
+    try {
+      const res = await fetch(`/api/players/${levelUpPlayer.id}/advance/roll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, category })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return alert(data.error || 'Errore nel tiro');
+      setSelectedAdvancement(null);
+      if (kind === 'randomPrimary') { setRandomRoll(data); setStatRoll(null); }
+      else { setStatRoll(data); setRandomRoll(null); }
+    } catch {
+      alert('Errore di connessione');
+    } finally {
+      setRolling(false);
+    }
+  };
+
+  // Skill estratta dalla Skill Table: si sceglie una delle due uscite (p. 97)
+  const handleRandomChoice = async (skillId: string) => {
+    const data = await requestAdvancement({ kind: 'randomPrimary', skill_id: skillId, token: randomRoll!.token });
     if (data?.skill) setCelebrationSkill(data.skill);
   };
 
@@ -187,8 +229,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     if (levelUpChoice === 'choosePrimary' || levelUpChoice === 'chooseSecondary') {
       if (!selectedAdvancement) return alert('Seleziona una skill!');
       await requestAdvancement({ kind: levelUpChoice, skill_id: selectedAdvancement.id });
+    } else if (levelUpChoice === 'statDeclined') {
+      if (!selectedAdvancement || !statRoll) return alert('Seleziona una skill!');
+      await requestAdvancement({
+        kind: 'statDeclined', skill_id: selectedAdvancement.id, token: statRoll.token,
+        from: declinedFrom,
+      });
     } else if (levelUpChoice.startsWith('stat_')) {
-      await requestAdvancement({ kind: 'stat', stat: levelUpChoice.split('_')[1] });
+      await requestAdvancement({ kind: 'stat', stat: levelUpChoice.split('_')[1], token: statRoll!.token });
     }
   };
   // -----------------------
@@ -207,7 +255,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     setEditForm({
       name: team.name, primary_color: team.primary_color || '#000000', secondary_color: team.secondary_color || '#000000', logo_url: team.logo_url || '',
       rerolls: team.rerolls || 0, reroll_cost: team.reroll_cost || 50000, cheerleaders: team.cheerleaders || 0, assistant_coaches: team.assistant_coaches || 0,
-      fan_factor: team.fan_factor || 0, apothecary: isTrue(team.apothecary), treasury: team.treasury || 0, bank: team.bank || 0
+      fan_factor: team.fan_factor || 1, apothecary: isTrue(team.apothecary), treasury: team.treasury || 0, bank: team.bank || 0,
+      roster: team.roster || '', team_league: team.team_league || '', favoured_of: team.favoured_of || ''
     });
     setCoachChoice(emptyCoachChoice(team.in_active_season ? team.coach_id ?? '' : ''));
     fetch('/api/coaches?summary=0')
@@ -231,6 +280,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       submitData.append('rerolls', editForm.rerolls.toString()); submitData.append('reroll_cost', editForm.reroll_cost.toString()); submitData.append('cheerleaders', editForm.cheerleaders.toString());
       submitData.append('assistant_coaches', editForm.assistant_coaches.toString()); submitData.append('fan_factor', editForm.fan_factor.toString()); submitData.append('apothecary', editForm.apothecary.toString());
       submitData.append('treasury', editForm.treasury.toString()); submitData.append('bank', editForm.bank.toString());
+      submitData.append('roster', editForm.roster); submitData.append('team_league', editForm.team_league); submitData.append('favoured_of', editForm.favoured_of);
 
       // Il cambio allenatore si invia solo se la squadra partecipa alla stagione attiva
       if (team?.in_active_season) {
@@ -281,11 +331,62 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     finally { setIsSubmitting(false); }
   };
 
+  // Ingaggio dal Team Roster: profilo, costo e limiti li decide il server (p. 99)
+  const handleHireFromRoster = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          team_id: id, position_key: hireForm.position_key, name: hireForm.name,
+          jersey_number: hireForm.jersey_number ? Number(hireForm.jersey_number) : null,
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setHireForm({ position_key: '', name: '', jersey_number: '' });
+        setShowPlayerForm(false);
+        fetchTeamAndSkills();
+      } else { alert(data.error || 'Failed to hire player'); }
+    } catch { alert('Error hiring player'); }
+    finally { setIsSubmitting(false); }
+  };
+
+  // Staff e Team Re-roll pagati dalla Treasury (p. 90)
+  const handleStaff = async (item: string, action: 'hire' | 'fire') => {
+    setStaffBusy(true);
+    try {
+      const res = await fetch(`/api/teams/${id}/staff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item, action })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) alert(data.error || 'Error');
+      fetchTeamAndSkills();
+    } catch { alert('Error'); }
+    finally { setStaffBusy(false); }
+  };
+
+  const handleTempRetire = async (player: Player) => {
+    const res = await fetch(`/api/players/${player.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ temp_retired: !isTrue(player.temp_retired) })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) alert(data.error || 'Error');
+    fetchTeamAndSkills();
+  };
+
   const handleDeletePlayer = async (playerId: string, name: string) => {
     if (!confirm(t.teamDetail.confirmFire.replace('{playerName}', name))) return;
     try {
       const res = await fetch(`/api/players/${playerId}`, { method: 'DELETE' });
-      if (!res.ok) alert('Failed to fire player');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) alert(data.error || 'Failed to fire player');
       fetchTeamAndSkills();
     } catch { alert('Failed to fire player'); }
   };
@@ -297,7 +398,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       primary_skills: player.primary_skills || '', secondary_skills: player.secondary_skills || '', advancements: player.advancements || 0,
       skills: player.skills || [], // Le skills originali (non verranno modificate dalla UI)
       ma: player.ma ?? 6, st: player.st ?? 3, ag: player.ag ?? '3+', pa: player.pa ?? '4+', av: player.av ?? '8+',
-      spp: player.spp ?? 0, mng: isTrue(player.mng), dead: isTrue(player.dead)
+      spp: player.spp ?? 0, mng: isTrue(player.mng), dead: isTrue(player.dead), position_key: player.position_key || ''
     });
   };
 
@@ -311,7 +412,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           name: editPlayerForm.name, role: editPlayerForm.role, value: Number(editPlayerForm.value),
           primary_skills: editPlayerForm.primary_skills, secondary_skills: editPlayerForm.secondary_skills, advancements: editPlayerForm.advancements,
           ma: Number(editPlayerForm.ma), st: Number(editPlayerForm.st), ag: editPlayerForm.ag, pa: editPlayerForm.pa, av: editPlayerForm.av,
-          mng: editPlayerForm.mng, dead: editPlayerForm.dead
+          mng: editPlayerForm.mng, dead: editPlayerForm.dead, position_key: editPlayerForm.position_key || undefined
           // NOTA BENE: Non inviamo "skills" né "spp", così il backend non li tocca!
         })
       });
@@ -323,18 +424,20 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
   if (loading || !team) return <div className="loading-state">Loading locker room...</div>;
 
-  const activePlayers = team.players.filter(p => !isTrue(p.dead));
+  // Chi ha lasciato la squadra resta nel database per lo storico ma non compare nel roster
+  const listedPlayers = team.players.filter(p => !isTrue(p.left_team));
+  const activePlayers = listedPlayers.filter(p => !isTrue(p.dead));
+  // Massimo 16 sulla Team Draft List; i Journeymen in attesa del post-partita non contano (p. 94)
+  const draftListCount = activePlayers.filter(p => !isTrue(p.journeyman)).length;
 
-  const staffValue =
-      ((team.rerolls || 0) * (team.reroll_cost || 50000)) +
-      ((team.cheerleaders || 0) * 10000) +
-      ((team.assistant_coaches || 0) * 10000) +
-      ((team.fan_factor || 0) * 10000) +
-      (team.apothecary ? 50000 : 0);
+  // Team Value e Current Team Value calcolati dal server (src/lib/teamValue.ts, p. 91)
+  const totalValue = team.tv;
+  const roster = getRoster(team.roster);
+  const editRoster = getRoster(editForm.roster);
+  const editFavoured = favouredOptions(editRoster, editForm.team_league);
+  const hirePosition = roster?.positions.find(p => p.key === hireForm.position_key) ?? null;
 
-  const totalValue = activePlayers.reduce((sum, p) => sum + p.value, 0) + staffValue;
-
-  const sortedPlayers = [...team.players].sort((a, b) => {
+  const sortedPlayers = [...listedPlayers].sort((a, b) => {
     const aDead = isTrue(a.dead);
     const bDead = isTrue(b.dead);
     if (aDead && !bDead) return 1;
@@ -346,6 +449,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const teamAccent = { '--team-accent': team.primary_color || 'var(--bb-mustard)', '--team-accent-2': team.secondary_color || 'var(--bb-tan)' } as React.CSSProperties;
 
   const tier = levelUpPlayer ? ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)] : null;
+  // Categorie primarie del giocatore: da qui si sceglie su quale colonna della Skill Table tirare (p. 97)
+  const primaryLetters = categoryLetters(levelUpPlayer?.primary_skills);
   const choiceClass = (active: boolean) => `btn ${active ? 'btn-navy' : ''} ${styles.choiceBtn}`;
 
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -358,7 +463,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           ? <Link href={`/coaches/${team.coach_id}`} className={styles.coachLink}>{team.coach_name}</Link>
           : <span>—</span>,
     },
-    { label: t.draft.race, value: team.race },
+    { label: t.rules.teamRoster, value: roster ? `${roster.name} (p. ${roster.page})` : <span>{t.rules.linkRoster}</span> },
+    ...(team.team_league ? [{ label: t.rules.league, value: team.team_league }] : []),
+    ...(team.favoured_of ? [{ label: t.rules.favouredOf, value: team.favoured_of }] : []),
     {
       label: `${t.draft.primaryColor} / ${t.draft.secondaryColor}`,
       value: (
@@ -410,7 +517,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 )}
               </span>
             }
-            subtitle={<>{t.teamDetail.teamValue}: <strong>{totalValue.toLocaleString()} GP</strong></>}
+            subtitle={<span title={t.rules.tvHint}>{t.rules.tv}: <strong>{totalValue.toLocaleString()} GP</strong> · {t.rules.ctv}: <strong>{team.ctv.toLocaleString()} GP</strong></span>}
             actions={isAdmin ? (
                 <>
                   <button className="btn" onClick={openEditTeam}><Edit2 size={18} /><span>EDIT</span></button>
@@ -440,8 +547,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
               <span className={`tag ${styles.portraitRace}`}>{team.race}</span>
 
-              <span className={`chamfer ${styles.portraitValue}`}>
-                <small>{t.teamDetail.teamValue}</small>
+              <span className={`chamfer ${styles.portraitValue}`} title={t.rules.tvHint}>
+                <small>{t.rules.tv} · {t.rules.ctv} {team.ctv.toLocaleString()}</small>
                 <strong>{totalValue.toLocaleString()} <em>GP</em></strong>
               </span>
             </div>
@@ -487,7 +594,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             </li>
             <li className={`plate ${styles.plateItem}`}>
               <span className={styles.plateValue}>{team.fan_factor || 0}</span>
-              <span className={styles.plateLabel}>Fans</span>
+              <span className={styles.plateLabel}>{t.rules.dedicatedFans}</span>
             </li>
             <li className={`plate ${styles.plateItem}`}>
               <span className={styles.plateValue}>{(team.treasury || 0).toLocaleString()}</span>
@@ -498,6 +605,29 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               <span className={styles.plateLabel}>Bank (GP)</span>
             </li>
           </ul>
+
+          {/* STAFF: acquisti durante la lega pagati dalla Treasury (p. 90) */}
+          {isAdmin && roster && (
+              <div className={styles.staffBar}>
+                <span className={styles.staffTitle}>{t.rules.staff}</span>
+                {([
+                  { item: 'reroll', label: t.rules.rerollLeague, count: team.rerolls || 0, max: LIMITS.maxRerolls, cost: roster.rerollCost * LEAGUE_REROLL_MULTIPLIER, canFire: false, allowed: true },
+                  { item: 'assistant_coach', label: t.rules.assistantCoach, count: team.assistant_coaches || 0, max: LIMITS.maxAssistantCoaches, cost: STAFF_COSTS.assistantCoach, canFire: true, allowed: true },
+                  { item: 'cheerleader', label: t.rules.cheerleader, count: team.cheerleaders || 0, max: LIMITS.maxCheerleaders, cost: STAFF_COSTS.cheerleader, canFire: true, allowed: true },
+                  { item: 'apothecary', label: t.rules.apothecary, count: isTrue(team.apothecary) ? 1 : 0, max: LIMITS.maxApothecaries, cost: STAFF_COSTS.apothecary, canFire: true, allowed: roster.apothecary },
+                ]).filter(s => s.allowed).map(s => (
+                    <span key={s.item} className={`chamfer ${styles.staffItem}`}>
+                      <span>{s.label}: <strong>{s.count}/{s.max}</strong></span>
+                      <button type="button" className="btn btn-navy" disabled={staffBusy || s.count >= s.max || (team.treasury || 0) < s.cost} onClick={() => handleStaff(s.item, 'hire')}>
+                        {t.rules.buy} {s.cost.toLocaleString()}
+                      </button>
+                      {s.canFire && (
+                          <button type="button" className="btn" disabled={staffBusy || s.count <= 0} onClick={() => handleStaff(s.item, 'fire')}>{t.rules.fire}</button>
+                      )}
+                    </span>
+                ))}
+              </div>
+          )}
         </section>
 
         {/* MODALITÀ LEVEL UP (POPUP CENTRALE CON BOTTONI DISABILITABILI) */}
@@ -522,7 +652,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <button
                       className={choiceClass(levelUpChoice === 'randomPrimary')}
                       disabled={!levelUpPlayer.primary_skills}
-                      onClick={handleRandomRoll}
+                      onClick={() => { setLevelUpChoice('randomPrimary'); setStatRoll(null); setRandomRoll(null); setRollCategory(primaryLetters[0] ?? ''); }}
                   >
                     <span>Random Primary ({tier.randomPrimary} SPP)</span>
                   </button>
@@ -541,36 +671,94 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     <span>Choose Secondary ({tier.chooseSecondary} SPP)</span>
                   </button>
                   <button
-                      className={choiceClass(levelUpChoice.startsWith('stat_'))}
-                      onClick={() => setLevelUpChoice('stat_ma')}
+                      className={choiceClass(levelUpChoice.startsWith('stat') || levelUpChoice === 'statDeclined')}
+                      onClick={() => { setLevelUpChoice('stat'); setRandomRoll(null); setStatRoll(null); setSelectedAdvancement(null); }}
                   >
                     <span>Characteristic ({tier.stat} SPP)</span>
                   </button>
                 </div>
 
+                {/* Skill casuale: si sceglie la categoria, il server tira 2D6 due volte (pp. 97, 121) */}
+                {levelUpChoice === 'randomPrimary' && (
+                    <div className={styles.rollBlock}>
+                      <div className={styles.rollRow}>
+                        {primaryLetters.length > 1 && (
+                            <select value={rollCategory} onChange={e => { setRollCategory(e.target.value); setRandomRoll(null); }} className={`${styles.inputField} ${styles.modalSelect}`}>
+                              {primaryLetters.map(l => <option key={l} value={l}>{categoryName(l)}</option>)}
+                            </select>
+                        )}
+                        <button className="btn btn-gold" disabled={rolling || !rollCategory} onClick={() => rollFor('randomPrimary', rollCategory)}>
+                          <Dices size={18} /> <span>{randomRoll ? 'RITIRA' : 'TIRA'} 2D6 · {categoryName(rollCategory)}</span>
+                        </button>
+                      </div>
+                      {randomRoll && (
+                          <div className={styles.rollOptions}>
+                            <span className={styles.rollHint}>Scegli una delle due skill uscite:</span>
+                            {randomRoll.options.map(o => (
+                                <button key={o.id} className={`btn ${styles.rollOption}`} onClick={() => handleRandomChoice(o.id)}>
+                                  <span>{formatSkillName(o.name)} <small>({o.rolls.join(' + ')}{o.elite ? ' · Elite +10.000' : ''})</small></span>
+                                </button>
+                            ))}
+                          </div>
+                      )}
+                    </div>
+                )}
+
+                {/* Caratteristica: D8 sulla Characteristic Improvement Table (p. 98) */}
+                {(levelUpChoice === 'stat' || levelUpChoice.startsWith('stat_') || levelUpChoice === 'statDeclined') && (
+                    <div className={styles.rollBlock}>
+                      <div className={styles.rollRow}>
+                        <button className="btn btn-gold" disabled={rolling} onClick={() => { setLevelUpChoice('stat'); rollFor('stat'); }}>
+                          <Dices size={18} /> <span>{statRoll ? 'RITIRA' : 'TIRA'} D8</span>
+                        </button>
+                        {statRoll && <span className={styles.rollHint}>D8 = {statRoll.d8}: {statRoll.label}</span>}
+                      </div>
+                      {statRoll && (
+                          <>
+                            <div className={styles.statChoices}>
+                              {statRoll.stats.map(s => (
+                                  <button key={s.stat} className={choiceClass(levelUpChoice === `stat_${s.stat}`)} disabled={!s.available}
+                                          title={s.reason === 'max' ? 'Già al massimo' : s.reason === 'twice' ? 'Già migliorata due volte' : ''}
+                                          onClick={() => { setLevelUpChoice(`stat_${s.stat}`); setSelectedAdvancement(null); }}>
+                                    <span>+{s.stat.toUpperCase()} <small>({String(s.current)})</small></span>
+                                  </button>
+                              ))}
+                            </div>
+                            <button className={`btn ${styles.declineBtn}`} onClick={() => { setLevelUpChoice('statDeclined'); setSelectedAdvancement(null); }}>
+                              <span>Rifiuta il tiro e prendi una skill (gli SPP restano spesi)</span>
+                            </button>
+                            {levelUpChoice === 'statDeclined' && (
+                                <div className={styles.rollRow}>
+                                  <select value={declinedFrom} onChange={e => { setDeclinedFrom(e.target.value as 'primary' | 'secondary'); setSelectedAdvancement(null); }} className={`${styles.inputField} ${styles.modalSelect}`}>
+                                    <option value="primary">Primary</option>
+                                    <option value="secondary">Secondary</option>
+                                  </select>
+                                  <select value={selectedAdvancement?.id ?? ''} onChange={e => setSelectedAdvancement(availableSkills.find(s => s.id === e.target.value) ?? null)} className={`${styles.inputField} ${styles.modalSelect}`}>
+                                    <option value="">Select a skill...</option>
+                                    {getFilteredSkillsForLevelUp(declinedFrom).map(s => (
+                                        <option key={s.id} value={s.id}>{formatSkillName(s.name)} ({s.type}){isEliteSkill(s.name) ? ' · Elite +10.000' : ''}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                            )}
+                          </>
+                      )}
+                    </div>
+                )}
+
                 {(levelUpChoice === 'choosePrimary' || levelUpChoice === 'chooseSecondary') && (
                     <select onChange={(e) => setSelectedAdvancement(availableSkills.find(s => s.id === e.target.value) ?? null)} className={`${styles.inputField} ${styles.modalSelect}`}>
                       <option value="">Select a skill...</option>
                       {getFilteredSkillsForLevelUp(levelUpChoice === 'choosePrimary' ? 'primary' : 'secondary').map(s => (
-                          <option key={s.id} value={s.id}>{formatSkillName(s.name)} ({s.type})</option>
+                          <option key={s.id} value={s.id}>{formatSkillName(s.name)} ({s.type}){isEliteSkill(s.name) ? ' · Elite +10.000' : ''}</option>
                       ))}
                     </select>
-                )}
-
-                {levelUpChoice.startsWith('stat_') && (
-                    <div className={styles.statChoices}>
-                      <button className={choiceClass(levelUpChoice === 'stat_ma')} onClick={() => setLevelUpChoice('stat_ma')}><span>+MA</span></button>
-                      <button className={choiceClass(levelUpChoice === 'stat_st')} onClick={() => setLevelUpChoice('stat_st')}><span>+ST</span></button>
-                      <button className={choiceClass(levelUpChoice === 'stat_ag')} onClick={() => setLevelUpChoice('stat_ag')}><span>+AG</span></button>
-                      <button className={choiceClass(levelUpChoice === 'stat_pa')} onClick={() => setLevelUpChoice('stat_pa')}><span>+PA</span></button>
-                      <button className={choiceClass(levelUpChoice === 'stat_av')} onClick={() => setLevelUpChoice('stat_av')}><span>+AV</span></button>
-                    </div>
                 )}
 
                 <button
                     className={`btn btn-primary ${styles.fullWidth}`}
                     onClick={handleLevelUpSave}
-                    disabled={levelUpChoice === '' || levelUpChoice === 'randomPrimary'} // Non usare per il random
+                    disabled={levelUpChoice === '' || levelUpChoice === 'randomPrimary' || levelUpChoice === 'stat'}
                 >
                   <span>CONFIRM MANUAL ADVANCEMENT</span>
                 </button>
@@ -598,31 +786,72 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
 
+                {/* Collegamento al Team Roster (squadre create prima dei roster) */}
+                <div className={styles.grid3Col}>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.label} htmlFor="edit-roster">{t.rules.teamRoster}</label>
+                    <select id="edit-roster" value={editForm.roster} className={styles.inputField}
+                            onChange={e => {
+                              const next = getRoster(e.target.value);
+                              const league = next?.leagues.length === 1 ? next.leagues[0] : '';
+                              const favoured = favouredOptions(next, league);
+                              setEditForm({ ...editForm, roster: e.target.value, team_league: league, favoured_of: favoured.length === 1 ? favoured[0] : '' });
+                            }}>
+                      <option value="">—</option>
+                      {SORTED_ROSTERS.map(r => <option key={r.key} value={r.key}>{r.name}</option>)}
+                    </select>
+                  </div>
+                  {editRoster && (
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label} htmlFor="edit-league">{t.rules.league}</label>
+                        <select id="edit-league" value={editForm.team_league} className={styles.inputField}
+                                onChange={e => {
+                                  const favoured = favouredOptions(editRoster, e.target.value);
+                                  setEditForm({ ...editForm, team_league: e.target.value, favoured_of: favoured.length === 1 ? favoured[0] : '' });
+                                }}>
+                          <option value="">{t.rules.chooseLeague}</option>
+                          {editRoster.leagues.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                      </div>
+                  )}
+                  {editFavoured.length > 0 && (
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label} htmlFor="edit-favoured">{t.rules.favouredOf}</label>
+                        <select id="edit-favoured" value={editForm.favoured_of} onChange={e => setEditForm({ ...editForm, favoured_of: e.target.value })} className={styles.inputField}>
+                          <option value="">{t.rules.chooseFavoured}</option>
+                          {editFavoured.map(f => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                      </div>
+                  )}
+                </div>
+
                 <div className={styles.gridStats}>
                   <div className={styles.inputGroup}>
                     <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.rerolls}</label>
-                    <input type="number" min="0" max="8" value={editForm.rerolls} onChange={e => setEditForm({...editForm, rerolls: parseInt(e.target.value) || 0})} className={styles.statInput} />
+                    <input type="number" min="0" max={LIMITS.maxRerolls} value={editForm.rerolls} onChange={e => setEditForm({...editForm, rerolls: parseInt(e.target.value) || 0})} className={styles.statInput} />
                   </div>
-                  <div className={styles.inputGroup}>
-                    <label className={`${styles.label} ${styles.labelCenter}`}>R. COST</label>
-                    <input type="number" min="0" step="10000" value={editForm.reroll_cost} onChange={e => setEditForm({...editForm, reroll_cost: parseInt(e.target.value) || 0})} className={styles.statInput} />
-                  </div>
+                  {!editRoster && (
+                      <div className={styles.inputGroup}>
+                        <label className={`${styles.label} ${styles.labelCenter}`}>R. COST</label>
+                        <input type="number" min="0" step="10000" value={editForm.reroll_cost} onChange={e => setEditForm({...editForm, reroll_cost: parseInt(e.target.value) || 0})} className={styles.statInput} />
+                      </div>
+                  )}
                   <div className={styles.inputGroup}>
                     <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.cheerleaders}</label>
-                    <input type="number" min="0" max="16" value={editForm.cheerleaders} onChange={e => setEditForm({...editForm, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
+                    <input type="number" min="0" max={LIMITS.maxCheerleaders} value={editForm.cheerleaders} onChange={e => setEditForm({...editForm, cheerleaders: parseInt(e.target.value) || 0})} className={styles.statInput} />
                   </div>
                   <div className={styles.inputGroup}>
                     <label className={`${styles.label} ${styles.labelCenter}`}>ASST. COACHES</label>
-                    <input type="number" min="0" max="16" value={editForm.assistant_coaches} onChange={e => setEditForm({...editForm, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
+                    <input type="number" min="0" max={LIMITS.maxAssistantCoaches} value={editForm.assistant_coaches} onChange={e => setEditForm({...editForm, assistant_coaches: parseInt(e.target.value) || 0})} className={styles.statInput} />
                   </div>
                   <div className={styles.inputGroup}>
                     <label className={`${styles.label} ${styles.labelCenter}`}>{t.teamDetail.fanFactor}</label>
-                    <input type="number" min="0" max="18" value={editForm.fan_factor} onChange={e => setEditForm({...editForm, fan_factor: parseInt(e.target.value) || 0})} className={styles.statInput} />
+                    <input type="number" min={LIMITS.dedicatedFansMin} max={LIMITS.dedicatedFansMax} value={editForm.fan_factor} onChange={e => setEditForm({...editForm, fan_factor: parseInt(e.target.value) || 1})} className={styles.statInput} />
                   </div>
                   <div className={`${styles.inputGroup} ${styles.checkGroup}`}>
                     <label className={styles.checkLabel}>
                       <span>APOTHECARY</span>
-                      <input type="checkbox" checked={editForm.apothecary} onChange={e => setEditForm({...editForm, apothecary: e.target.checked})} className={styles.checkbox} />
+                      <input type="checkbox" checked={editForm.apothecary} disabled={!!editRoster && !editRoster.apothecary} onChange={e => setEditForm({...editForm, apothecary: e.target.checked})} className={styles.checkbox} />
                     </label>
                   </div>
                 </div>
@@ -686,17 +915,67 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             <SectionTitle
                 index="01"
                 on="light"
-                micro={`Roster sheet // ${activePlayers.length} of 16`}
-                title={`ROSTER (${activePlayers.length} / 16)`}
-                action={isAdmin && !showPlayerForm && activePlayers.length < 16 ? (
+                micro={`Roster sheet // ${draftListCount} of ${LIMITS.maxPlayers}`}
+                title={`ROSTER (${draftListCount} / ${LIMITS.maxPlayers})`}
+                action={isAdmin && !showPlayerForm && draftListCount < LIMITS.maxPlayers ? (
                     <button className="btn btn-primary" onClick={() => setShowPlayerForm(true)}>
                       <Plus size={20} /><span>{t.teamDetail.hirePlayer}</span>
                     </button>
                 ) : undefined}
             />
 
-            {/* ADD PLAYER FORM */}
-            {showPlayerForm && (
+            <PostgamePanel team={team} isAdmin={isAdmin} onChange={fetchTeamAndSkills} />
+
+            {/* INGAGGIO DAL TEAM ROSTER */}
+            {showPlayerForm && roster && (
+                <div className={`card ${styles.formCard}`}>
+                  <h3 className="subhead">{t.rules.hireFromRoster}</h3>
+                  <form onSubmit={handleHireFromRoster}>
+                    <div className={styles.grid3Col}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label} htmlFor="hire-position">{t.rules.position}</label>
+                        <select id="hire-position" required value={hireForm.position_key} className={styles.inputField}
+                                onChange={e => {
+                                  const pos = roster.positions.find(p => p.key === e.target.value);
+                                  setHireForm({ ...hireForm, position_key: e.target.value, name: hireForm.name || (pos ? pos.name : '') });
+                                }}>
+                          <option value="">—</option>
+                          {roster.positions.map(pos => {
+                            const count = activePlayers.filter(p => p.position_key === pos.key && !isTrue(p.journeyman)).length;
+                            return (
+                                <option key={pos.key} value={pos.key} disabled={count >= pos.max || (team.treasury || 0) < pos.cost}>
+                                  {pos.name} · {pos.cost.toLocaleString()} gp · {count}/{pos.max}
+                                </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label} htmlFor="hire-name">{t.teamDetail.name}</label>
+                        <input id="hire-name" type="text" required value={hireForm.name} onChange={e => setHireForm({ ...hireForm, name: e.target.value })} className={styles.inputField} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.label} htmlFor="hire-number">N°</label>
+                        <input id="hire-number" type="number" min="1" max="99" value={hireForm.jersey_number} onChange={e => setHireForm({ ...hireForm, jersey_number: e.target.value })} className={`${styles.inputField} ${styles.center}`} />
+                      </div>
+                    </div>
+                    {hirePosition && (
+                        <p className={styles.hireSummary}>
+                          MA {hirePosition.ma} · ST {hirePosition.st} · AG {hirePosition.ag} · PA {hirePosition.pa} · AV {hirePosition.av}
+                          {' · '}{hirePosition.skills.join(', ') || '—'}
+                          {' · '}{t.rules.hireCost}: <strong>{hirePosition.cost.toLocaleString()} gp</strong> ({t.rules.treasury} {(team.treasury || 0).toLocaleString()})
+                        </p>
+                    )}
+                    <div className={styles.formActions}>
+                      <button type="button" className="btn" onClick={() => setShowPlayerForm(false)}><span>CANCEL</span></button>
+                      <button type="submit" className="btn btn-primary" disabled={isSubmitting || !hirePosition}><span>SIGN CONTRACT</span></button>
+                    </div>
+                  </form>
+                </div>
+            )}
+
+            {/* ADD PLAYER FORM (squadre senza Team Roster) */}
+            {showPlayerForm && !roster && (
                 <div className={`card ${styles.formCard}`}>
                   <h3 className="subhead">NEW RECRUIT CONTRACT</h3>
                   <form onSubmit={handleAddPlayer}>
@@ -817,7 +1096,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <div className={`table-container chamfer ${styles.rosterTable}`}>
                     <div className={styles.tableStrip} aria-hidden="true">
                       <span><i className={styles.microSquares} />{team.name}</span>
-                      <span className={styles.tableStripMeta}>{`${team.race} // ${activePlayers.length} / 16`}</span>
+                      <span className={styles.tableStripMeta}>{`${team.race} // ${draftListCount} / ${LIMITS.maxPlayers}`}</span>
                     </div>
                     <table className={`data-table ${styles.dataTable}`}>
                       <thead>
@@ -831,6 +1110,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                         <th className="num">PA</th>
                         <th className="num">AV</th>
                         <th className="num">SPP</th>
+                        <th className="num" title={t.rules.nigglingTitle}>{t.rules.niggling}</th>
                         <th className={styles.skillsCol}>{t.teamDetail.thSkills}</th>
                         <th className={styles.right}>{t.teamDetail.thValue}</th>
                         <th className="num">STATUS</th>
@@ -851,7 +1131,16 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                                   <input type="text" value={editPlayerForm.name} onChange={e => setEditPlayerForm({...editPlayerForm, name: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
                                 </td>
                                 <td>
-                                  <input type="text" value={editPlayerForm.role} onChange={e => setEditPlayerForm({...editPlayerForm, role: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
+                                  {roster ? (
+                                      <select value={editPlayerForm.position_key} aria-label={t.rules.position}
+                                              onChange={e => setEditPlayerForm({ ...editPlayerForm, position_key: e.target.value, role: roster.positions.find(pos => pos.key === e.target.value)?.name ?? editPlayerForm.role })}
+                                              className={`${styles.editInput} ${styles.editInputTxt}`}>
+                                        <option value="">{editPlayerForm.role}</option>
+                                        {roster.positions.map(pos => <option key={pos.key} value={pos.key}>{pos.name}</option>)}
+                                      </select>
+                                  ) : (
+                                      <input type="text" value={editPlayerForm.role} onChange={e => setEditPlayerForm({...editPlayerForm, role: e.target.value})} className={`${styles.editInput} ${styles.editInputTxt}`} />
+                                  )}
                                 </td>
                                 <td><input type="number" value={editPlayerForm.ma} onChange={e => setEditPlayerForm({...editPlayerForm, ma: Number(e.target.value)})} className={styles.editInput} /></td>
                                 <td><input type="number" value={editPlayerForm.st} onChange={e => setEditPlayerForm({...editPlayerForm, st: Number(e.target.value)})} className={styles.editInput} /></td>
@@ -861,6 +1150,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
                                 {/* SPP BLOCCATI */}
                                 <td className={`num ${styles.statCell} ${styles.locked}`}>{player.spp}</td>
+                                <td className={`num ${styles.statCell} ${styles.locked}`}>{player.niggling_injuries || 0}</td>
 
                                 {/* SKILLS BLOCCATE */}
                                 <td className={`${styles.skillsCol} ${styles.locked}`}>
@@ -915,6 +1205,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
                               <td className={styles.playerName}>
                                 {player.name}
+                                {isTrue(player.is_captain) && <span className={`tag ${styles.miniTag}`} title={t.rules.captain}>C</span>}
+                                {isTrue(player.journeyman) && <span className={`tag ${styles.miniTag}`} title={t.rules.journeyman}>J</span>}
+                                {player.hatreds && <span className={styles.hatred}>{t.rules.hatred} ({player.hatreds})</span>}
                               </td>
 
                               {/* RUOLO CON STELLE AVANZAMENTO */}
@@ -933,6 +1226,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                               <td className={`num ${styles.statCell}`}>{player.pa ?? '4+'}</td>
                               <td className={`num ${styles.statCell}`}>{player.av ?? '8+'}</td>
                               <td className={`num ${styles.statCell} ${styles.sppCell}`}>{player.spp ?? 0}</td>
+                              <td className={`num ${styles.statCell}`}>{player.niggling_injuries || ''}</td>
 
                               {/* VISUALIZZAZIONE SKILLS CON LINK ALLA PAGINA REGOLAMENTO */}
                               <td className={styles.skillsCol}>
@@ -961,6 +1255,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                               <td className="num">
                                 {isDead ? (
                                     <span className={`tag tag-red ${styles.statusTag}`}><Skull size={14} aria-hidden="true" /> RIP</span>
+                                ) : isTrue(player.temp_retired) ? (
+                                    <span className={`tag ${styles.statusTag}`} title={t.rules.tempRetiredTitle}>{t.rules.tempRetired}</span>
                                 ) : isMNG ? (
                                     <span className={`tag tag-navy ${styles.statusTag}`}>MNG</span>
                                 ) : (
@@ -974,8 +1270,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                                   {canLevelUp && (
                                       <button onClick={() => setLevelUpPlayer(player)} className={`${styles.iconBtn} ${styles.iconLevel}`} title="SPP Advancement" aria-label="SPP Advancement"><ArrowUpCircle size={22} /></button>
                                   )}
+                                  {!isDead && (player.lasting_injuries > 0 || isTrue(player.temp_retired)) && (
+                                      <button onClick={() => handleTempRetire(player)} className={styles.iconBtn}
+                                              title={isTrue(player.temp_retired) ? t.rules.unretire : t.rules.retire} aria-label={isTrue(player.temp_retired) ? t.rules.unretire : t.rules.retire}>
+                                        <span className={styles.trIcon}>{t.rules.tempRetired}</span>
+                                      </button>
+                                  )}
                                   <button onClick={() => startEditPlayer(player)} className={styles.iconBtn} title="Edit" aria-label="Edit"><Edit2 size={20} /></button>
-                                  <button onClick={() => handleDeletePlayer(player.id, player.name)} className={`${styles.iconBtn} ${styles.iconDanger}`} title="Fire (Permanent Delete)" aria-label="Fire"><Trash2 size={20} /></button>
+                                  <button onClick={() => handleDeletePlayer(player.id, player.name)} className={`${styles.iconBtn} ${styles.iconDanger}`} title={t.rules.fire} aria-label={t.rules.fire}><Trash2 size={20} /></button>
                                 </div>
                               </td>
                               )}
@@ -985,7 +1287,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                       </tbody>
                       <tfoot>
                       <tr>
-                        <td colSpan={10} className={styles.right}>{t.teamDetail.teamValue}</td>
+                        <td colSpan={11} className={styles.right}>{t.rules.tv} · {t.rules.ctv} {team.ctv.toLocaleString()}</td>
                         <td className={styles.right}>{totalValue.toLocaleString()}</td>
                         <td colSpan={isAdmin ? 2 : 1} />
                       </tr>

@@ -2,16 +2,19 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
+import { verifyData } from '@/lib/auth';
 import {
-  MAX_ADVANCEMENTS, SKILL_VALUE_INCREASE, STAT_VALUE_INCREASE,
-  advancementCost, improveStat, skillsForCategories,
+  ELITE_VALUE_INCREASE, MAX_ADVANCEMENTS, MAX_IMPROVEMENTS_PER_STAT, SKILL_VALUE_INCREASE, STAT_VALUE_INCREASE,
+  advancementCost, improveStat, isEliteSkill, skillsForCategories, statsForRoll,
   type AdvancementKind, type StatKey,
 } from '@/lib/advancement';
 
-const KINDS: AdvancementKind[] = ['randomPrimary', 'choosePrimary', 'chooseSecondary', 'stat'];
+const KINDS: AdvancementKind[] = ['randomPrimary', 'choosePrimary', 'chooseSecondary', 'stat', 'statDeclined'];
 const STATS: StatKey[] = ['ma', 'st', 'ag', 'pa', 'av'];
 
 type SkillRow = { id: string; name: string; type: string; description?: string };
+// Token firmato dal tiro (vedi advance/roll): lega la scelta ai risultati usciti
+type RollToken = { p: string; k: 'randomPrimary' | 'stat'; a: number; d8?: number; ids?: string[]; stats?: string[] };
 
 // Applica un avanzamento SPP: costo, validazione e valori calcolati qui, non nel browser.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -47,6 +50,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const ownedIds = ownedRes.rows.map(r => String(r.skill_id));
     const allSkills = skillsRes.rows as unknown as SkillRow[];
 
+    // Tiro casuale e miglioramento di caratteristica passano dal token firmato di /advance/roll
+    const needsRoll = kind === 'randomPrimary' || kind === 'stat' || kind === 'statDeclined';
+    const token = needsRoll ? verifyData<RollToken>(body.token) : null;
+    if (needsRoll) {
+      const expected = kind === 'randomPrimary' ? 'randomPrimary' : 'stat';
+      if (!token || token.p !== id || token.k !== expected || token.a !== advancements) {
+        return NextResponse.json({ error: 'Roll the dice again: this result is no longer valid' }, { status: 409 });
+      }
+    }
+
     let valueIncrease = 0;
     let newSkill: SkillRow | null = null;
     let statUpdate: { column: StatKey; value: number | string } | null = null;
@@ -56,6 +69,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (!STATS.includes(stat)) {
         return NextResponse.json({ error: 'Invalid characteristic' }, { status: 400 });
       }
+      if (!token?.stats?.includes(stat)) {
+        // Se era tra quelle uscite ma non selezionabile, il motivo è il limite di due volte o il massimo (pp. 37, 98)
+        const rolled = statsForRoll(Number(token?.d8)) ;
+        const message = rolled?.stats.includes(stat)
+            ? `${stat.toUpperCase()} cannot be improved again: it is at its maximum or has already been improved ${MAX_IMPROVEMENTS_PER_STAT} times (p. 98)`
+            : 'That characteristic is not one of the improvements you rolled (p. 98)';
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+      // Una caratteristica non si migliora più di due volte (p. 98)
+      const { rows: [already] } = await db.execute({
+        sql: "SELECT COUNT(*) AS n FROM player_advancements WHERE player_id = ? AND kind = 'stat' AND stat = ?",
+        args: [id, stat],
+      });
+      if (Number(already.n) >= MAX_IMPROVEMENTS_PER_STAT) {
+        return NextResponse.json({ error: `${stat.toUpperCase()} has already been improved ${MAX_IMPROVEMENTS_PER_STAT} times (p. 98)` }, { status: 400 });
+      }
       const improved = improveStat(stat, player[stat] as string | number);
       if (improved === null) {
         return NextResponse.json({ error: `${stat.toUpperCase()} is already at its limit` }, { status: 400 });
@@ -63,25 +92,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       statUpdate = { column: stat, value: improved };
       valueIncrease = STAT_VALUE_INCREASE[stat];
     } else {
+      // Skill: scelta libera, estratta dalla Skill Table, o presa al posto del tiro rifiutato
       const isSecondary = kind === 'chooseSecondary';
-      const candidates = skillsForCategories(
-          allSkills,
-          (isSecondary ? player.secondary_skills : player.primary_skills) as string | null,
-          ownedIds
-      );
+      const fromSecondary = kind === 'statDeclined' && body.from === 'secondary';
+      const categories = isSecondary || fromSecondary ? player.secondary_skills : player.primary_skills;
+      const candidates = skillsForCategories(allSkills, categories as string | null, ownedIds);
 
-      if (kind === 'randomPrimary') {
-        if (candidates.length === 0) {
-          return NextResponse.json({ error: 'No primary skills available' }, { status: 400 });
-        }
-        newSkill = candidates[Math.floor(Math.random() * candidates.length)];
-      } else {
-        newSkill = candidates.find(s => s.id === body.skill_id) || null;
-        if (!newSkill) {
-          return NextResponse.json({ error: 'Skill not allowed for this player' }, { status: 400 });
-        }
+      newSkill = candidates.find(s => s.id === body.skill_id) || null;
+      if (!newSkill) {
+        return NextResponse.json({ error: 'Skill not allowed for this player' }, { status: 400 });
       }
-      valueIncrease = isSecondary ? SKILL_VALUE_INCREASE.secondary : SKILL_VALUE_INCREASE.primary;
+      if (kind === 'randomPrimary' && !token?.ids?.includes(newSkill.id)) {
+        return NextResponse.json({ error: 'That skill is not one of the two you rolled (p. 97)' }, { status: 400 });
+      }
+      valueIncrease = isSecondary || fromSecondary ? SKILL_VALUE_INCREASE.secondary : SKILL_VALUE_INCREASE.primary;
+      // Le skill Elite aumentano il valore di altri 10.000 (p. 97)
+      if (isEliteSkill(newSkill.name)) valueIncrease += ELITE_VALUE_INCREASE;
     }
 
     // La colonna viene da una lista chiusa (STATS), quindi è sicuro inserirla nella query
@@ -124,7 +150,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Not enough SPP' }, { status: 409 });
     }
 
-    return NextResponse.json({ success: true, cost, skill: newSkill, stat: statUpdate });
+    return NextResponse.json({ success: true, cost, skill: newSkill, stat: statUpdate, valueIncrease });
   } catch (error) {
     console.error('Error applying advancement:', error);
     return NextResponse.json({ error: 'Failed to apply advancement' }, { status: 500 });

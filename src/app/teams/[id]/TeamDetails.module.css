@@ -1339,3 +1339,183 @@
     animation: none;
   }
 }
+
+/* ================================================================== */
+/*  REGOLE DI LEGA: staff, post-partita, badge del roster              */
+/* ================================================================== */
+.staffBar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 1240px;
+  margin: 1.25rem auto 0;
+}
+
+.staffTitle {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.staffItem {
+  --cut: 8px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.8rem;
+  color: var(--bb-parchment);
+  background: rgba(12, 14, 18, 0.55);
+}
+
+.staffItem :global(.btn) {
+  min-height: 36px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.postgame {
+  margin-bottom: 1.5rem;
+}
+
+.postgameSteps {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--bb-ink-soft);
+}
+
+.pendingMatch {
+  padding: 0.9rem 0;
+  border-top: 2px solid var(--bb-parchment-2);
+}
+
+.pendingHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+}
+
+.pendingBlock {
+  margin-top: 0.75rem;
+}
+
+.pendingList {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pendingList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.diceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.diceRow label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.diceInput {
+  width: 72px;
+  min-height: 40px;
+  text-align: center;
+}
+
+.hireSummary {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--bb-ink-soft);
+}
+
+.miniTag {
+  margin-left: 0.4rem;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}
+
+.hatred {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bb-blood-700);
+}
+
+.trIcon {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.matchLink {
+  font-weight: 800;
+  color: var(--bb-blood-700);
+  text-decoration: underline;
+}
+
+/* Tiri degli avanzamenti (Skill Table e Characteristic Improvement) */
+.rollBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.rollRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.rollRow select {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.rollHint {
+  font-weight: 700;
+  color: var(--bb-mustard);
+}
+
+.rollOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.rollOption {
+  flex: 1 1 14rem;
+}
+
+.rollOption small {
+  opacity: 0.75;
+}
+
+.declineBtn {
+  align-self: flex-start;
+}

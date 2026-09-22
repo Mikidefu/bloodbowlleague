@@ -48,7 +48,16 @@ node --env-file=.env.local scripts/migrate-spp.mjs          # anteprima
 node --env-file=.env.local scripts/migrate-spp.mjs --apply  # applica (salva un backup in backups/)
 node --env-file=.env.local scripts/migrate-seasons.mjs --apply
 node --env-file=.env.local scripts/migrate-season-status.mjs --apply
+node --env-file=.env.local scripts/migrate-league-rules.mjs --apply
 ```
+
+### Regole di League Play (Rulebook 2025)
+
+- **Team Roster:** i 29 roster del libro (pp. 160-188) sono in [`src/lib/rosters.ts`](src/lib/rosters.ts). Il draft di una squadra nuova ([`src/lib/draft.ts`](src/lib/draft.ts)) controlla budget, 11-16 giocatori, limiti di posizione, Big Guy, staff, Dedicated Fans, League, Favoured of e Team Captain.
+- **Regola della casa:** il budget di draft è **1.200.000 gp** (il libro dice 1.000.000). Si cambia in `DRAFT_BUDGET` di [`src/lib/leagueRules.ts`](src/lib/leagueRules.ts).
+- **TV e CTV:** calcolati in [`src/lib/teamValue.ts`](src/lib/teamValue.ts) (p. 91, Low Cost Linemen p. 155).
+- **Partita:** pre-partita (Fan Factor, Journeymen, incentivi e Petty Cash), referto (esiti, concessioni, partite non giocate, rigori nei playoff, infortuni) ed Expensive Mistakes sono in [`src/lib/matchRules.ts`](src/lib/matchRules.ts). Ogni effetto è registrato in `match_team_reports` e `player_injuries`: correggere o eliminare una partita lo annulla.
+- **Partite legacy:** quelle giocate prima della migrazione (`rules_applied = 0`) si possono correggere, ma non toccano Treasury, fan e infortuni.
 
 ### Stagioni e allenatori
 
@@ -67,7 +76,7 @@ node --env-file=.env.local scripts/migrate-season-status.mjs --apply
   Usare sempre `recalcSppStatement` di [`src/lib/spp.ts`](src/lib/spp.ts).
 - **Avanzamenti:** passano solo da `POST /api/players/[id]/advance`, che valida costi, skill ammesse e limiti delle caratteristiche ([`src/lib/advancement.ts`](src/lib/advancement.ts)) e registra la spesa nel registro.
 - **Tipi di partita:** definiti in [`src/lib/matchTypes.ts`](src/lib/matchTypes.ts). In classifica contano solo le partite di campionato (`League`, e il vecchio nome `Regular Season`).
-- **Classifica:** calcolata in un solo punto, [`src/lib/standings.ts`](src/lib/standings.ts): vittoria 3 punti, pareggio 1; spareggi per differenza TD e poi CAS.
+- **Classifica:** calcolata in un solo punto, [`src/lib/standings.ts`](src/lib/standings.ts): vittoria 3 punti, pareggio 1; spareggi per differenza TD e poi CAS. Una partita non giocata entro il limite è una sconfitta per entrambe.
 - Le foreign key sono attive: per eliminare una squadra vanno prima eliminate le sue partite (lo fa già `DELETE /api/teams/[id]`).
 
 ## Struttura

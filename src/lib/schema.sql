@@ -39,10 +39,13 @@ CREATE TABLE IF NOT EXISTS teams (
     reroll_cost INTEGER DEFAULT 50000,
     cheerleaders INTEGER DEFAULT 0,
     assistant_coaches INTEGER DEFAULT 0,
-    fan_factor INTEGER DEFAULT 0,
+    fan_factor INTEGER DEFAULT 1,           -- Dedicated Fans (1-7, p. 91). Il Fan Factor di partita sta in match_team_reports
     apothecary BOOLEAN DEFAULT 0,
     treasury INTEGER DEFAULT 0,
     bank INTEGER DEFAULT 0,
+    roster TEXT,                            -- chiave del Team Roster (src/lib/rosters.ts); NULL = squadra gestita a mano
+    team_league TEXT,                       -- League scelta tra quelle del roster (p. 159)
+    favoured_of TEXT,                       -- allineamento Favoured of, se il roster lo prevede
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -69,6 +72,16 @@ CREATE TABLE IF NOT EXISTS players (
     status TEXT DEFAULT 'Active',
     mng BOOLEAN DEFAULT FALSE,              -- salta la prossima partita
     dead BOOLEAN DEFAULT FALSE,
+    position_key TEXT,                      -- posizione del roster
+    hiring_fee INTEGER,                     -- Hiring Fee pagata (Low Cost Linemen, Journeymen)
+    niggling_injuries INTEGER DEFAULT 0,
+    temp_retired BOOLEAN DEFAULT 0,         -- Temporarily Retiring (p. 99): resta in lista ma fuori dal CTV
+    left_team BOOLEAN DEFAULT 0,            -- licenziato o andato via: resta per lo storico, fuori dalla lista
+    journeyman BOOLEAN DEFAULT 0,           -- Journeyman non ancora ingaggiato
+    journeyman_match_id TEXT,               -- partita per cui è stato preso
+    mng_match_id TEXT,                      -- partita in cui ha subito l'infortunio che gli fa saltare la prossima
+    is_captain BOOLEAN DEFAULT 0,           -- Team Captain (p. 155)
+    hatreds TEXT,                           -- keyword di Hatred (X) ottenute con Getting Even, separate da virgola
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
@@ -88,6 +101,11 @@ CREATE TABLE IF NOT EXISTS matches (
     match_date TEXT,                        -- data/ora pianificata (datetime-local)
     played_at DATETIME,
     season_id TEXT,                         -- stagione di appartenenza (partite e numeri di giornata sono per stagione)
+    outcome TEXT DEFAULT 'played',          -- played | conceded | conceded_no_penalty | forfeit_both | forfeit_commitments
+    conceded_team_id TEXT,                  -- squadra che ha concesso
+    penalty_winner_id TEXT,                 -- playoff finiti in parità dopo i supplementari: vincitrice ai rigori (p. 83)
+    rules_applied BOOLEAN DEFAULT 0,        -- 1 = post-partita applicato (Treasury, fan, infortuni); 0 = partita legacy
+    pregame_done BOOLEAN DEFAULT 0,
     -- Nessun CASCADE: eliminare una squadra richiede prima di eliminarne le partite (vedi DELETE /api/teams/[id])
     FOREIGN KEY(home_team_id) REFERENCES teams(id),
     FOREIGN KEY(away_team_id) REFERENCES teams(id),
@@ -119,6 +137,8 @@ CREATE TABLE IF NOT EXISTS player_stats (
     completions INTEGER DEFAULT 0,
     mvp INTEGER DEFAULT 0,
     spp_earned INTEGER DEFAULT 0,
+    ttm INTEGER DEFAULT 0,                  -- Throw Team-mate riusciti (1 SPP al lanciatore)
+    landings INTEGER DEFAULT 0,             -- atterraggi riusciti dopo un lancio (1 SPP)
     FOREIGN KEY(match_id) REFERENCES matches(id) ON DELETE CASCADE,
     FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
 );
@@ -156,3 +176,47 @@ CREATE TABLE IF NOT EXISTS player_advancements (
 );
 
 CREATE INDEX IF NOT EXISTS idx_player_advancements_player ON player_advancements(player_id);
+
+-- Infortuni subiti in una partita (Casualty Table, p. 67), per poterli annullare correggendo il referto
+CREATE TABLE IF NOT EXISTS player_injuries (
+    id TEXT PRIMARY KEY,
+    match_id TEXT NOT NULL,
+    player_id TEXT NOT NULL,
+    result TEXT NOT NULL CHECK (result IN ('BH', 'SH', 'SI', 'LI', 'DEAD')),
+    stat TEXT CHECK (stat IN ('ma', 'st', 'ag', 'pa', 'av')),  -- caratteristica ridotta dal Lasting Injury
+    stat_applied BOOLEAN DEFAULT 0,         -- 0 se la riduzione non era applicabile (già al minimo)
+    hatred TEXT,                            -- keyword di Hatred (X) ottenuta con Getting Even
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_injuries_match ON player_injuries(match_id);
+
+-- Pre-partita e post-partita di ciascuna squadra in una partita (pp. 94-100)
+CREATE TABLE IF NOT EXISTS match_team_reports (
+    match_id TEXT NOT NULL,
+    team_id TEXT NOT NULL,
+    fair_weather INTEGER,                   -- D3 Fair-weather Fans
+    fan_factor INTEGER,                     -- Dedicated Fans + D3
+    ctv INTEGER,                            -- CTV al pre-partita, Journeymen inclusi
+    petty_cash INTEGER DEFAULT 0,
+    treasury_spent INTEGER DEFAULT 0,       -- Treasury spesa in incentivi
+    inducements TEXT,                       -- JSON delle scelte (vedi InducementChoice)
+    journeymen INTEGER DEFAULT 0,
+    stalling BOOLEAN DEFAULT 0,
+    winnings INTEGER DEFAULT 0,
+    df_roll INTEGER,                        -- D6 dei Dedicated Fans (D3 per chi concede)
+    df_change INTEGER DEFAULT 0,
+    quit_player_ids TEXT,                   -- JSON: giocatori andati via dopo una concessione
+    recovered_player_ids TEXT,              -- JSON: giocatori che hanno saltato questa partita e sono tornati disponibili
+    released_player_ids TEXT,               -- JSON: Journeymen non ingaggiati, persi al termine del post-partita
+    mistake_result TEXT,                    -- averted | minor | major | catastrophe | skipped; NULL = da tirare
+    mistake_roll INTEGER,
+    mistake_extra INTEGER,                  -- D3 (Minor) o 2D6 (Catastrophe)
+    mistake_treasury_before INTEGER,
+    mistake_loss INTEGER DEFAULT 0,
+    PRIMARY KEY (match_id, team_id),
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);

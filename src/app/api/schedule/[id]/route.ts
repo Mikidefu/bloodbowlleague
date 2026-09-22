@@ -1,23 +1,11 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import crypto from 'crypto';
-import { recalcSppStatement } from '@/lib/spp';
-import { describeSeasonStatus, seasonStatusSql, toSeasonStatus } from '@/lib/seasons';
+import { seasonStatusSql } from '@/lib/seasons';
+import { applyResult, deleteMatchStatements } from '@/lib/matchRules';
+import { lockedMatchResponse, ruleErrorResponse } from '@/lib/matchApi';
+import { computeTeamValue } from '@/lib/teamValue';
 
-// Risultati e partite si modificano solo nella stagione attiva.
-// Restituisce la risposta d'errore da inviare, oppure null se la partita è modificabile.
-async function lockedMatchResponse(matchId: string) {
-  const { rows: [row] } = await db.execute({
-    sql: 'SELECT s.name, s.status, s.closed_reason FROM matches m LEFT JOIN seasons s ON s.id = m.season_id WHERE m.id = ?',
-    args: [matchId]
-  });
-  if (!row) return NextResponse.json({ error: 'Match not found' }, { status: 404 });
-  if (row.status !== 'active') {
-    const status = describeSeasonStatus(toSeasonStatus(row.status, row.closed_reason));
-    return NextResponse.json({ error: `${row.name ?? 'This season'} is ${status}: its matches are read-only.` }, { status: 409 });
-  }
-  return null;
-}
+const flag = (v: unknown) => v === 1 || v === true;
 
 export async function GET(
     request: Request,
@@ -45,18 +33,58 @@ export async function GET(
     const match = matchRows[0];
     if (!match) return NextResponse.json({ error: 'Match not found' }, { status: 404 });
 
-    // Recupero parallelo per maggiore velocità
-    // AGGIUNTA: jersey_number nel SELECT
-    const [homePlayersRes, awayPlayersRes, statsRes] = await Promise.all([
-      db.execute({ sql: 'SELECT id, jersey_number, name, role, status, team_id, mng, dead FROM players WHERE team_id = ?', args: [match.home_team_id] }),
-      db.execute({ sql: 'SELECT id, jersey_number, name, role, status, team_id, mng, dead FROM players WHERE team_id = ?', args: [match.away_team_id] }),
-      db.execute({ sql: 'SELECT * FROM player_stats WHERE match_id = ?', args: [id] })
+    const [teamsRes, playersRes, statsRes, reportsRes, injuriesRes] = await Promise.all([
+      db.execute({ sql: 'SELECT * FROM teams WHERE id IN (?, ?)', args: [match.home_team_id, match.away_team_id] }),
+      db.execute({ sql: 'SELECT * FROM players WHERE team_id IN (?, ?) ORDER BY jersey_number, created_at', args: [match.home_team_id, match.away_team_id] }),
+      db.execute({ sql: 'SELECT * FROM player_stats WHERE match_id = ?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM match_team_reports WHERE match_id = ?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM player_injuries WHERE match_id = ?', args: [id] }),
     ]);
+
+    const reports = reportsRes.rows;
+    const parseIds = (value: unknown) => { try { return value ? JSON.parse(String(value)) as string[] : []; } catch { return []; } };
+    const recovered = new Set(reports.flatMap(r => parseIds(r.recovered_player_ids)));
+    const quit = new Set(reports.flatMap(r => parseIds(r.quit_player_ids)));
+    const released = new Set(reports.flatMap(r => parseIds(r.released_player_ids)));
+    const diedHere = new Set(injuriesRes.rows.filter(i => i.result === 'DEAD').map(i => String(i.player_id)));
+    const statPlayers = new Set(statsRes.rows.map(s => String(s.player_id)));
+
+    // Chi compare nel referto e se poteva giocare questa partita
+    const players = playersRes.rows
+        .filter(p => {
+          const pid = String(p.id);
+          if (statPlayers.has(pid) || diedHere.has(pid) || quit.has(pid) || released.has(pid)) return true;
+          if (flag(p.journeyman) && p.journeyman_match_id !== id) return false;
+          return !flag(p.left_team) && !flag(p.dead);
+        })
+        .map(p => {
+          const pid = String(p.id);
+          const missed = match.rules_applied
+              ? recovered.has(pid)
+              : flag(p.mng) && p.mng_match_id !== id;
+          return {
+            id: pid, jersey_number: p.jersey_number, name: p.name, role: p.role, status: p.status, team_id: p.team_id,
+            mng: flag(p.mng), dead: flag(p.dead), position_key: p.position_key, advancements: Number(p.advancements || 0),
+            journeyman: flag(p.journeyman), temp_retired: flag(p.temp_retired), niggling_injuries: Number(p.niggling_injuries || 0),
+            ma: p.ma, st: p.st, ag: p.ag, pa: p.pa, av: p.av,
+            // Non disponibile per questa partita: saltava per infortunio o è Temporarily Retiring
+            unavailable: missed ? 'mng' : flag(p.temp_retired) ? 'retired' : null,
+          };
+        });
+
+    const teams = teamsRes.rows.map(t => ({
+      id: t.id, name: t.name, roster: t.roster, team_league: t.team_league, favoured_of: t.favoured_of,
+      dedicated_fans: Number(t.fan_factor || 0), treasury: Number(t.treasury || 0), apothecary: flag(t.apothecary),
+      ...computeTeamValue(t as never, playersRes.rows.filter(p => p.team_id === t.id) as never),
+    }));
 
     return NextResponse.json({
       ...match,
-      homePlayers: homePlayersRes.rows,
-      awayPlayers: awayPlayersRes.rows,
+      teams,
+      reports,
+      injuries: injuriesRes.rows,
+      homePlayers: players.filter(p => p.team_id === match.home_team_id),
+      awayPlayers: players.filter(p => p.team_id === match.away_team_id),
       stats: statsRes.rows
     });
   } catch (err) {
@@ -72,67 +100,22 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { home_score, away_score, home_casualties, away_casualties, match_date, date_only } = body;
-    const playerStats = Array.isArray(body.playerStats) ? body.playerStats : [];
 
     const locked = await lockedMatchResponse(id);
     if (locked) return locked;
 
     // Cambio della sola data: non tocca risultato, statistiche né stato "giocata"
-    if (date_only) {
-      await db.execute({ sql: 'UPDATE matches SET match_date = ? WHERE id = ?', args: [match_date || null, id] });
+    if (body.date_only) {
+      await db.execute({ sql: 'UPDATE matches SET match_date = ? WHERE id = ?', args: [body.match_date || null, id] });
       return NextResponse.json({ success: true });
     }
 
-    const statements = [];
-
-    // 1. Update match scores and status
-    statements.push({
-      sql: `
-        UPDATE matches
-        SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, is_played = 1, played_at = CURRENT_TIMESTAMP, match_date = ?
-        WHERE id = ?
-      `,
-      args: [home_score ?? 0, away_score ?? 0, home_casualties ?? 0, away_casualties ?? 0, match_date || null, id]
-    });
-
-    // 2. Delete existing stats for this match
-    statements.push({
-      sql: 'DELETE FROM player_stats WHERE match_id = ?',
-      args: [id]
-    });
-
-    // 3. Elaborazione statistiche giocatori
-    for (const stat of playerStats) {
-      const spp = (stat.td * 3) + (stat.cas * 2) + (stat.int * 2) + (stat.comp * 1) + (stat.mvp * 5);
-
-      if (spp > 0) {
-        statements.push({
-          sql: `
-            INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, mvp, spp_earned)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          args: [crypto.randomUUID(), id, stat.player_id, stat.td, stat.cas, stat.int, stat.comp, stat.mvp, spp]
-        });
-      }
-
-      // 4. Update status and recalculate SPP
-      const isDead = stat.status === 'Dead' ? 1 : 0;
-      const isMng = stat.status === 'Injured' ? 1 : 0;
-
-      statements.push({
-        sql: 'UPDATE players SET status = ?, mng = ?, dead = ? WHERE id = ?',
-        args: [stat.status || 'Active', isMng, isDead, stat.player_id]
-      });
-
-      statements.push(recalcSppStatement(stat.player_id));
-    }
-
-    // Esegue tutta l'operazione in modo atomico e sicuro
-    await db.batch(statements, 'write');
-
+    // Referto e sequenza post-partita (vedi lib/matchRules.ts)
+    await applyResult(id, body);
     return NextResponse.json({ success: true });
   } catch (err) {
+    const ruleResponse = ruleErrorResponse(err);
+    if (ruleResponse) return ruleResponse;
     console.error(err);
     return NextResponse.json({ error: 'Failed to save match results' }, { status: 500 });
   }
@@ -148,37 +131,13 @@ export async function DELETE(
     const locked = await lockedMatchResponse(id);
     if (locked) return locked;
 
-    // 1. Troviamo i giocatori coinvolti prima di cancellare
-    const { rows: playersToRecalc } = await db.execute({
-      sql: 'SELECT DISTINCT player_id FROM player_stats WHERE match_id = ?',
-      args: [id]
-    });
-
-    // 2. Prepariamo l'array delle transazioni
-    const statements = [];
-
-    // ELIMINAZIONE ESPLICITA DELLE STATS (più sicuro del CASCADE)
-    statements.push({
-      sql: 'DELETE FROM player_stats WHERE match_id = ?',
-      args: [id]
-    });
-
-    // Eliminazione del match
-    statements.push({
-      sql: 'DELETE FROM matches WHERE id = ?',
-      args: [id]
-    });
-
-    // Ricalcolo SPP per ogni giocatore coinvolto (ora le stat della partita non esistono più)
-    for (const p of playersToRecalc) {
-      statements.push(recalcSppStatement(String(p.player_id)));
-    }
-
-    // Eseguiamo tutto insieme
-    await db.batch(statements, 'write');
+    // Elimina la partita annullando Treasury, fan, infortuni, Journeymen e SPP che aveva prodotto
+    await db.batch(await deleteMatchStatements(id), 'write');
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    const ruleResponse = ruleErrorResponse(error);
+    if (ruleResponse) return ruleResponse;
     console.error('Error deleting match:', error);
     return NextResponse.json({ error: 'Failed to delete match' }, { status: 500 });
   }
