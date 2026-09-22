@@ -1,7 +1,7 @@
 'use client';
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId, useState } from 'react';
 import type { Lang } from '@/lib/tutorial';
-import { useInView, usePrefersReducedMotion } from './useInView';
+import { useInView } from './useInView';
 import styles from './TutorialDiagram.module.css';
 
 // Diagrammi del tutorial: disegni nostri, nessuna immagine del manuale.
@@ -22,33 +22,19 @@ const at = (d: number) => ({ '--d': `${d}s` }) as React.CSSProperties;
 const slideTo = (d: number, dx: number, dy = 0) =>
     ({ '--d': `${d}s`, '--dx': `${dx}px`, '--dy': `${dy}px` }) as React.CSSProperties;
 
-/** Quanto dura un giro: ultimo ingresso + la sua animazione + una pausa lunga,
- *  perche' un diagramma che riparte subito non lo si legge mai fino in fondo. */
-const cycleOf = (lastStep: number, hold = 2.2) => Math.round((lastStep + 0.42 + hold) * 1000);
-
 type Props = { id?: string; lang: Lang };
 
 // --- primitive ------------------------------------------------------------------
 
 /** Tavola: carta, cornice, testata rossa con il titolo della figura.
- *  Con `animated` la scena si monta quando la figura entra in campo. Con `cycle`
- *  (millisecondi) si rimonta da sola a ciclo continuo: il loop e' un replay
- *  automatico, cosi' e' la stessa coreografia e non serve un secondo meccanismo. */
-function Plate({ label, animated, lang, cycle, children }: {
-  label: string; animated?: boolean; lang?: Lang; cycle?: number; children: React.ReactNode;
+ *  Con `animated` la scena si anima una volta sola, la prima volta che la figura
+ *  entra in campo; il pulsante "rivedi" la fa ripartire da capo. */
+function Plate({ label, animated, lang, children }: {
+  label: string; animated?: boolean; lang?: Lang; children: React.ReactNode;
 }) {
-  const { ref, inView, seen } = useInView<HTMLElement>();
-  const reduced = usePrefersReducedMotion();
+  const { ref, seen } = useInView<HTMLElement>();
   const [run, setRun] = useState(0);
   const playing = Boolean(animated) && seen;
-
-  // Un timeout che si riprogramma, non un intervallo: cosi' il pulsante "rivedi"
-  // fa ripartire anche il conteggio invece di restare sfasato.
-  useEffect(() => {
-    if (!cycle || !playing || !inView || reduced) return;
-    const id = setTimeout(() => setRun(r => r + 1), cycle);
-    return () => clearTimeout(id);
-  }, [cycle, playing, inView, reduced, run]);
 
   return (
       <figure ref={ref} className={`${styles.figure} ${playing ? styles.play : ''}`}>
@@ -396,7 +382,7 @@ function TackleZone({ lang }: { lang: Lang }) {
   const cx = x + sq * 2.5;
   const cy = y + sq * 2.5;
   return (
-      <Plate label={t(lang, 'TACKLE ZONE: LE CASELLE ATTORNO', 'TACKLE ZONE: THE SQUARES AROUND')} animated lang={lang} cycle={cycleOf(3.1)}>
+      <Plate label={t(lang, 'TACKLE ZONE: LE CASELLE ATTORNO', 'TACKLE ZONE: THE SQUARES AROUND')} animated lang={lang}>
         <Pitch x={x} y={y} w={sq * cols} h={sq * rows} cols={cols} rows={rows} />
         <g className={styles.step} style={at(0.1)}>
           <rect x={x + sq} y={y + sq} width={sq * 3} height={sq * 3} className={styles.zone} />
@@ -444,7 +430,7 @@ function Turnover({ lang }: { lang: Lang }) {
     [t(lang, 'Touchdown: il turno finisce, ma hai segnato', 'Touchdown: the turn ends, but you scored'), 'green'],
   ];
   return (
-      <Plate label={t(lang, 'IL TURNOVER', 'THE TURNOVER')} animated lang={lang} cycle={cycleOf(1.5)}>
+      <Plate label={t(lang, 'IL TURNOVER', 'THE TURNOVER')} animated lang={lang}>
         {causes.map(([c, tone], i) => (
             <g key={c} className={styles.step} style={at(0.1 + i * 0.28)}>
               <Row y={12 + i * 30} badge={tone === 'green' ? 'TD' : '✕'} tone={tone} text={c} />
@@ -462,7 +448,7 @@ function Pickup({ lang }: { lang: Lang }) {
   const cy = y + sq * 1.5;
   const dash = sq * 2;            // la corsa: due caselle, dalla prima a quella della palla
   return (
-      <Plate label={t(lang, 'RACCOGLIERE LA PALLA', 'PICKING UP THE BALL')} animated lang={lang} cycle={cycleOf(2.3)}>
+      <Plate label={t(lang, 'RACCOGLIERE LA PALLA', 'PICKING UP THE BALL')} animated lang={lang}>
         <Pitch x={x} y={y} w={sq * 4} h={sq * 3} cols={4} rows={3} />
         <rect x={x + sq * 2} y={y + sq} width={sq} height={sq} className={styles.zone} />
 
@@ -512,7 +498,7 @@ function PassRanges({ lang }: { lang: Lang }) {
   const y0 = 66;
   const w = 74;
   return (
-      <Plate label={t(lang, 'LE QUATTRO GITTATE DEL PASSAGGIO', 'THE FOUR PASSING RANGES')} animated lang={lang} cycle={cycleOf(2.1)}>
+      <Plate label={t(lang, 'LE QUATTRO GITTATE DEL PASSAGGIO', 'THE FOUR PASSING RANGES')} animated lang={lang}>
         <Token cx={26} cy={y0 + 18} r={12} side="home" />
         {bands.map(([name, mod, color], i) => (
             <g key={name} className={styles.step} style={at(0.1 + i * 0.25)}>
@@ -566,7 +552,7 @@ function Touchdown({ lang }: { lang: Lang }) {
   const x = 16, y = 18, w = 240, h = 104, cols = 8, rows = 4;
   const cw = w / cols;
   return (
-      <Plate label={t(lang, 'SEGNARE — E LO STALLING', 'SCORING — AND STALLING')} animated lang={lang} cycle={cycleOf(2.2)}>
+      <Plate label={t(lang, 'SEGNARE — E LO STALLING', 'SCORING — AND STALLING')} animated lang={lang}>
         <Pitch x={x} y={y} w={w} h={h} cols={cols} rows={rows} />
         <rect x={x + w - cw} y={y} width={cw} height={h} className={styles.endzone} />
         <text x={x + w - cw / 2} y={y + h / 2} className={styles.vLabel} transform={`rotate(-90 ${x + w - cw / 2} ${y + h / 2})`}>END ZONE</text>
@@ -610,7 +596,7 @@ function BlockDiceCount({ lang }: { lang: Lang }) {
     [t(lang, 'La sua ST è più del doppio', 'Their ST is over double'), 3, true, t(lang, 'tre dadi, e sceglie l\'avversario', 'three dice, and the opponent picks')],
   ];
   return (
-      <Plate label={t(lang, 'QUANTI DADI SI TIRANO (E CHI SCEGLIE)', 'HOW MANY DICE, AND WHO PICKS')} animated lang={lang} cycle={cycleOf(1.9)}>
+      <Plate label={t(lang, 'QUANTI DADI SI TIRANO (E CHI SCEGLIE)', 'HOW MANY DICE, AND WHO PICKS')} animated lang={lang}>
         {rows.map(([label, n, theirs, note], i) => {
           const y = 6 + i * 33;
           return (
@@ -634,7 +620,7 @@ function BlockDiceCount({ lang }: { lang: Lang }) {
 function Assists({ lang }: { lang: Lang }) {
   const x = 16, y = 16, sq = 30;
   return (
-      <Plate label={t(lang, 'LE ASSISTENZE', 'ASSISTS')} animated lang={lang} cycle={cycleOf(3.6)}>
+      <Plate label={t(lang, 'LE ASSISTENZE', 'ASSISTS')} animated lang={lang}>
         <Pitch x={x} y={y} w={sq * 4} h={sq * 3} cols={4} rows={3} />
         <Token cx={x + sq * 0.5} cy={y + sq * 1.5} r={12} side="home" label="A" />
         <Token cx={x + sq * 1.5} cy={y + sq * 1.5} r={12} side="away" label="B" />
@@ -682,7 +668,7 @@ function InjuryChain({ lang }: { lang: Lang }) {
     ['D16', 'CASUALTY', t(lang, '1-8 BH · 9-10 SH · 11-12 SI · 13-14 LI · 15-16 morto', '1-8 BH · 9-10 SH · 11-12 SI · 13-14 LI · 15-16 dead'), 'red'],
   ];
   return (
-      <Plate label={t(lang, 'DALLA BOTTA ALL\'INFERMERIA', 'FROM THE HIT TO THE APOTHECARY')} animated lang={lang} cycle={cycleOf(1.6)}>
+      <Plate label={t(lang, 'DALLA BOTTA ALL\'INFERMERIA', 'FROM THE HIT TO THE APOTHECARY')} animated lang={lang}>
         {steps.map(([dice, title, detail, tone], i) => {
           const y = 12 + i * 56;
           const cls = tone === 'red' ? styles.stepRed : tone === 'gold' ? styles.stepGold : styles.stepNavy;
