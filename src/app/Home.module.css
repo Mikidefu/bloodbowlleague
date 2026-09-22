@@ -807,8 +807,8 @@
   margin-top: 2rem;
   margin-bottom: 0;
   padding-block: 0;
-  /* Ai lati del contenitore continuano il rosso e il blu, niente bande nere */
-  background: linear-gradient(90deg, #9a2226 50%, #1a2852 50%);
+  /* Fuori dalle due sagome resta lo sfondo scuro della pagina, come le sezioni sopra */
+  background: transparent;
 }
 
 /* La fascia chiude la home attaccata al footer: sulla home niente spazio sotto il main né sopra il footer */
@@ -936,10 +936,6 @@
 
   .ctaInner {
     grid-template-columns: 1fr;
-  }
-
-  .cta {
-    background: #1a2852;
   }
 
   .ctaLeft {
