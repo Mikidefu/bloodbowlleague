@@ -530,11 +530,24 @@
 /* ================================================================== */
 /*  MEDIA QUERIES                                                      */
 /* ================================================================== */
-@media (max-width: 1440px) {
+/* Con sette sezioni la barra completa (icone, numeri, etichette) chiede circa 1.800px:
+   sotto quella larghezza si compatta, e Tutorial/Admin restano con la sola icona
+   (l'etichetta resta leggibile dagli screen reader). */
+@media (max-width: 1800px) {
   .navItem { padding: 0 0.6rem; font-size: 1.02rem; }
   .navItem::after { left: 0.6rem; right: 0.6rem; }
   .navIcon { display: none; }
+  .navIndex { display: none; }
   .wordmark { --wm-size: 1.6rem; }
+  .ctaBtn { padding: 0 0.8rem; }
+  .ctaBtn > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 1240px) {

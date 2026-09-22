@@ -18,6 +18,7 @@ import {
 } from '@/lib/leagueRules';
 import { canPlayNextMatch, flag, hatredList, isPlayerStatus, mustAdvance, onDraftList, playerStatus, toPlayer, toPlayerInjury } from '@/lib/players';
 import { postgamePhase } from '@/lib/postgame';
+import { canHireStar, getStarHire, playsForText, teamFavoured } from '@/lib/starPlayers';
 import { getPosition, getRoster, hasRule, journeymanPositions, skillBaseName, type Roster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
 import type { MatchInjury, Player, PlayerStatus } from '@/lib/types';
@@ -129,9 +130,10 @@ export type PregameTeamInput = {
 export type PregameInput = { teams: Record<string, PregameTeamInput> };
 
 function validateInducements(
-    choices: InducementChoice[], roster: Roster | null, favouredOf: string | null, players: Player[], journeymenCount: number,
+    choices: InducementChoice[], roster: Roster | null, favouredOf: string | null, league: string | null, players: Player[], journeymenCount: number,
 ) {
-  const ctx = { roster, favouredOf };
+  const ctx = { roster, favouredOf, league };
+  const starsHired = new Set<string>();
   let total = 0;
   const seen = new Set<string>();
   let mercenaries = 0;
@@ -150,9 +152,18 @@ function validateInducements(
       mercenaries += choice.qty;
       mercsByPosition.set(String(choice.position_key), (mercsByPosition.get(String(choice.position_key)) ?? 0) + choice.qty);
     } else if (choice.key === 'star_player') {
-      if (!choice.name?.trim()) throw new RuleError('Star Player: name required');
+      const hire = getStarHire(choice.star)!;
+      if (!canHireStar(hire.playsFor, { league, favouredOf: teamFavoured(roster, league, favouredOf) })) {
+        throw new RuleError(`${hire.name} does not play for this team (plays for: ${playsForText(hire.playsFor, 'en')}, p. 192)`);
+      }
+      if (starsHired.has(hire.key)) throw new RuleError(`${hire.name} selected twice`);
+      starsHired.add(hire.key);
+      // Chi ingaggia Josef Bugman come Infamous Coaching Staff non può averlo anche come Star Player (p. 147)
+      if (hire.key === 'josef-bugman' && choices.some(c => c?.key === 'josef_bugman' && c.qty > 0)) {
+        throw new RuleError('A team with Josef Bugman as Infamous Coaching Staff cannot also hire him as a Star Player (p. 147)');
+      }
       starChoices += 1;
-      starSlots += choice.qty;   // coppie: una scelta che occupa due posti
+      starSlots += hire.members.length;   // una coppia è una scelta sola ma occupa due posti (p. 148)
     } else {
       if (seen.has(choice.key)) throw new RuleError(`${def.name} selected twice`);
       seen.add(choice.key);
@@ -246,7 +257,7 @@ export async function applyPregame(matchId: string, input: PregameInput) {
     }
 
     const { ctv } = computeTeamValue(team, [...players, ...newJourneymen]);
-    const cost = validateInducements(choices, roster, str(team.favoured_of), players, newJourneymen.length);
+    const cost = validateInducements(choices, roster, str(team.favoured_of), str(team.team_league), players, newJourneymen.length);
     plan.set(teamId, { team, roster, ctv, treasury, cost, fanFactor: fanFactor(num(team.fan_factor), t.fair_weather), fairWeather: t.fair_weather, journeymen, choices });
   }
 
