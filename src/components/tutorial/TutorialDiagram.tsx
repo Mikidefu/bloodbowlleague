@@ -1,6 +1,7 @@
 'use client';
-import React, { useId } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import type { Lang } from '@/lib/tutorial';
+import { useInView, usePrefersReducedMotion } from './useInView';
 import styles from './TutorialDiagram.module.css';
 
 // Diagrammi del tutorial: disegni nostri, nessuna immagine del manuale.
@@ -14,22 +15,62 @@ const HEAD = 26;               // altezza della testata
 
 const t = (lang: Lang, it: string, en: string) => (lang === 'it' ? it : en);
 
+// --- ritmo delle scene ----------------------------------------------------------
+// `at` dice quando un elemento entra, `slideTo` di quanto si sposta. Il tempo sta
+// nel JSX accanto alla cosa che si muove, non sparso nel CSS.
+const at = (d: number) => ({ '--d': `${d}s` }) as React.CSSProperties;
+const slideTo = (d: number, dx: number, dy = 0) =>
+    ({ '--d': `${d}s`, '--dx': `${dx}px`, '--dy': `${dy}px` }) as React.CSSProperties;
+
+/** Quanto dura un giro: ultimo ingresso + la sua animazione + una pausa lunga,
+ *  perche' un diagramma che riparte subito non lo si legge mai fino in fondo. */
+const cycleOf = (lastStep: number, hold = 2.2) => Math.round((lastStep + 0.42 + hold) * 1000);
+
 type Props = { id?: string; lang: Lang };
 
 // --- primitive ------------------------------------------------------------------
 
-/** Tavola: carta, cornice, testata rossa con il titolo della figura. */
-function Plate({ label, children }: { label: string; children: React.ReactNode }) {
+/** Tavola: carta, cornice, testata rossa con il titolo della figura.
+ *  Con `animated` la scena si monta quando la figura entra in campo. Con `cycle`
+ *  (millisecondi) si rimonta da sola a ciclo continuo: il loop e' un replay
+ *  automatico, cosi' e' la stessa coreografia e non serve un secondo meccanismo. */
+function Plate({ label, animated, lang, cycle, children }: {
+  label: string; animated?: boolean; lang?: Lang; cycle?: number; children: React.ReactNode;
+}) {
+  const { ref, inView, seen } = useInView<HTMLElement>();
+  const reduced = usePrefersReducedMotion();
+  const [run, setRun] = useState(0);
+  const playing = Boolean(animated) && seen;
+
+  // Un timeout che si riprogramma, non un intervallo: cosi' il pulsante "rivedi"
+  // fa ripartire anche il conteggio invece di restare sfasato.
+  useEffect(() => {
+    if (!cycle || !playing || !inView || reduced) return;
+    const id = setTimeout(() => setRun(r => r + 1), cycle);
+    return () => clearTimeout(id);
+  }, [cycle, playing, inView, reduced, run]);
+
   return (
-      <figure className={styles.figure}>
+      <figure ref={ref} className={`${styles.figure} ${playing ? styles.play : ''}`}>
         <svg viewBox={`0 0 ${W} ${H}`} className={styles.svg} role="img" aria-label={label}>
           <rect x="0" y="0" width={W} height={H} className={styles.paper} />
           <rect x="0" y="0" width={W} height={HEAD} className={styles.head} />
           <text x="12" y={HEAD - 8} className={styles.headText}>{label}</text>
           <path d={`M ${W - 26} 0 L ${W} 0 L ${W} ${HEAD} Z`} className={styles.headCorner} />
-          <g transform={`translate(0 ${HEAD})`}>{children}</g>
+          {/* il key rimonta la scena: e' il modo piu' affidabile di far ripartire le animazioni CSS */}
+          <g key={run} transform={`translate(0 ${HEAD})`}>{children}</g>
           <rect x="1" y="1" width={W - 2} height={H - 2} className={styles.frame} />
         </svg>
+        {animated && (
+            <button
+                type="button"
+                className={styles.replay}
+                onClick={() => setRun(r => r + 1)}
+                aria-label={t(lang ?? 'it', "Rivedi l’animazione", "Replay the animation")}
+            >
+              &#8635;
+            </button>
+        )}
       </figure>
   );
 }
@@ -167,10 +208,10 @@ function Chip({ x, y, w = 78, h = 22, text, tone = 'navy' }: {
 }
 
 /** Facciata di dado da blocco in miniatura (per contare i dadi, non per spiegarli). */
-function MiniDie({ x, y, s = 16 }: { x: number; y: number; s?: number }) {
+function MiniDie({ x, y, s = 16, theirs = false }: { x: number; y: number; s?: number; theirs?: boolean }) {
   return (
       <g transform={`translate(${x} ${y})`}>
-        <rect x="0" y="0" width={s} height={s} rx="3" className={styles.miniDie} />
+        <rect x="0" y="0" width={s} height={s} rx="3" className={theirs ? styles.miniDieAlt : styles.miniDie} />
         <circle cx={s / 2} cy={s * 0.42} r={s * 0.16} className={styles.miniDieMark} />
         <rect x={s * 0.3} y={s * 0.6} width={s * 0.4} height={s * 0.12} rx="1" className={styles.miniDieMark} />
       </g>
@@ -355,24 +396,41 @@ function TackleZone({ lang }: { lang: Lang }) {
   const cx = x + sq * 2.5;
   const cy = y + sq * 2.5;
   return (
-      <Plate label={t(lang, 'TACKLE ZONE: LE CASELLE ATTORNO', 'TACKLE ZONE: THE SQUARES AROUND')}>
+      <Plate label={t(lang, 'TACKLE ZONE: LE CASELLE ATTORNO', 'TACKLE ZONE: THE SQUARES AROUND')} animated lang={lang} cycle={cycleOf(3.1)}>
         <Pitch x={x} y={y} w={sq * cols} h={sq * rows} cols={cols} rows={rows} />
-        <rect x={x + sq} y={y + sq} width={sq * 3} height={sq * 3} className={styles.zone} />
-        <rect x={x + sq * 2} y={y + sq * 2} width={sq} height={sq} className={styles.zoneHole} />
-
+        <g className={styles.step} style={at(0.1)}>
+          <rect x={x + sq} y={y + sq} width={sq * 3} height={sq * 3} className={styles.zone} />
+          <rect x={x + sq * 2} y={y + sq * 2} width={sq} height={sq} className={styles.zoneHole} />
+        </g>
         <Token cx={cx} cy={cy} r={10} side="away" />
-        <Token cx={x + sq * 1.5} cy={y + sq * 1.5} r={10} side="home" />
-        <Token cx={x + sq * 1.5} cy={y + sq * 3.5} r={10} side="home" ghost />
-        <Arrow d={`M ${x + sq * 1.5} ${y + sq * 1.9} L ${x + sq * 1.5} ${y + sq * 3.1}`} />
-        <text x={x + sq * 1.5 + 8} y={y + sq * 2.6} className={styles.mod}>-1</text>
+        <g className={styles.step} style={at(0.5)}>
+          <Token cx={x + sq * 1.5} cy={y + sq * 3.5} r={10} side="home" ghost />
+          <Arrow d={`M ${x + sq * 1.5} ${y + sq * 1.9} L ${x + sq * 1.5} ${y + sq * 3.1}`} />
+        </g>
+        <g className={styles.slide} style={slideTo(0.8, 0, sq * 2)}>
+          <Token cx={x + sq * 1.5} cy={y + sq * 1.5} r={10} side="home" />
+        </g>
+        <g className={styles.step} style={at(1.6)}>
+          <text x={x + sq * 1.5 + 8} y={y + sq * 2.6} className={styles.mod}>-1</text>
+        </g>
 
-        <Label x={162} y={26} width={184}>{t(lang, 'Sei "marcato"', 'You are "Marked"')}</Label>
-        <Note x={162} y={40} width={184}>{t(lang, 'Uscire da una casella marcata richiede una schivata (test di AG).', 'Leaving a marked square needs a Dodge (AG test).')}</Note>
-        <Label x={162} y={74} width={184}>{t(lang, 'Il modificatore', 'The modifier')}</Label>
-        <Note x={162} y={88} width={184}>{t(lang, '-1 per ogni avversario che marca la casella dove arrivi.', '-1 for each opponent marking the square you land in.')}</Note>
-        <Row y={116} badge="✕" tone="red" x={162} w={184} text={t(lang, 'Schivata fallita: cadi, e il turno finisce lì.', 'Failed dodge: you fall and the turn ends.')} />
-        <Row y={146} badge="✓" tone="green" x={162} w={184} text={t(lang, 'Casella libera: nessun dado, cammini.', 'Open square: no dice, just walk.')} />
-        <Note x={18} y={186}>{t(lang, 'Chi è a terra o Distratto non ha Tackle Zone.', 'Players who are down or Distracted have no Tackle Zone.')}</Note>
+        <g className={styles.step} style={at(1.9)}>
+          <Label x={162} y={26} width={184}>{t(lang, 'Sei "marcato"', 'You are "Marked"')}</Label>
+          <Note x={162} y={40} width={184}>{t(lang, 'Uscire da una casella marcata richiede una schivata (test di AG).', 'Leaving a marked square needs a Dodge (AG test).')}</Note>
+        </g>
+        <g className={styles.step} style={at(2.2)}>
+          <Label x={162} y={74} width={184}>{t(lang, 'Il modificatore', 'The modifier')}</Label>
+          <Note x={162} y={88} width={184}>{t(lang, '-1 per ogni avversario che marca la casella dove arrivi.', '-1 for each opponent marking the square you land in.')}</Note>
+        </g>
+        <g className={styles.step} style={at(2.5)}>
+          <Row y={116} badge="✕" tone="red" x={162} w={184} text={t(lang, 'Schivata fallita: cadi, e il turno finisce lì.', 'Failed dodge: you fall and the turn ends.')} />
+        </g>
+        <g className={styles.step} style={at(2.8)}>
+          <Row y={146} badge="✓" tone="green" x={162} w={184} text={t(lang, 'Casella libera: nessun dado, cammini.', 'Open square: no dice, just walk.')} />
+        </g>
+        <g className={styles.step} style={at(3.1)}>
+          <Note x={18} y={186}>{t(lang, 'Chi è a terra o Distratto non ha Tackle Zone.', 'Players who are down or Distracted have no Tackle Zone.')}</Note>
+        </g>
       </Plate>
   );
 }
@@ -386,36 +444,59 @@ function Turnover({ lang }: { lang: Lang }) {
     [t(lang, 'Touchdown: il turno finisce, ma hai segnato', 'Touchdown: the turn ends, but you scored'), 'green'],
   ];
   return (
-      <Plate label={t(lang, 'IL TURNOVER', 'THE TURNOVER')}>
+      <Plate label={t(lang, 'IL TURNOVER', 'THE TURNOVER')} animated lang={lang} cycle={cycleOf(1.5)}>
         {causes.map(([c, tone], i) => (
-            <Row key={c} y={12 + i * 30} badge={tone === 'green' ? 'TD' : '✕'} tone={tone} text={c} />
+            <g key={c} className={styles.step} style={at(0.1 + i * 0.28)}>
+              <Row y={12 + i * 30} badge={tone === 'green' ? 'TD' : '✕'} tone={tone} text={c} />
+            </g>
         ))}
-        <Note x={14} y={182}>{t(lang, 'Anche se avevi ancora otto giocatori da muovere: il turno passa all\'avversario.', 'Even with eight players still to move: the turn passes to your opponent.')}</Note>
+        <g className={styles.step} style={at(1.5)}>
+          <Note x={14} y={182}>{t(lang, 'Anche se avevi ancora otto giocatori da muovere: il turno passa all\'avversario.', 'Even with eight players still to move: the turn passes to your opponent.')}</Note>
+        </g>
       </Plate>
   );
 }
 
 function Pickup({ lang }: { lang: Lang }) {
   const x = 16, y = 16, sq = 26;
+  const cy = y + sq * 1.5;
+  const dash = sq * 2;            // la corsa: due caselle, dalla prima a quella della palla
   return (
-      <Plate label={t(lang, 'RACCOGLIERE LA PALLA', 'PICKING UP THE BALL')}>
+      <Plate label={t(lang, 'RACCOGLIERE LA PALLA', 'PICKING UP THE BALL')} animated lang={lang} cycle={cycleOf(2.3)}>
         <Pitch x={x} y={y} w={sq * 4} h={sq * 3} cols={4} rows={3} />
         <rect x={x + sq * 2} y={y + sq} width={sq} height={sq} className={styles.zone} />
-        <Ball cx={x + sq * 2.5} cy={y + sq * 1.5} />
-        <Token cx={x + sq * 0.5} cy={y + sq * 1.5} r={10} side="home" />
-        <Arrow d={`M ${x + sq * 0.9} ${y + sq * 1.5} L ${x + sq * 2.1} ${y + sq * 1.5}`} />
+
+        {/* la palla sparisce quando il token le arriva sopra: due dischi sovrapposti si leggono male */}
+        <g className={styles.fade} style={at(1.15)}>
+          <Ball cx={x + sq * 2.5} cy={cy} />
+        </g>
+
+        <g className={styles.step} style={at(0.1)}>
+          <Arrow d={`M ${x + sq * 0.9} ${cy} L ${x + sq * 2.1} ${cy}`} />
+        </g>
+        <g className={styles.slide} style={slideTo(0.35, dash)}>
+          <Token cx={x + sq * 0.5} cy={cy} r={10} side="home" />
+        </g>
         <Note x={x} y={y + sq * 3 + 14}>{t(lang, 'Entri nella casella della palla: test di AG.', 'Step into the ball square: AG test.')}</Note>
 
-        <rect x="136" y="10" width="210" height="88" className={styles.panelPaper} />
-        <text x="146" y="26" className={styles.panelTitleDark}>{t(lang, 'IL TIRO', 'THE ROLL')}</text>
-        <Note x={146} y={42} width={196}>{t(lang, '• numero bersaglio = AG del giocatore', '• target number = the player\'s AG')}</Note>
-        <Note x={146} y={56} width={196}>{t(lang, '• -1 per ogni avversario che ti marca', '• -1 for each opponent marking you')}</Note>
-        <Note x={146} y={70} width={196}>{t(lang, '• riuscito: continui a muoverti', '• success: you keep moving')}</Note>
-        <Note x={146} y={84} width={196}>{t(lang, '• fallito: la palla rimbalza ed è turnover', '• failure: the ball bounces, turnover')}</Note>
+        <g className={styles.step} style={at(1.3)}>
+          <rect x="136" y="10" width="210" height="88" className={styles.panelPaper} />
+          <text x="146" y="26" className={styles.panelTitleDark}>{t(lang, 'IL TIRO', 'THE ROLL')}</text>
+          <Note x={146} y={42} width={196}>{t(lang, "• numero bersaglio = AG del giocatore", "• target number = the player’s AG")}</Note>
+          <Note x={146} y={56} width={196}>{t(lang, '• -1 per ogni avversario che ti marca', '• -1 for each opponent marking you')}</Note>
+          <Note x={146} y={70} width={196}>{t(lang, '• riuscito: continui a muoverti', '• success: you keep moving')}</Note>
+          <Note x={146} y={84} width={196}>{t(lang, '• fallito: la palla rimbalza ed è turnover', '• failure: the ball bounces, turnover')}</Note>
+        </g>
 
-        <Row y={110} badge="2+" tone="green" text="Secure the Ball" note={t(lang, 'azione una volta per turno: raccogli con 2+, ma l\'attivazione finisce lì', 'once-per-turn action: pick up on a 2+, but your activation ends there')} />
-        <Row y={142} badge="!" tone="red" text={t(lang, 'Nessun avversario in piedi entro 2 caselle', 'No standing opponent within 2 squares')} note={t(lang, 'è la condizione per poter usare Secure the Ball', 'that is the condition for using Secure the Ball')} />
-        <Note x={14} y={186}>{t(lang, 'La palla a terra rimbalza sempre di una casella a caso.', 'A loose ball always bounces one random square.')}</Note>
+        <g className={styles.step} style={at(1.65)}>
+          <Row y={110} badge="2+" tone="green" text="Secure the Ball" note={t(lang, "azione una volta per turno: raccogli con 2+, ma l’attivazione finisce lì", "once-per-turn action: pick up on a 2+, but your activation ends there")} />
+        </g>
+        <g className={styles.step} style={at(2)}>
+          <Row y={142} badge="!" tone="red" text={t(lang, 'Nessun avversario in piedi entro 2 caselle', 'No standing opponent within 2 squares')} note={t(lang, 'è la condizione per poter usare Secure the Ball', 'that is the condition for using Secure the Ball')} />
+        </g>
+        <g className={styles.step} style={at(2.3)}>
+          <Note x={14} y={186}>{t(lang, 'La palla a terra rimbalza sempre di una casella a caso.', 'A loose ball always bounces one random square.')}</Note>
+        </g>
       </Plate>
   );
 }
@@ -431,22 +512,33 @@ function PassRanges({ lang }: { lang: Lang }) {
   const y0 = 66;
   const w = 74;
   return (
-      <Plate label={t(lang, 'LE QUATTRO GITTATE DEL PASSAGGIO', 'THE FOUR PASSING RANGES')}>
+      <Plate label={t(lang, 'LE QUATTRO GITTATE DEL PASSAGGIO', 'THE FOUR PASSING RANGES')} animated lang={lang} cycle={cycleOf(2.1)}>
         <Token cx={26} cy={y0 + 18} r={12} side="home" />
-        <Ball cx={38} cy={y0 + 2} s={0.8} />
         {bands.map(([name, mod, color], i) => (
-            <g key={name}>
+            <g key={name} className={styles.step} style={at(0.1 + i * 0.25)}>
               <rect x={x0 + i * w} y={y0} width={w - 4} height="36" fill={color} opacity={0.22} />
               <rect x={x0 + i * w} y={y0} width={w - 4} height="36" fill="none" stroke={color} strokeWidth="1.6" />
               <text x={x0 + i * w + (w - 4) / 2} y={y0 - 8} textAnchor="middle" className={styles.rangeName} fill={color}>{name}</text>
               <text x={x0 + i * w + (w - 4) / 2} y={y0 + 26} textAnchor="middle" className={styles.rangeMod} fill={color}>{mod}</text>
             </g>
         ))}
-        <Arrow d={`M ${x0} ${y0 + 48} L ${x0 + 4 * w - 8} ${y0 + 48}`} />
-        <Note x={x0} y={y0 + 62}>{t(lang, 'Più lontano tiri, peggiore è il modificatore: si misura con il righello in qualsiasi direzione.', 'The further you throw, the worse the modifier: measure with the ruler in any direction.')}</Note>
+        <g className={styles.step} style={at(1.1)}>
+          <Arrow d={`M ${x0} ${y0 + 48} L ${x0 + 4 * w - 8} ${y0 + 48}`} />
+        </g>
+        {/* la palla attraversa le quattro gittate: qui il movimento e' la regola */}
+        <g className={styles.slide} style={slideTo(1.2, 296)}>
+          <Ball cx={38} cy={y0 + 2} s={0.8} />
+        </g>
+        <g className={styles.step} style={at(1.5)}>
+          <Note x={x0} y={y0 + 62}>{t(lang, 'Più lontano tiri, peggiore è il modificatore: si misura con il righello in qualsiasi direzione.', 'The further you throw, the worse the modifier: measure with the ruler in any direction.')}</Note>
+        </g>
 
-        <Row y={142} badge="PA" text={t(lang, 'Test di PA con la gittata, -1 per ogni avversario che ti marca.', 'PA test with the range, -1 for each opponent marking you.')} />
-        <Row y={172} badge="1" tone="red" text={t(lang, 'Un 1 dopo i modificatori è un fumble: palla persa e turnover.', 'A 1 after modifiers is a fumble: ball lost and turnover.')} />
+        <g className={styles.step} style={at(1.75)}>
+          <Row y={142} badge="PA" text={t(lang, 'Test di PA con la gittata, -1 per ogni avversario che ti marca.', 'PA test with the range, -1 for each opponent marking you.')} />
+        </g>
+        <g className={styles.step} style={at(2)}>
+          <Row y={172} badge="1" tone="red" text={t(lang, 'Un 1 dopo i modificatori è un fumble: palla persa e turnover.', 'A 1 after modifiers is a fumble: ball lost and turnover.')} />
+        </g>
       </Plate>
   );
 }
@@ -474,48 +566,67 @@ function Touchdown({ lang }: { lang: Lang }) {
   const x = 16, y = 18, w = 240, h = 104, cols = 8, rows = 4;
   const cw = w / cols;
   return (
-      <Plate label={t(lang, 'SEGNARE — E LO STALLING', 'SCORING — AND STALLING')}>
+      <Plate label={t(lang, 'SEGNARE — E LO STALLING', 'SCORING — AND STALLING')} animated lang={lang} cycle={cycleOf(2.2)}>
         <Pitch x={x} y={y} w={w} h={h} cols={cols} rows={rows} />
         <rect x={x + w - cw} y={y} width={cw} height={h} className={styles.endzone} />
         <text x={x + w - cw / 2} y={y + h / 2} className={styles.vLabel} transform={`rotate(-90 ${x + w - cw / 2} ${y + h / 2})`}>END ZONE</text>
-        <Token cx={x + cw * 4.5} cy={y + h / 2} r={11} side="home" ghost />
-        <Token cx={x + w - cw * 1.5} cy={y + h / 2} r={11} side="home" label="TD" />
-        <Ball cx={x + w - cw * 1.5 + 10} cy={y + h / 2 - 10} s={0.8} />
-        <Arrow d={`M ${x + cw * 5.1} ${y + h / 2} L ${x + w - cw * 2.1} ${y + h / 2}`} />
+        <g className={styles.step} style={at(0.15)}>
+          <Token cx={x + cw * 4.5} cy={y + h / 2} r={11} side="home" ghost />
+        </g>
+        {/* la corsa in end zone: 60 unita' = due caselle, palla al seguito */}
+        <g className={styles.slide} style={slideTo(0.6, 60)}>
+          <Token cx={x + cw * 4.5} cy={y + h / 2} r={11} side="home" label="TD" />
+          <Ball cx={x + cw * 4.5 + 10} cy={y + h / 2 - 10} s={0.8} />
+        </g>
+        <g className={styles.step} style={at(0.3)}>
+          <Arrow d={`M ${x + cw * 5.1} ${y + h / 2} L ${x + w - cw * 2.1} ${y + h / 2}`} />
+        </g>
 
-        <rect x="266" y="18" width="80" height="104" className={styles.panelGold} />
-        <text x="306" y="36" textAnchor="middle" className={styles.panelTitleDark}>TD</text>
-        <Note x={306} y={54} anchor="middle" width={76}>{t(lang, 'in piedi', 'standing')}</Note>
-        <Note x={306} y={70} anchor="middle" width={76}>{t(lang, '+ palla in mano', '+ ball in hand')}</Note>
-        <Note x={306} y={86} anchor="middle" width={76}>+ End Zone</Note>
-        <Note x={306} y={106} anchor="middle" width={76}>{t(lang, 'il drive finisce', 'the drive ends')}</Note>
+        <g className={styles.step} style={at(1.5)}>
+          <rect x="266" y="18" width="80" height="104" className={styles.panelGold} />
+          <text x="306" y="36" textAnchor="middle" className={styles.panelTitleDark}>TD</text>
+          <Note x={306} y={54} anchor="middle" width={76}>{t(lang, 'in piedi', 'standing')}</Note>
+          <Note x={306} y={70} anchor="middle" width={76}>{t(lang, '+ palla in mano', '+ ball in hand')}</Note>
+          <Note x={306} y={86} anchor="middle" width={76}>+ End Zone</Note>
+          <Note x={306} y={106} anchor="middle" width={76}>{t(lang, 'il drive finisce', 'the drive ends')}</Note>
+        </g>
 
-        <Row y={132} badge="D6" tone="red" text="Stalling" note={t(lang, 'potevi segnare senza tirare dadi e non l\'hai fatto: D6 ≥ numero del turno e il pubblico ti stende', 'you could score without dice and chose not to: D6 ≥ turn number and the crowd floors you')} />
-        <Note x={14} y={182}>{t(lang, 'Lo Stalling toglie anche 10.000 di incasso a fine partita.', 'Stalling also costs you 10,000 in winnings after the game.')}</Note>
+        <g className={styles.step} style={at(1.9)}>
+          <Row y={132} badge="D6" tone="red" text="Stalling" note={t(lang, 'potevi segnare senza tirare dadi e non l\'hai fatto: D6 ≥ numero del turno e il pubblico ti stende', 'you could score without dice and chose not to: D6 ≥ turn number and the crowd floors you')} />
+        </g>
+        <g className={styles.step} style={at(2.2)}>
+          <Note x={14} y={182}>{t(lang, 'Lo Stalling toglie anche 10.000 di incasso a fine partita.', 'Stalling also costs you 10,000 in winnings after the game.')}</Note>
+        </g>
       </Plate>
   );
 }
 
 function BlockDiceCount({ lang }: { lang: Lang }) {
-  const rows: [string, number, string][] = [
-    [t(lang, 'ST uguale', 'Same ST'), 1, t(lang, 'un dado solo, nessuno sceglie', 'a single die, no choice')],
-    [t(lang, 'ST più alta', 'Higher ST'), 2, t(lang, 'due dadi: sceglie il più forte', 'two dice: the stronger coach picks')],
-    [t(lang, 'ST più che doppia', 'ST over double'), 3, t(lang, 'tre dadi: sceglie il più forte', 'three dice: the stronger coach picks')],
+  const rows: [string, number, boolean, string][] = [
+    [t(lang, 'Stessa ST', 'Same ST'), 1, false, t(lang, 'un dado solo: ti prendi quel che viene', 'a single die: you take what comes')],
+    [t(lang, 'Sei più forte', 'You are stronger'), 2, false, t(lang, 'due dadi e scegli tu', 'two dice and you pick')],
+    [t(lang, 'La tua ST è più del doppio', 'Your ST is over double'), 3, false, t(lang, 'tre dadi e scegli tu', 'three dice and you pick')],
+    [t(lang, 'Sei più debole', 'You are weaker'), 2, true, t(lang, 'due dadi, ma sceglie l\'avversario', 'two dice, but the opponent picks')],
+    [t(lang, 'La sua ST è più del doppio', 'Their ST is over double'), 3, true, t(lang, 'tre dadi, e sceglie l\'avversario', 'three dice, and the opponent picks')],
   ];
   return (
-      <Plate label={t(lang, 'QUANTI DADI SI TIRANO', 'HOW MANY DICE YOU ROLL')}>
-        {rows.map(([label, n, note], i) => {
-          const y = 12 + i * 46;
+      <Plate label={t(lang, 'QUANTI DADI SI TIRANO (E CHI SCEGLIE)', 'HOW MANY DICE, AND WHO PICKS')} animated lang={lang} cycle={cycleOf(1.9)}>
+        {rows.map(([label, n, theirs, note], i) => {
+          const y = 6 + i * 33;
           return (
-              <g key={label}>
-                <rect x="14" y={y} width={W - 28} height="40" className={styles.rowBg} />
-                <text x="26" y={y + 18} className={styles.rowTitle}>{label}</text>
-                <text x="26" y={y + 32} className={styles.caption}>{note}</text>
-                {Array.from({ length: n }, (_, k) => <MiniDie key={k} x={250 + k * 30} y={y + 11} s={20} />)}
+              <g key={label} className={styles.step} style={at(0.1 + i * 0.3)}>
+                <rect x="14" y={y} width={W - 28} height="30" className={theirs ? styles.rowBgAlt : styles.rowBg} />
+                <text x="26" y={y + 13} className={styles.rowTitle}>{label}</text>
+                <text x="26" y={y + 25} className={styles.caption}>{note}</text>
+                <g className={styles.step} style={at(0.35 + i * 0.3)}>
+                  {Array.from({ length: n }, (_, k) => <MiniDie key={k} x={258 + k * 26} y={y + 7} s={16} theirs={theirs} />)}
+                </g>
               </g>
           );
         })}
-        <Row y={152} badge="ST" tone="gold" text={t(lang, 'Le assistenze contano: ogni assistenza vale +1 alla ST prima di contare i dadi.', 'Assists count: each one is +1 ST before you work out the dice.')} />
+        <g className={styles.step} style={at(1.9)}>
+          <Note x={14} y={178}>{t(lang, 'Si conta la ST dopo le assistenze: ogni assistenza vale +1 e può ribaltare il confronto.', 'Strength counts after assists: each assist is +1 and can turn the comparison around.')}</Note>
+        </g>
       </Plate>
   );
 }
@@ -523,20 +634,43 @@ function BlockDiceCount({ lang }: { lang: Lang }) {
 function Assists({ lang }: { lang: Lang }) {
   const x = 16, y = 16, sq = 30;
   return (
-      <Plate label={t(lang, 'LE ASSISTENZE', 'ASSISTS')}>
+      <Plate label={t(lang, 'LE ASSISTENZE', 'ASSISTS')} animated lang={lang} cycle={cycleOf(3.6)}>
         <Pitch x={x} y={y} w={sq * 4} h={sq * 3} cols={4} rows={3} />
         <Token cx={x + sq * 0.5} cy={y + sq * 1.5} r={12} side="home" label="A" />
         <Token cx={x + sq * 1.5} cy={y + sq * 1.5} r={12} side="away" label="B" />
-        <Token cx={x + sq * 1.5} cy={y + sq * 0.5} r={12} side="home" label="+1" />
-        <Token cx={x + sq * 2.5} cy={y + sq * 1.5} r={12} side="away" label="✕" ghost />
-        <Arrow d={`M ${x + sq * 0.9} ${y + sq * 1.5} L ${x + sq * 1.1} ${y + sq * 1.5}`} />
+        {/* il compagno arriva a marcare B: e' lui il +1 di ST */}
+        <g className={styles.slide} style={slideTo(0.4, sq)}>
+          <Token cx={x + sq * 0.5} cy={y + sq * 0.5} r={12} side="home" label="+1" />
+        </g>
+        {/* Il secondo compagno marca B anche lui, ma l'avversario accanto lo tiene
+            occupato: assiste solo chi non e' marcato da nessun altro. Le due caselle
+            sono scelte perche' l'avversario NON sfiora il +1 la' sopra. */}
+        <g className={styles.step} style={at(1.8)}>
+          <Token cx={x + sq * 1.5} cy={y + sq * 2.5} r={12} side="home" label="✕" />
+        </g>
+        <g className={styles.step} style={at(2.2)}>
+          <Token cx={x + sq * 2.5} cy={y + sq * 2.5} r={12} side="away" />
+        </g>
+        <g className={styles.step} style={at(1.4)}>
+          <Arrow d={`M ${x + sq * 0.9} ${y + sq * 1.5} L ${x + sq * 1.1} ${y + sq * 1.5}`} />
+        </g>
 
-        <Label x={148} y={26} width={198}>{t(lang, 'A blocca B', 'A blocks B')}</Label>
-        <Note x={148} y={40} width={198}>{t(lang, 'Il compagno sopra a B lo marca e non è marcato da altri: vale +1 di ST.', 'A\'s team-mate marks B and is marked by nobody else: that is +1 ST.')}</Note>
-        <Row y={64} badge="+1" tone="green" x={148} w={198} text={t(lang, 'Assistenza offensiva', 'Offensive assist')} note={t(lang, 'chi attacca guadagna forza', 'the attacker gains strength')} />
-        <Row y={96} badge="+1" tone="navy" x={148} w={198} text={t(lang, 'Assistenza difensiva', 'Defensive assist')} note={t(lang, 'stessa regola, a favore del bersaglio', 'same rule, for the target')} />
-        <Row y={140} badge="✕" tone="red" text={t(lang, 'Chi è marcato da un altro avversario non può assistere: resta occupato.', 'A player marked by another opponent cannot assist: they are busy.')} />
-        <Note x={14} y={186}>{t(lang, 'Chi è a terra, stordito o Distratto non conta come assistenza.', 'Players who are down, stunned or Distracted never assist.')}</Note>
+        <g className={styles.step} style={at(2.6)}>
+          <Label x={148} y={26} width={198}>{t(lang, 'A blocca B', 'A blocks B')}</Label>
+          <Note x={148} y={40} width={198}>{t(lang, 'Il compagno sopra a B lo marca e non è marcato da altri: vale +1 di ST.', 'A\'s team-mate marks B and is marked by nobody else: that is +1 ST.')}</Note>
+        </g>
+        <g className={styles.step} style={at(2.85)}>
+          <Row y={64} badge="+1" tone="green" x={148} w={198} text={t(lang, 'Assistenza offensiva', 'Offensive assist')} note={t(lang, 'chi attacca guadagna forza', 'the attacker gains strength')} />
+        </g>
+        <g className={styles.step} style={at(3.1)}>
+          <Row y={96} badge="+1" tone="navy" x={148} w={198} text={t(lang, 'Assistenza difensiva', 'Defensive assist')} note={t(lang, 'stessa regola, a favore del bersaglio', 'same rule, for the target')} />
+        </g>
+        <g className={styles.step} style={at(3.35)}>
+          <Row y={140} badge="✕" tone="red" text={t(lang, 'Chi è marcato da un altro avversario non può assistere: resta occupato.', 'A player marked by another opponent cannot assist: they are busy.')} />
+        </g>
+        <g className={styles.step} style={at(3.6)}>
+          <Note x={14} y={186}>{t(lang, 'Chi è a terra, stordito o Distratto non conta come assistenza.', 'Players who are down, stunned or Distracted never assist.')}</Note>
+        </g>
       </Plate>
   );
 }
@@ -548,12 +682,12 @@ function InjuryChain({ lang }: { lang: Lang }) {
     ['D16', 'CASUALTY', t(lang, '1-8 BH · 9-10 SH · 11-12 SI · 13-14 LI · 15-16 morto', '1-8 BH · 9-10 SH · 11-12 SI · 13-14 LI · 15-16 dead'), 'red'],
   ];
   return (
-      <Plate label={t(lang, 'DALLA BOTTA ALL\'INFERMERIA', 'FROM THE HIT TO THE APOTHECARY')}>
+      <Plate label={t(lang, 'DALLA BOTTA ALL\'INFERMERIA', 'FROM THE HIT TO THE APOTHECARY')} animated lang={lang} cycle={cycleOf(1.6)}>
         {steps.map(([dice, title, detail, tone], i) => {
           const y = 12 + i * 56;
           const cls = tone === 'red' ? styles.stepRed : tone === 'gold' ? styles.stepGold : styles.stepNavy;
           return (
-              <g key={title}>
+              <g key={title} className={styles.step} style={at(0.15 + i * 0.5)}>
                 <rect x="14" y={y} width={W - 28} height="44" className={cls} />
                 <rect x="20" y={y + 8} width="44" height="28" rx="2" className={styles.badgeNavy} />
                 <text x="42" y={y + 26} className={styles.badgeText}>{dice}</text>
@@ -563,7 +697,9 @@ function InjuryChain({ lang }: { lang: Lang }) {
               </g>
           );
         })}
-        <Note x={14} y={186}>{t(lang, 'Ogni Casualty vale 2 SPP a chi l\'ha causata con un blocco.', 'Each Casualty is worth 2 SPP to whoever caused it with a block.')}</Note>
+        <g className={styles.step} style={at(1.6)}>
+          <Note x={14} y={186}>{t(lang, 'Ogni Casualty vale 2 SPP a chi l\'ha causata con un blocco.', 'Each Casualty is worth 2 SPP to whoever caused it with a block.')}</Note>
+        </g>
       </Plate>
   );
 }

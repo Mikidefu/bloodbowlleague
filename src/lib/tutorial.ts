@@ -440,13 +440,13 @@ export const TRACKS: Track[] = [
         title: { it: 'Il blocco', en: 'The block' },
         body: {
           it: [
-            'Blocchi un avversario in piedi che stai marcando. Il numero di dadi dipende dalla forza: pari forza un dado, se sei più forte due, se hai più del doppio della sua forza tre.',
-            'Sceglie il risultato l\'allenatore del giocatore più forte; a forze pari sceglie chi ha tirato.',
+            'Blocchi un avversario in piedi che stai marcando. I dadi dipendono dal confronto di forza, e il confronto vale in tutte e due le direzioni: stessa ST un dado, uno dei due più forte due dadi, uno dei due con più del doppio della forza dell\'altro tre dadi.',
+            'A scegliere il risultato è sempre l\'allenatore del giocatore più forte. Se il più forte sei tu, i due o tre dadi sono un vantaggio; se lo è l\'avversario, quegli stessi dadi li subisci, perché il risultato lo prende lui. A forze pari sceglie chi ha tirato.',
             'Le facce sono cinque: Player Down (cadi tu), Both Down (cadete entrambi), Push Back (lo spingi indietro), Stumble (vale Push Back se il bersaglio ha Dodge, altrimenti POW) e POW (spinta e atterrato).',
           ],
           en: [
-            'You block a standing opponent you are marking. The number of dice depends on strength: equal strength one die, stronger two, more than double three.',
-            'The stronger player\'s coach picks the result; with equal strength the roller picks.',
+            'You block a standing opponent you are marking. The dice come from the strength comparison, and it works both ways: same ST one die, one of you stronger two dice, one of you with over double the other\'s strength three dice.',
+            'The stronger player\'s coach always picks the result. When that is you, the extra dice are an advantage; when it is your opponent, those same dice are rolled against you, because they choose. With equal strength the roller picks.',
             'There are five faces: Player Down (you fall), Both Down (both fall), Push Back (you shove them), Stumble (counts as Push Back if the target has Dodge, otherwise POW) and POW (push plus knocked down).',
           ],
         },
