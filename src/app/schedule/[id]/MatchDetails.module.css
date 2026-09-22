@@ -1000,3 +1000,95 @@
 @media (max-width: 900px) {
   .rulesGrid { grid-template-columns: 1fr; }
 }
+
+/* ================================================================== */
+/*  TABELLE DI PARTITA (richiudibili, sopra i report)                   */
+/* ================================================================== */
+.tablesBox {
+  position: relative;
+}
+
+/* Intestazione richiudibile: striscia scura smussata, come la barra dei filtri */
+.tablesSummary {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  min-height: 60px;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--bb-parchment);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+}
+
+.tablesSummary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 6px 100% no-repeat,
+    var(--tex-grain),
+    linear-gradient(100deg, #101318 0%, #1a1e25 60%, #1a2852 100%);
+  background-size: 6px 100%, 200px, cover;
+  clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  box-shadow: var(--shadow-deep);
+}
+
+.tablesSummary::-webkit-details-marker {
+  display: none;
+}
+
+.tablesSummary > svg {
+  color: var(--bb-mustard);
+}
+
+.tablesSummary::after {
+  content: '+';
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-style: normal;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #2a1a05;
+  background: var(--bb-brass);
+}
+
+.tablesBox[open] > .tablesSummary::after {
+  content: '2';
+}
+
+.tablesSummary:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 3px;
+}
+
+.tablesMicro {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.tablesBody {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.tablesBody > a {
+  justify-self: start;
+}

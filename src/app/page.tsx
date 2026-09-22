@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Calendar, Trophy, ShieldAlert, ArrowRight, GraduationCap } from 'lucide-react';
+import { Users, Calendar, Trophy, ShieldAlert, ArrowRight, GraduationCap, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
@@ -156,6 +156,9 @@ export default function Home() {
                         </Link>
                         <Link href="/standings" className="btn btn-slate">
                             <Trophy size={20} /> {t.nav.standings}
+                        </Link>
+                        <Link href="/tables" className="btn btn-slate">
+                            <Dices size={20} /> {t.tables.shortcut}
                         </Link>
                     </div>
                 </div>
@@ -349,6 +352,9 @@ export default function Home() {
                         )}
                         <Link href="/schedule" className="btn btn-gold">
                             <Calendar size={20} /> {t.home.generateSchedule}
+                        </Link>
+                        <Link href="/tables" className="btn btn-slate">
+                            <Dices size={20} /> {t.tables.shortcut}
                         </Link>
                         <span className={`${styles.ctaArrow} ${styles.ctaArrowRight}`} aria-hidden="true" />
                     </div>
