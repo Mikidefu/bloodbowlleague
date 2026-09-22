@@ -209,7 +209,7 @@
   align-self: center;
   width: 150px;
   height: 150px;
-  margin: 2.6rem 0 2.6rem;
+  margin: 3.2rem 0 3.2rem;
   border-radius: 50%;
   color: var(--bb-ink-soft);
   background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
@@ -218,7 +218,6 @@
     0 0 0 9px #d9b268,
     0 0 0 10px rgba(40, 22, 6, 0.8),
     0 18px 30px -10px rgba(0, 0, 0, 0.8);
-  --crest-pop: 1.4;
   transition: transform 0.35s var(--ease-out);
 }
 
@@ -338,7 +337,7 @@
   .logoWrapper {
     width: 120px;
     height: 120px;
-    margin: 2rem 0;
+    margin: 2.5rem 0;
   }
 
   .teamName {

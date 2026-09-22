@@ -45,7 +45,7 @@
 .logoFrame {
   width: 64px;
   height: 64px;
-  margin: 0.7rem;
+  margin: 1.2rem;
   border-radius: 50%;
   color: var(--bb-ink-soft);
   background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
@@ -181,7 +181,6 @@
     0 0 0 14px #2a1a05,
     0 0 0 16px #d9b268,
     0 30px 50px -18px rgba(0, 0, 0, 0.9);
-  --crest-pop: 1.4;
   animation: bb-badge-in 0.9s var(--ease-out) backwards 0.15s;
 }
 

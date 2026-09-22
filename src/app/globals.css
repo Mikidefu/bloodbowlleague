@@ -828,7 +828,7 @@ main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
 /* Il cerchio (sfondo e anelli) lo disegna ogni pagina; qui solo il logo sporgente.
    --crest-pop = quanto il logo è più grande del cerchio. */
 :where(.team-crest) {
-  --crest-pop: 1.45;
+  --crest-pop: 1.6;
   display: grid;
   place-items: center;
 }

@@ -496,7 +496,7 @@
   flex: none;
   width: 64px;
   height: 64px;
-  margin: 0.6rem 0 0.4rem;
+  margin: 1.1rem 0 0.9rem;
   border-radius: 50%;
   color: var(--team-color, var(--bb-slate-500));
   background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);

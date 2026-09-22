@@ -206,7 +206,7 @@
   flex: none;
   width: 164px;
   height: 164px;
-  margin: 2.2rem 0 2.4rem;
+  margin: 3.2rem 0 3.4rem;
   border-radius: 50%;
   color: var(--bb-slate-700);
   background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cbb58e);
@@ -216,7 +216,6 @@
     0 0 0 11px #6b4e22,
     0 0 0 13px rgba(243, 216, 151, 0.45),
     0 22px 40px -12px rgba(0, 0, 0, 0.85);
-  --crest-pop: 1.4;
 }
 
 .teamName {
@@ -599,7 +598,7 @@
   .logoRing {
     width: 120px;
     height: 120px;
-    margin: 1.6rem 0 1.8rem;
+    margin: 2.4rem 0 2.6rem;
   }
 }
 
@@ -649,7 +648,7 @@
   .logoRing {
     width: 82px;
     height: 82px;
-    margin: 1rem 0 1.1rem;
+    margin: 1.5rem 0 1.6rem;
     box-shadow:
       0 0 0 3px var(--team-color, var(--bb-slate-500)),
       0 0 0 6px #d9b268,
