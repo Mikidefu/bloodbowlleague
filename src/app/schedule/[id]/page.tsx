@@ -11,6 +11,7 @@ import SectionTitle from '@/components/brand/SectionTitle';
 import TapeStrip from '@/components/brand/TapeStrip';
 import styles from './MatchDetails.module.css';
 import PregamePanel from './PregamePanel';
+import MatchTables from '@/components/match/MatchTables';
 import { isTrue, type MatchDetails } from '@/lib/types';
 import {
   CASUALTY_RESULTS, CONCEDE_QUIT_MIN_ADVANCEMENTS, LASTING_INJURIES, MATCH_OUTCOMES, casualtyInfo, concededScore, rollDie, winnings,
@@ -575,7 +576,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
             ) : undefined}
         />
 
-        {/* Per i non-admin tutti i campi sono in sola lettura */}
+        {/* Per i non-admin tutti i campi sono in sola lettura (le tabelle di partita restano fuori: si tirano sempre) */}
         <fieldset disabled={!canEdit} className={styles.fieldset}>
           {/* TABELLONE DELLA PARTITA: versus con diagonale nei colori delle squadre */}
           <section
@@ -616,15 +617,29 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
           </section>
+        </fieldset>
 
-          <div className={`bleed ${styles.tapeWrap}`}>
-            <TapeStrip tone="mustard" angle={-1.5} moving={false} text={`${match.home_name} ✦ VS ✦ ${match.away_name}`} />
-          </div>
+        <div className={`bleed ${styles.tapeWrap}`}>
+          <TapeStrip tone="mustard" angle={-1.5} moving={false} text={`${match.home_name} ✦ VS ✦ ${match.away_name}`} />
+        </div>
 
-          {/* TABELLE DEI GIOCATORI */}
-          <section className={`bleed ${styles.reports}`}>
-            <span className={`ghost-text on-light ${styles.ghostReport}`} aria-hidden="true">Report</span>
-            <div className={`${styles.inner} ${styles.teamReports}`}>
+        {/* TABELLE DEI GIOCATORI */}
+        <section className={`bleed ${styles.reports}`}>
+          <span className={`ghost-text on-light ${styles.ghostReport}`} aria-hidden="true">Report</span>
+          <div className={`${styles.inner} ${styles.teamReports}`}>
+            {/* Tabelle di partita (meteo, kick-off, infortuni...): chiuse di default per non allungare il referto */}
+            <details className={styles.tablesBox}>
+              <summary className={styles.tablesSummary}>
+                <Dices size={20} /> {t.tables.sectionTitle}
+                <span className={styles.tablesMicro}>{t.tables.sectionMicro}</span>
+              </summary>
+              <div className={styles.tablesBody}>
+                <MatchTables />
+                <Link href="/tables" className={styles.linkBtn}>{t.tables.openAll}</Link>
+              </div>
+            </details>
+
+            <fieldset disabled={!canEdit} className={`${styles.fieldset} ${styles.teamReports}`}>
               {friendly && <p className={styles.rulesNote}>{t.rules.friendlyNote}</p>}
               {legacy && <p className={styles.rulesNote}>{t.rules.legacyNote}</p>}
 
@@ -668,9 +683,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
               {renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
               {renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
-            </div>
-          </section>
-        </fieldset>
+            </fieldset>
+          </div>
+        </section>
       </div>
   );
 }

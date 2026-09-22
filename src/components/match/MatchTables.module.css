@@ -1,0 +1,297 @@
+/* Tabelle di partita: schede in alto, poi la tabella scelta come una pagina del Rulebook */
+
+.wrap {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* --- schede ------------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 2px solid var(--bb-tan-dark);
+  border-radius: var(--radius);
+  background: var(--bb-paper);
+  color: var(--bb-ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.tab:hover {
+  background: var(--bb-parchment);
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
+}
+
+.tabActive,
+.tabActive:hover {
+  background: var(--bb-red);
+  border-color: var(--bb-red);
+  color: var(--bb-paper);
+}
+
+.tabDice {
+  font-family: var(--font-data);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+/* --- pannello ----------------------------------------------------------------- */
+.panel {
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-ink);
+  box-shadow: var(--shadow-hard);
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  border-bottom: 3px solid var(--bb-red);
+  padding-bottom: 0.6rem;
+}
+
+.headText {
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-slab);
+  font-weight: 800;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  color: var(--bb-red);
+  line-height: 1.1;
+}
+
+.who {
+  margin: 0.25rem 0 0;
+  color: var(--bb-ink-soft);
+  font-size: 0.95rem;
+}
+
+.meta {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.metaTag {
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.rollBtn {
+  min-height: 48px;
+}
+
+.modifier {
+  display: grid;
+  grid-template-columns: auto 4.5rem;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-weight: 700;
+}
+
+.modifier input {
+  min-height: 44px;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  border: 2px solid var(--bb-tan-dark);
+  background: #fff;
+}
+
+.modifier small {
+  grid-column: 1 / -1;
+  font-weight: 400;
+  color: var(--bb-ink-soft);
+}
+
+/* --- risultato del tiro ----------------------------------------------------- */
+.result {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  min-height: 4rem;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--bb-ink-soft);
+  font-style: italic;
+}
+
+.dice {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.die {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 8px;
+  background: var(--bb-ink);
+  color: var(--bb-paper);
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.15);
+  animation: dieIn 0.35s var(--ease-out);
+}
+
+.plus,
+.total {
+  color: var(--bb-ink);
+}
+
+.outcome {
+  min-width: 0;
+  border-left: 6px solid var(--bb-tan);
+  padding: 0.35rem 0 0.35rem 0.85rem;
+}
+
+.outcomeName {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.outcomeText {
+  margin: 0.2rem 0 0;
+}
+
+.nextBtn {
+  margin-top: 0.6rem;
+}
+
+@keyframes dieIn {
+  from { transform: rotate(-25deg) scale(0.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* --- righe della tabella ------------------------------------------------------ */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border-top: 2px solid var(--bb-ink);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: 0.75rem;
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid rgba(29, 26, 24, 0.18);
+  border-left: 5px solid transparent;
+  transition: background-color 0.2s;
+}
+
+.row:nth-child(even) {
+  background: var(--bb-sky);
+}
+
+.range {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  align-self: start;
+}
+
+.rowName {
+  display: block;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.rowText {
+  display: block;
+  color: var(--bb-ink-soft);
+  font-size: 0.95rem;
+}
+
+.rowHit,
+.rowHit:nth-child(even) {
+  background: #fff1c4;
+  border-left-color: var(--bb-mustard-deep);
+}
+
+.rowHit .rowText {
+  color: var(--bb-ink);
+}
+
+/* Il tono colora il bordo del risultato: rosso se fa male, verde se aiuta */
+.good.outcome { border-left-color: var(--bb-success); }
+.bad.outcome { border-left-color: var(--bb-red); }
+.neutral.outcome { border-left-color: var(--bb-tan); }
+
+.note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--bb-ink-soft);
+  border-left: 3px solid var(--bb-navy);
+  padding-left: 0.6rem;
+}
+
+@media (max-width: 560px) {
+  .panel { padding: 0.75rem; }
+  .result { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 3rem 1fr; gap: 0.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die { animation: none; }
+}

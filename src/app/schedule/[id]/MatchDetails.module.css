@@ -1000,3 +1000,69 @@
 @media (max-width: 900px) {
   .rulesGrid { grid-template-columns: 1fr; }
 }
+
+/* ================================================================== */
+/*  TABELLE DI PARTITA (richiudibili, sopra i report)                   */
+/* ================================================================== */
+.tablesBox {
+  border: 2px solid var(--bb-ink);
+  background: var(--bb-parchment);
+  box-shadow: var(--shadow-hard);
+}
+
+.tablesSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  min-height: 52px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  list-style: none;
+}
+
+.tablesSummary::-webkit-details-marker {
+  display: none;
+}
+
+.tablesSummary::after {
+  content: '+';
+  margin-left: auto;
+  font-style: normal;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.tablesBox[open] > .tablesSummary::after {
+  content: '\2212';
+}
+
+.tablesSummary:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
+}
+
+.tablesMicro {
+  font-family: var(--font-data);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: none;
+  color: var(--bb-ink-soft);
+}
+
+.tablesBody {
+  display: grid;
+  gap: 1rem;
+  padding: 0 1rem 1rem;
+}
+
+.tablesBody > a {
+  justify-self: start;
+}
