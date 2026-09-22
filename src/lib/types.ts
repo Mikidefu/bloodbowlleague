@@ -27,6 +27,9 @@ export type Team = {
   apothecary: SqlBoolean;
   treasury: number;
   bank: number;
+  roster: string | null;          // chiave in src/lib/rosters.ts
+  team_league: string | null;
+  favoured_of: string | null;
 };
 
 export type Player = {
@@ -49,6 +52,16 @@ export type Player = {
   mng: SqlBoolean;
   dead: SqlBoolean;
   skills: Skill[];
+  position_key: string | null;
+  hiring_fee: number | null;
+  niggling_injuries: number;
+  temp_retired: SqlBoolean;
+  left_team: SqlBoolean;
+  journeyman: SqlBoolean;
+  journeyman_match_id: string | null;
+  is_captain: SqlBoolean;
+  hatreds: string | null;
+  lasting_injuries: number;       // Lasting Injury subiti (per Temporarily Retiring)
 };
 
 // GET /api/teams/[id]
@@ -67,6 +80,19 @@ export type TeamWithPlayers = Team & {
   coach_id: string | null;       // allenatore nella stagione attiva (o nell'ultima giocata)
   coach_name: string | null;
   season_history: TeamSeasonEntry[];
+  tv: number;
+  ctv: number;
+  pending_postgame: PendingPostgame[];
+};
+
+// Partite con la sequenza post-partita ancora aperta (Expensive Mistakes da risolvere)
+export type PendingPostgame = {
+  match_id: string;
+  round: number;
+  match_type: string;
+  opponent_name: string;
+  winnings: number;
+  df_change: number;
 };
 
 // GET /api/schedule (una riga per partita, con i dati essenziali delle squadre)
@@ -88,9 +114,58 @@ export type Match = {
   away_name: string;
   away_logo: string | null;
   away_color: string | null;
+  outcome?: string | null;
+  conceded_team_id?: string | null;
+  penalty_winner_id?: string | null;
+  rules_applied?: SqlBoolean;
+  pregame_done?: SqlBoolean;
 };
 
-export type MatchPlayer = Pick<Player, 'id' | 'jersey_number' | 'name' | 'role' | 'status' | 'team_id' | 'mng' | 'dead'>;
+export type MatchPlayer = Pick<Player, 'id' | 'jersey_number' | 'name' | 'role' | 'status' | 'team_id' | 'mng' | 'dead' | 'position_key' | 'advancements' | 'journeyman' | 'temp_retired' | 'niggling_injuries' | 'ma' | 'st' | 'ag' | 'pa' | 'av'> & {
+  unavailable: 'mng' | 'retired' | null;   // non poteva giocare questa partita
+};
+
+export type MatchTeam = {
+  id: string;
+  name: string;
+  roster: string | null;
+  team_league: string | null;
+  favoured_of: string | null;
+  dedicated_fans: number;
+  treasury: number;
+  apothecary: boolean;
+  tv: number;
+  ctv: number;
+};
+
+export type MatchTeamReport = {
+  match_id: string;
+  team_id: string;
+  fair_weather: number | null;
+  fan_factor: number | null;
+  ctv: number | null;
+  petty_cash: number;
+  treasury_spent: number;
+  inducements: string | null;
+  journeymen: number;
+  stalling: SqlBoolean;
+  winnings: number;
+  df_roll: number | null;
+  df_change: number;
+  quit_player_ids: string | null;
+  mistake_result: string | null;
+  mistake_loss: number;
+};
+
+export type MatchInjury = {
+  id: string;
+  match_id: string;
+  player_id: string;
+  result: 'BH' | 'SH' | 'SI' | 'LI' | 'DEAD';
+  stat: 'ma' | 'st' | 'ag' | 'pa' | 'av' | null;
+  stat_applied: SqlBoolean;
+  hatred: string | null;
+};
 
 export type PlayerStatsRow = {
   id: string;
@@ -102,6 +177,8 @@ export type PlayerStatsRow = {
   completions: number;
   mvp: number;
   spp_earned: number;
+  ttm: number;
+  landings: number;
 };
 
 // GET /api/schedule/[id]
@@ -111,6 +188,9 @@ export type MatchDetails = Match & {
   homePlayers: MatchPlayer[];
   awayPlayers: MatchPlayer[];
   stats: PlayerStatsRow[];
+  teams: MatchTeam[];
+  reports: MatchTeamReport[];
+  injuries: MatchInjury[];
 };
 
 // Riga delle classifiche giocatori in GET /api/stats

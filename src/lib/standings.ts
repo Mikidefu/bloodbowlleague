@@ -24,7 +24,8 @@ export type TeamStanding = {
 };
 
 // Classifica di campionato di una stagione: squadre iscritte alla stagione e sole partite di lega giocate
-// (niente amichevoli né playoff). Punti: vittoria 3, pareggio 1. Spareggi: differenza TD, poi differenza CAS.
+// (niente amichevoli né playoff). Punti: vittoria 3, pareggio 1 (p. 103). Spareggi: differenza TD, poi differenza CAS.
+// Una partita non giocata entro il limite (outcome 'forfeit_both') è una sconfitta per entrambe (p. 102).
 export async function computeStandings(seasonId: string): Promise<TeamStanding[]> {
   const { rows } = await db.execute({
     sql: `
@@ -32,10 +33,12 @@ export async function computeStandings(seasonId: string): Promise<TeamStanding[]
         t.id, t.name, t.logo_url, t.primary_color, t.secondary_color,
         st.coach_id, c.name AS coach_name,
         COUNT(m.id) AS played,
-        SUM(CASE WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1
+        SUM(CASE WHEN m.outcome = 'forfeit_both' THEN 0
+                 WHEN m.home_team_id = t.id AND m.home_score > m.away_score THEN 1
                  WHEN m.away_team_id = t.id AND m.away_score > m.home_score THEN 1 ELSE 0 END) AS wins,
-        SUM(CASE WHEN m.id IS NOT NULL AND m.home_score = m.away_score THEN 1 ELSE 0 END) AS draws,
-        SUM(CASE WHEN m.home_team_id = t.id AND m.home_score < m.away_score THEN 1
+        SUM(CASE WHEN m.id IS NOT NULL AND m.home_score = m.away_score AND COALESCE(m.outcome, 'played') <> 'forfeit_both' THEN 1 ELSE 0 END) AS draws,
+        SUM(CASE WHEN m.outcome = 'forfeit_both' THEN 1
+                 WHEN m.home_team_id = t.id AND m.home_score < m.away_score THEN 1
                  WHEN m.away_team_id = t.id AND m.away_score < m.home_score THEN 1 ELSE 0 END) AS losses,
         SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score ELSE m.away_score END) AS td_for,
         SUM(CASE WHEN m.home_team_id = t.id THEN m.away_score ELSE m.home_score END) AS td_against,

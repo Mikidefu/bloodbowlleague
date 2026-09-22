@@ -220,3 +220,188 @@ select.inputField {
     .actionButtons { flex-direction: column-reverse; }
     .actionButtons button { width: 100%; }
 }
+
+/* ========================================= */
+/* DRAFT DAL TEAM ROSTER                     */
+/* ========================================= */
+.rosterRules {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--bb-ink-soft);
+}
+
+.hint {
+    font-size: 0.85rem;
+    color: var(--bb-ink-soft);
+    text-align: center;
+}
+
+p.hint {
+    margin: 0.75rem 0 0;
+    text-align: left;
+}
+
+.tableScroll {
+    margin-top: 1rem;
+    overflow-x: auto;
+}
+
+.rosterTable td {
+    vertical-align: middle;
+}
+
+.keywords {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--bb-ink-soft);
+}
+
+.skills {
+    min-width: 180px;
+    font-size: 0.85rem;
+}
+
+.stepper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.stepBtn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: var(--bb-parchment);
+    background: var(--bb-navy);
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.stepBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.stepValue {
+    min-width: 2.6rem;
+    font-family: var(--font-data);
+    font-stretch: 85%;
+    font-weight: 800;
+    font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.stepValue small {
+    font-size: 0.75rem;
+    color: var(--bb-ink-soft);
+}
+
+.draftList {
+    display: grid;
+    gap: 0.5rem;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.draftRow {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) minmax(0, 12rem) auto;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.jerseyInput {
+    text-align: center;
+}
+
+.draftPosition {
+    font-size: 0.9rem;
+    color: var(--bb-ink-soft);
+}
+
+.captainPick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.linkBtn {
+    padding: 0;
+    font: inherit;
+    color: var(--bb-blood-700);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.budget {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 5;
+}
+
+.budgetFigures {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.budgetFigures span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.budgetFigures small {
+    font-family: var(--font-data);
+    font-stretch: 80%;
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--bb-ink-soft);
+}
+
+.budgetFigures strong {
+    font-family: var(--font-data);
+    font-stretch: 85%;
+    font-weight: 800;
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.over strong {
+    color: var(--bb-red);
+}
+
+.errors {
+    margin-top: 0.75rem;
+    color: var(--bb-blood-700);
+}
+
+.errors ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.ok {
+    margin: 0.75rem 0 0;
+    font-weight: 700;
+    color: var(--bb-success);
+}
+
+@media (max-width: 768px) {
+    .draftRow { grid-template-columns: 64px minmax(0, 1fr); }
+    .draftPosition, .captainPick { grid-column: 2; }
+    .budgetFigures strong { font-size: 1.2rem; }
+}

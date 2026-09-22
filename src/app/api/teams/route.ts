@@ -4,6 +4,9 @@ import { uploadTeamLogo, UploadError } from '@/lib/upload';
 import crypto from 'crypto';
 import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
 import { getActiveSeason, resolveSeason, seasonNotFound } from '@/lib/seasons';
+import { checkDraft, type DraftInput } from '@/lib/draft';
+import { skillLinks } from '@/lib/matchRules';
+import { favouredOptions, getPosition, getRoster } from '@/lib/rosters';
 
 // ?season=<id>  squadre iscritte a quella stagione, con il loro allenatore (default: stagione attiva)
 // ?scope=all    tutte le squadre, con l'ultimo allenatore e se partecipano alla stagione attiva
@@ -48,19 +51,28 @@ export async function GET(request: Request) {
   }
 }
 
+// Draft di una nuova squadra (pp. 88-91): roster, staff e giocatori validati con checkDraft.
+// FormData: name, coach_id | new_coach_name, colori, logo_url | logo_file, draft (JSON di DraftInput).
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    const name = formData.get('name')?.toString();
+    const name = formData.get('name')?.toString().trim();
     if (!name) {
       return NextResponse.json({ error: 'Team name is required' }, { status: 400 });
     }
 
-    const race = formData.get('race')?.toString();
-    if (!race) {
-      return NextResponse.json({ error: 'Team race is required' }, { status: 400 });
+    let draft: DraftInput;
+    try {
+      draft = JSON.parse(formData.get('draft')?.toString() ?? '');
+    } catch {
+      return NextResponse.json({ error: 'Draft data is missing' }, { status: 400 });
     }
+    const check = checkDraft(draft);
+    if (check.errors.length) {
+      return NextResponse.json({ error: check.errors.join(' · '), errors: check.errors }, { status: 400 });
+    }
+    const roster = getRoster(draft.roster)!;
 
     // Ogni squadra nuova entra nella stagione attiva, con l'allenatore scelto o creato nel form
     const activeSeason = await getActiveSeason();
@@ -79,12 +91,6 @@ export async function POST(request: Request) {
     const primary_color = formData.get('primary_color')?.toString() || null;
     const secondary_color = formData.get('secondary_color')?.toString() || null;
 
-    // Numeri interi non negativi; se il campo manca o non è valido si usa il default
-    const intField = (key: string, fallback: number) => {
-      const parsed = parseInt(formData.get(key)?.toString() ?? '', 10);
-      return Number.isNaN(parsed) || parsed < 0 ? fallback : parsed;
-    };
-
     const logoFile = formData.get('logo_file') as File | null;
 
     // Integrazione Vercel Blob per la creazione del logo
@@ -96,19 +102,42 @@ export async function POST(request: Request) {
     const statements = [];
     if (coach.statement) statements.push(coach.statement);
 
+    const favoured = favouredOptions(roster, draft.team_league).length ? draft.favoured_of : null;
     statements.push({
       sql: `
-        INSERT INTO teams (id, name, race, logo_url, primary_color, secondary_color, rerolls, reroll_cost, cheerleaders, assistant_coaches, fan_factor, apothecary, treasury, bank)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO teams (id, name, race, logo_url, primary_color, secondary_color, rerolls, reroll_cost, cheerleaders, assistant_coaches,
+                           fan_factor, apothecary, treasury, bank, roster, team_league, favoured_of)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
       `,
       args: [
-        newTeamId, name, race, logo_url, primary_color, secondary_color,
-        intField('rerolls', 0), intField('reroll_cost', 50000), intField('cheerleaders', 0),
-        intField('assistant_coaches', 0), intField('fan_factor', 0),
-        formData.get('apothecary') === 'true' ? 1 : 0,
-        intField('treasury', 1000000), intField('bank', 0)
+        newTeamId, name, roster.name, logo_url, primary_color, secondary_color,
+        draft.rerolls, roster.rerollCost, draft.cheerleaders, draft.assistant_coaches,
+        draft.dedicated_fans, draft.apothecary ? 1 : 0, check.remaining,
+        roster.key, draft.team_league, favoured,
       ]
     });
+
+    // Giocatori con il profilo della posizione; il Team Captain prende Pro senza aumentare il valore (p. 155)
+    const skillIds = new Map((await db.execute('SELECT id, name FROM skills')).rows.map(r => [String(r.name).toLowerCase(), String(r.id)]));
+    draft.players.forEach((pl, index) => {
+      const position = getPosition(roster, pl.position_key)!;
+      const playerId = crypto.randomUUID();
+      const isCaptain = draft.captain_index === index;
+      statements.push({
+        sql: `
+          INSERT INTO players (id, team_id, jersey_number, name, role, position_key, value, hiring_fee, primary_skills, secondary_skills,
+                               advancements, ma, st, ag, pa, av, spp, spp_base, status, mng, dead, is_captain)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, 0, 'Active', 0, 0, ?)
+        `,
+        args: [
+          playerId, newTeamId, Number.isInteger(pl.jersey_number) ? pl.jersey_number as number : null, pl.name.trim(), position.name, position.key,
+          position.cost, position.cost, position.primary.join(', '), position.secondary.join(', '),
+          position.ma, position.st, position.ag, position.pa, position.av, isCaptain ? 1 : 0,
+        ]
+      });
+      statements.push(...skillLinks(playerId, isCaptain ? [...position.skills, 'Pro'] : position.skills, skillIds));
+    });
+
     statements.push({
       sql: 'INSERT INTO season_teams (season_id, team_id, coach_id) VALUES (?, ?, ?)',
       args: [activeSeason.id, newTeamId, coach.coachId]

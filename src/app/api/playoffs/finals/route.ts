@@ -44,11 +44,11 @@ export async function POST() {
     const losers: string[] = [];
 
     for (const semi of semis) {
-      // In parità di TD decidono le casualties; in parità completa non si può scegliere un vincitore
+      // In parità dopo i supplementari decide chi ha vinto ai rigori (p. 83)
       const result = matchWinner(semi);
       if (!result) {
         return NextResponse.json({
-          error: `${semi.match_type} (${semi.home_name} vs ${semi.away_name}) ended in a full tie (TD and CAS). Update the result with the overtime outcome first.`
+          error: `${semi.match_type} (${semi.home_name} vs ${semi.away_name}) is tied: record the Penalty Shoot-out winner in the match report first.`
         }, { status: 400 });
       }
       winners.push(result.winner);

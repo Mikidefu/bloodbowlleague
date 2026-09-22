@@ -1,26 +1,39 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock, Dices, Undo2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
-import { displayMatchType } from '@/lib/matchTypes';
+import { displayMatchType, isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
 import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
 import TapeStrip from '@/components/brand/TapeStrip';
 import styles from './MatchDetails.module.css';
+import PregamePanel from './PregamePanel';
 import { isTrue, type MatchDetails } from '@/lib/types';
+import {
+  CASUALTY_RESULTS, CONCEDE_QUIT_MIN_ADVANCEMENTS, LASTING_INJURIES, MATCH_OUTCOMES, casualtyInfo, concededScore, rollDie, winnings,
+  type CasualtyResult, type InjuryStat, type MatchOutcome,
+} from '@/lib/leagueRules';
 
 // Valore di un campo numerico mentre l'utente scrive: '' = campo svuotato
 type NumericInput = number | '';
-type StatField = 'td' | 'cas' | 'int' | 'comp' | 'mvp';
+type StatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'mvp';
 type PlayerStatDraft = {
   player_id: string;
   jersey_number: number | null;
   name: string;
   team_id: string;
   status: string;
+  unavailable: 'mng' | 'retired' | null;
+  advancements: number;
+  injury: CasualtyResult | '';
+  injuryStat: InjuryStat | '';
+  hatred: string;
 } & Record<StatField, NumericInput>;
+
+type TeamResultDraft = { stalling: boolean; df_roll: string; commitments_roll: string; quit_rolls: Record<string, string> };
 
 const toNumericInput = (value: string): NumericInput => (value === '' ? '' : Math.max(0, parseInt(value, 10) || 0));
 // Lo zero si mostra come campo vuoto con placeholder "0", così si può scrivere subito sopra
@@ -31,14 +44,6 @@ const teamAccent = (color: string | null | undefined) =>
   (color ? { '--team-color': color } : undefined) as React.CSSProperties | undefined;
 
 const pad = (n: number) => String(n).padStart(2, '0');
-
-const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
-  { field: 'td', label: 'TD', title: 'Touchdowns' },
-  { field: 'cas', label: 'CAS', title: 'Casualties' },
-  { field: 'int', label: 'INT', title: 'Interceptions' },
-  { field: 'comp', label: 'CMP', title: 'Completions' },
-  { field: 'mvp', label: 'MVP', title: 'MVP' },
-];
 
 export default function MatchDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -61,7 +66,23 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
   const [playerStats, setPlayerStats] = useState<PlayerStatDraft[]>([]);
 
-  useEffect(() => {
+  // Esito e post-partita (regole di lega)
+  const [outcome, setOutcome] = useState<MatchOutcome>('played');
+  const [concededTeam, setConcededTeam] = useState('');
+  const [penaltyWinner, setPenaltyWinner] = useState('');
+  const [teamResults, setTeamResults] = useState<Record<string, TeamResultDraft>>({});
+
+  const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
+    { field: 'td', label: 'TD', title: 'Touchdowns (3 SPP)' },
+    { field: 'cas', label: 'CAS', title: 'Casualties (2 SPP)' },
+    { field: 'int', label: 'INT', title: 'Interceptions (2 SPP)' },
+    { field: 'comp', label: 'CMP', title: 'Completions (1 SPP)' },
+    { field: 'ttm', label: t.rules.ttm, title: t.rules.ttmTitle },
+    { field: 'landing', label: t.rules.landing, title: t.rules.landingTitle },
+    { field: 'mvp', label: 'MVP', title: 'MVP (4 SPP)' },
+  ];
+
+  const load = useCallback(() => {
     fetch(`/api/schedule/${id}`)
         .then(res => res.json())
         .then((data: MatchDetails) => {
@@ -71,9 +92,20 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           setHomeCas(data.home_casualties || 0);
           setAwayCas(data.away_casualties || 0);
           setMatchDate(data.match_date || ''); // IMPOSTA LA DATA
+          setOutcome((MATCH_OUTCOMES as string[]).includes(String(data.outcome)) ? data.outcome as MatchOutcome : 'played');
+          setConcededTeam(data.conceded_team_id || '');
+          setPenaltyWinner(data.penalty_winner_id || '');
+
+          const results: Record<string, TeamResultDraft> = {};
+          for (const teamId of [data.home_team_id, data.away_team_id]) {
+            const report = data.reports.find(r => r.team_id === teamId);
+            results[teamId] = { stalling: isTrue(report?.stalling), df_roll: report?.df_roll ? String(report.df_roll) : '', commitments_roll: '', quit_rolls: {} };
+          }
+          setTeamResults(results);
 
           const initialStats = [...data.homePlayers, ...data.awayPlayers].map((p): PlayerStatDraft => {
             const existing = data.stats.find(s => s.player_id === p.id);
+            const injury = data.injuries.find(i => i.player_id === p.id);
 
             let currentStatus = 'Active';
             if (isTrue(p.dead)) currentStatus = 'Dead';
@@ -84,12 +116,19 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               jersey_number: p.jersey_number,
               name: p.name,
               team_id: p.team_id,
+              unavailable: p.unavailable,
+              advancements: p.advancements || 0,
               td: existing ? existing.touchdowns : 0,
               cas: existing ? existing.casualties : 0,
               int: existing ? existing.interceptions : 0,
               comp: existing ? existing.completions : 0,
+              ttm: existing ? existing.ttm || 0 : 0,
+              landing: existing ? existing.landings || 0 : 0,
               mvp: existing ? existing.mvp : 0,
-              status: currentStatus
+              status: currentStatus,
+              injury: injury?.result ?? '',
+              injuryStat: injury?.stat ?? '',
+              hatred: injury?.hatred ?? '',
             };
           });
           setPlayerStats(initialStats);
@@ -100,6 +139,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           router.push('/schedule');
         });
   }, [id, router]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Ora accetta stringhe vuote
   const handleStatChange = (playerId: string, field: StatField, value: NumericInput) => {
@@ -130,8 +173,12 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     });
   };
 
-  const handleStatusChange = (playerId: string, status: string) => {
-    setPlayerStats(prev => prev.map(p => p.player_id === playerId ? { ...p, status } : p));
+  const updatePlayer = (playerId: string, patch: Partial<PlayerStatDraft>) => {
+    setPlayerStats(prev => prev.map(p => p.player_id === playerId ? { ...p, ...patch } : p));
+  };
+
+  const updateTeamResult = (teamId: string, patch: Partial<TeamResultDraft>) => {
+    setTeamResults(prev => ({ ...prev, [teamId]: { ...prev[teamId], ...patch } }));
   };
 
   // Cambia solo la data: la partita non viene segnata come giocata
@@ -153,36 +200,51 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleSave = async () => {
+    if (!match) return;
     setSaving(true);
     try {
       // Puliamo i dati vuoti forzandoli a 0 prima di inviarli al DB
-      const cleanPlayerStats = playerStats.map(p => ({
-        ...p,
+      const cleanPlayerStats = playerStats.filter(p => !p.unavailable).map(p => ({
+        player_id: p.player_id,
+        status: p.status,
         td: Number(p.td) || 0,
         cas: Number(p.cas) || 0,
         int: Number(p.int) || 0,
         comp: Number(p.comp) || 0,
+        ttm: Number(p.ttm) || 0,
+        landing: Number(p.landing) || 0,
         mvp: Number(p.mvp) || 0,
+        injury: p.injury ? { result: p.injury, stat: p.injury === 'LI' ? p.injuryStat || null : null, hatred: p.hatred.trim() || null } : null,
       }));
 
       const res = await fetch(`/api/schedule/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          outcome,
+          conceded_team_id: concededTeam || null,
+          penalty_winner_id: penaltyWinner || null,
           home_score: Number(homeScore) || 0,
           away_score: Number(awayScore) || 0,
           home_casualties: Number(homeCas) || 0,
           away_casualties: Number(awayCas) || 0,
           match_date: matchDate, // SALVA LA DATA MODIFICATA
+          teams: Object.fromEntries(Object.entries(teamResults).map(([teamId, r]) => [teamId, {
+            stalling: r.stalling,
+            df_roll: r.df_roll ? Number(r.df_roll) : null,
+            commitments_roll: r.commitments_roll ? Number(r.commitments_roll) : null,
+            quit_rolls: Object.fromEntries(Object.entries(r.quit_rolls).filter(([, v]) => v).map(([k, v]) => [k, Number(v)])),
+          }])),
           playerStats: cleanPlayerStats
         })
       });
 
       if (res.ok) {
         router.refresh();
-        router.push('/schedule');
+        load();
       } else {
-        alert('Failed to save match results');
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to save match results');
       }
     } catch {
       alert('Error saving match');
@@ -191,10 +253,54 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const undoMistakes = async (teamId: string) => {
+    const res = await fetch(`/api/schedule/${id}/mistakes?team=${teamId}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) alert(data.error || 'Error');
+    load();
+  };
+
   // Le partite delle stagioni concluse restano consultabili ma non modificabili
   const canEdit = isAdmin && match?.season_status === 'active';
 
   if (loading || !match) return <div className="loading-state">Loading Graphics...</div>;
+
+  const friendly = match.match_type === MATCH_TYPES.friendly;
+  const legacy = isTrue(match.is_played) && !isTrue(match.rules_applied) && !friendly;
+  const rulesMode = !friendly && !legacy;
+  const knockout = !friendly && !isLeagueMatch(match.match_type);
+  const played = outcome === 'played' || outcome === 'conceded' || outcome === 'conceded_no_penalty';
+  const needsConceder = outcome !== 'played' && outcome !== 'forfeit_both';
+  const mistakesDone = match.reports.some(r => r.mistake_result);
+  const teamName = (teamId: string) => (teamId === match.home_team_id ? match.home_name : match.away_name);
+
+  // Anteprima del risultato registrato (il server applica le stesse regole, pp. 101-102)
+  const projected = (() => {
+    let h = Number(homeScore) || 0;
+    let a = Number(awayScore) || 0;
+    if (!played) { h = 0; a = 0; }
+    if (needsConceder && concededTeam) {
+      if (concededTeam === match.home_team_id) { a = concededScore(a); h = 0; } else { h = concededScore(h); a = 0; }
+    }
+    const result = (teamId: string): 'win' | 'draw' | 'loss' => {
+      if (outcome === 'forfeit_both') return 'loss';
+      const mine = teamId === match.home_team_id ? h : a;
+      const theirs = teamId === match.home_team_id ? a : h;
+      if (mine !== theirs) return mine > theirs ? 'win' : 'loss';
+      if (knockout && penaltyWinner) return penaltyWinner === teamId ? 'win' : 'loss';
+      return 'draw';
+    };
+    return { h, a, result };
+  })();
+  const fanAttendance = match.reports.reduce((sum, r) => sum + (r.fan_factor ?? 0), 0);
+  const winningsPreview = (teamId: string) => {
+    const score = teamId === match.home_team_id ? projected.h : projected.a;
+    const r = teamResults[teamId];
+    if (outcome === 'played' || outcome === 'conceded_no_penalty') return winnings(fanAttendance, score, !!r?.stalling);
+    if (outcome === 'conceded') return concededTeam === teamId ? 0 : (fanAttendance + score) * 10000;
+    if (outcome === 'forfeit_commitments' && concededTeam !== teamId) return (Number(r?.commitments_roll) || 0) * 10000;
+    return 0;
+  };
 
   const toggleTeam = (teamId: string) => {
     setExpandedTeams(prev => ({ ...prev, [teamId]: !prev[teamId] }));
@@ -249,12 +355,16 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                       {STAT_COLUMNS.map(col => (
                           <th key={col.field} title={col.title} className={`num ${styles.colStat}`}>{col.label}</th>
                       ))}
-                      <th title="Status" className={styles.colStatus}>STATUS</th>
+                      {legacy && <th title="Status" className={styles.colStatus}>STATUS</th>}
+                      {rulesMode && played && <th className={styles.colInjury}>{t.rules.injury}</th>}
                     </tr>
                     </thead>
                     <tbody>
-                    {roster.map((stat) => (
-                        <tr key={stat.player_id} className={stat.status === 'Dead' ? styles.rowDead : undefined}>
+                    {roster.map((stat) => {
+                      const locked = !!stat.unavailable || stat.status === 'Dead' && legacy;
+                      const onlyMvp = rulesMode && !played;
+                      return (
+                        <tr key={stat.player_id} className={stat.injury === 'DEAD' || (legacy && stat.status === 'Dead') ? styles.rowDead : stat.unavailable ? styles.rowUnavailable : undefined}>
 
                           {/* ICONA MAGLIETTA CON NUMERO */}
                           <td className="num">
@@ -266,38 +376,81 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                             </div>
                           </td>
 
-                          <td className={styles.playerName}>{stat.name}</td>
+                          <td className={styles.playerName}>
+                            {stat.name}
+                            {stat.unavailable && (
+                                <span className={`tag tag-navy ${styles.unavailableTag}`}>
+                                  {stat.unavailable === 'mng' ? t.rules.unavailableMng : t.rules.unavailableRetired}
+                                </span>
+                            )}
+                          </td>
 
                           {STAT_COLUMNS.map(col => (
                               <td key={col.field} className={`num ${styles.statCell}`}>
                                 <input
                                     type="number"
                                     min="0"
-                                    max={col.field === 'mvp' ? '1' : undefined}
+                                    max={col.field === 'mvp' ? '2' : undefined}
                                     value={zeroAsEmpty(stat[col.field])}
                                     placeholder="0"
                                     aria-label={`${stat.name} ${col.label}`}
                                     onChange={e => handleStatChange(stat.player_id, col.field, toNumericInput(e.target.value))}
                                     className={styles.statsInput}
-                                    disabled={stat.status === 'Dead'}
+                                    disabled={locked || (onlyMvp && col.field !== 'mvp')}
                                 />
                               </td>
                           ))}
 
-                          <td>
-                            <select
-                                value={stat.status}
-                                onChange={e => handleStatusChange(stat.player_id, e.target.value)}
-                                className={`${styles.statusSelect} ${statusClass(stat.status)}`}
-                                aria-label={`${stat.name} status`}
-                            >
-                              <option value="Active">ACTIVE</option>
-                              <option value="Injured">MNG (INJ)</option>
-                              <option value="Dead">DEAD (RIP)</option>
-                            </select>
-                          </td>
+                          {legacy && (
+                              <td>
+                                <select
+                                    value={stat.status}
+                                    onChange={e => updatePlayer(stat.player_id, { status: e.target.value })}
+                                    className={`${styles.statusSelect} ${statusClass(stat.status)}`}
+                                    aria-label={`${stat.name} status`}
+                                >
+                                  <option value="Active">ACTIVE</option>
+                                  <option value="Injured">MNG (INJ)</option>
+                                  <option value="Dead">DEAD (RIP)</option>
+                                </select>
+                              </td>
+                          )}
+
+                          {rulesMode && played && (
+                              <td className={styles.injuryCell}>
+                                <select
+                                    value={stat.injury}
+                                    disabled={!!stat.unavailable}
+                                    onChange={e => updatePlayer(stat.player_id, { injury: e.target.value as CasualtyResult | '', injuryStat: '', hatred: '' })}
+                                    className={`${styles.statusSelect} ${stat.injury === 'DEAD' ? styles.statusDead : stat.injury ? styles.statusInjured : ''}`}
+                                    aria-label={`${stat.name} ${t.rules.injury}`}
+                                >
+                                  <option value="">{t.rules.injuryNone}</option>
+                                  {CASUALTY_RESULTS.map(c => <option key={c.key} value={c.key}>{c.name} ({c.d16})</option>)}
+                                </select>
+                                {stat.injury === 'LI' && (
+                                    <span className={styles.injuryExtra}>
+                                      <select value={stat.injuryStat} onChange={e => updatePlayer(stat.player_id, { injuryStat: e.target.value as InjuryStat })}
+                                              className={styles.smallSelect} aria-label={`${stat.name} ${t.rules.lastingStat}`}>
+                                        <option value="">{t.rules.lastingStat}</option>
+                                        {LASTING_INJURIES.map(l => <option key={l.stat} value={l.stat}>{l.d6.join('-')}: {l.name} (-1 {l.stat.toUpperCase()})</option>)}
+                                      </select>
+                                      <button type="button" className={styles.iconBtnSmall} title={`${t.rules.roll} D6`} aria-label={`${t.rules.roll} D6`}
+                                              onClick={() => updatePlayer(stat.player_id, { injuryStat: LASTING_INJURIES.find(l => l.d6.includes(rollDie(6)))!.stat })}>
+                                        <Dices size={16} />
+                                      </button>
+                                    </span>
+                                )}
+                                {casualtyInfo(stat.injury)?.missNextGame && (
+                                    <input type="text" value={stat.hatred} placeholder={t.rules.hatredKeyword} aria-label={`${stat.name} ${t.rules.hatredKeyword}`}
+                                           title="Getting Even (p. 68): 4+ on a D6" onChange={e => updatePlayer(stat.player_id, { hatred: e.target.value })}
+                                           className={styles.smallInput} />
+                                )}
+                              </td>
+                          )}
                         </tr>
-                    ))}
+                      );
+                    })}
                     </tbody>
                   </table>
                 </div>
@@ -340,6 +493,70 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       </div>
   );
 
+  const renderResultTeam = (teamId: string) => {
+    const r = teamResults[teamId] ?? { stalling: false, df_roll: '', commitments_roll: '', quit_rolls: {} };
+    const result = projected.result(teamId);
+    const isConceder = needsConceder && concededTeam === teamId;
+    const dfDie = outcome === 'conceded' && isConceder ? 3 : result === 'draw' ? 0 : 6;
+    const veterans = outcome === 'conceded' && isConceder
+        ? playerStats.filter(p => p.team_id === teamId && p.advancements >= CONCEDE_QUIT_MIN_ADVANCEMENTS && p.status !== 'Dead')
+        : [];
+    const report = match.reports.find(rep => rep.team_id === teamId);
+    return (
+        <div key={teamId} className={styles.rulesTeam}>
+          <strong className={styles.rulesTeamName}>{teamName(teamId)} · {result.toUpperCase()}</strong>
+          {(outcome === 'played' || outcome === 'conceded_no_penalty') && (
+              <label className={styles.inlineCheck}>
+                <input type="checkbox" checked={r.stalling} onChange={e => updateTeamResult(teamId, { stalling: e.target.checked })} /> {t.rules.stalling}
+              </label>
+          )}
+          {dfDie > 0 && (
+              <div className={styles.diceRow}>
+                <label>{dfDie === 3 ? t.rules.dfRollConceder : `${t.rules.dfRoll} (D6)`}
+                  <input type="number" min="1" max={dfDie} value={r.df_roll} onChange={e => updateTeamResult(teamId, { df_roll: e.target.value })} className={styles.diceInput} />
+                </label>
+                <button type="button" className={styles.iconBtnSmall} onClick={() => updateTeamResult(teamId, { df_roll: String(rollDie(dfDie)) })} aria-label={t.rules.roll} title={t.rules.roll}><Dices size={18} /></button>
+                <span>{t.rules.dedicatedFans}: {match.teams.find(tm => tm.id === teamId)?.dedicated_fans}</span>
+              </div>
+          )}
+          {outcome === 'forfeit_commitments' && concededTeam && !isConceder && (
+              <div className={styles.diceRow}>
+                <label>{t.rules.commitmentsRoll}
+                  <input type="number" min="1" max="6" value={r.commitments_roll} onChange={e => updateTeamResult(teamId, { commitments_roll: e.target.value })} className={styles.diceInput} />
+                </label>
+                <button type="button" className={styles.iconBtnSmall} onClick={() => updateTeamResult(teamId, { commitments_roll: String(rollDie(6)) })} aria-label={t.rules.roll}><Dices size={18} /></button>
+              </div>
+          )}
+          {veterans.length > 0 && (
+              <div>
+                <span>{t.rules.quitRolls}</span>
+                {veterans.map(v => (
+                    <div key={v.player_id} className={styles.diceRow}>
+                      <label>{v.name}
+                        <input type="number" min="1" max="6" value={r.quit_rolls[v.player_id] ?? ''} className={styles.diceInput}
+                               onChange={e => updateTeamResult(teamId, { quit_rolls: { ...r.quit_rolls, [v.player_id]: e.target.value } })} />
+                      </label>
+                      <button type="button" className={styles.iconBtnSmall} aria-label={t.rules.roll}
+                              onClick={() => updateTeamResult(teamId, { quit_rolls: { ...r.quit_rolls, [v.player_id]: String(rollDie(6)) } })}><Dices size={18} /></button>
+                    </div>
+                ))}
+              </div>
+          )}
+          <span>{t.rules.winnings}: <strong>{winningsPreview(teamId).toLocaleString()} gp</strong>{played ? ` (Fan Attendance ${fanAttendance})` : ''}</span>
+          {isTrue(match.rules_applied) && report && (
+              <span className={styles.postgameLine}>
+                {t.rules.postgameDone}: {t.rules.winnings} +{report.winnings.toLocaleString()} · {t.rules.dfChange} {report.df_change > 0 ? '+' : ''}{report.df_change}
+                {' · '}{t.rules.mistakesTitle}: {report.mistake_result ? t.rules.mistakeResult[report.mistake_result as keyof typeof t.rules.mistakeResult] : '—'}
+                {report.mistake_result && canEdit && (
+                    <button type="button" className={styles.linkBtn} onClick={() => undoMistakes(teamId)}><Undo2 size={14} /> {t.rules.undo}</button>
+                )}
+              </span>
+          )}
+          {isTrue(match.rules_applied) && <Link href={`/teams/${teamId}`} className={styles.linkBtn}>{t.rules.openTeam}</Link>}
+        </div>
+    );
+  };
+
   return (
       <div className={styles.page}>
         <PageHeader
@@ -351,7 +568,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   <button type="button" className="btn btn-slate" onClick={handleSaveDate} disabled={saving}>
                     <Clock size={20} /> {t.match.saveDateOnly}
                   </button>
-                  <button type="button" className="btn btn-gold" onClick={handleSave} disabled={saving}>
+                  <button type="button" className="btn btn-gold" onClick={handleSave} disabled={saving || (rulesMode && mistakesDone)}>
                     <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
                   </button>
                 </>
@@ -408,6 +625,47 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
           <section className={`bleed ${styles.reports}`}>
             <span className={`ghost-text on-light ${styles.ghostReport}`} aria-hidden="true">Report</span>
             <div className={`${styles.inner} ${styles.teamReports}`}>
+              {friendly && <p className={styles.rulesNote}>{t.rules.friendlyNote}</p>}
+              {legacy && <p className={styles.rulesNote}>{t.rules.legacyNote}</p>}
+
+              {rulesMode && <PregamePanel match={match} canEdit={!!canEdit} onSaved={load} />}
+
+              {rulesMode && (
+                  <section className={`card ${styles.rulesCard}`}>
+                    <h3 className="subhead">{t.rules.resultTitle}</h3>
+                    <div className={styles.outcomeRow}>
+                      <label className={styles.fieldLine}>{t.rules.outcome}
+                        <select value={outcome} onChange={e => setOutcome(e.target.value as MatchOutcome)} className={styles.smallSelect}>
+                          {MATCH_OUTCOMES.map(o => <option key={o} value={o}>{t.rules.outcomes[o]}</option>)}
+                        </select>
+                      </label>
+                      {needsConceder && (
+                          <label className={styles.fieldLine}>{t.rules.concededBy}
+                            <select value={concededTeam} onChange={e => setConcededTeam(e.target.value)} className={styles.smallSelect}>
+                              <option value="">—</option>
+                              <option value={match.home_team_id}>{match.home_name}</option>
+                              <option value={match.away_team_id}>{match.away_name}</option>
+                            </select>
+                          </label>
+                      )}
+                      {knockout && played && projected.h === projected.a && (
+                          <label className={styles.fieldLine} title={t.rules.penaltyHint}>{t.rules.penaltyWinner}
+                            <select value={penaltyWinner} onChange={e => setPenaltyWinner(e.target.value)} className={styles.smallSelect}>
+                              <option value="">—</option>
+                              <option value={match.home_team_id}>{match.home_name}</option>
+                              <option value={match.away_team_id}>{match.away_name}</option>
+                            </select>
+                          </label>
+                      )}
+                      <span className={styles.projectedScore}>{match.home_name} {projected.h} – {projected.a} {match.away_name}</span>
+                    </div>
+                    <div className={styles.rulesGrid}>
+                      {renderResultTeam(match.home_team_id)}
+                      {renderResultTeam(match.away_team_id)}
+                    </div>
+                  </section>
+              )}
+
               {renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
               {renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
             </div>
