@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, useCallback, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
@@ -84,6 +84,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
 
+  // Arrivando dal post-partita guidato (/teams/<id>?advance=<giocatore>&back=/schedule/<partita>)
+  // si apre subito l'avanzamento e compare il pulsante per tornare alla partita
+  const [backTo, setBackTo] = useState<string | null>(null);
+  const advanceOpened = useRef(false);
+
   // Level Up State
   const [levelUpPlayer, setLevelUpPlayer] = useState<Player | null>(null);
   const [levelUpChoice, setLevelUpChoice] = useState<string>('');
@@ -135,6 +140,16 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       setTeam(teamData);
       setAvailableSkills(skillsData);
       setLoading(false);
+
+      const query = new URLSearchParams(window.location.search);
+      const back = query.get('back');
+      if (back && /^\/schedule\/[\w-]+$/.test(back)) setBackTo(back);   // solo pagine partita: niente redirect esterni
+      const advance = query.get('advance');
+      if (advance && !advanceOpened.current) {
+        advanceOpened.current = true;
+        const player = (teamData.players as Player[]).find(pl => pl.id === advance);
+        if (player) setLevelUpPlayer(player);
+      }
     } catch (err) {
       console.error(err);
       router.push('/teams');
@@ -558,6 +573,13 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 </>
             ) : undefined}
         />
+
+        {backTo && (
+            <p className={styles.backToMatch}>
+              <span>{t.rules.fromPostgame}</span>
+              <Link href={backTo} className="btn btn-primary">{t.rules.backToMatch}</Link>
+            </p>
+        )}
 
         {/* PROFILO SQUADRA (scheda personaggio) */}
         <section className={`bleed ${styles.profileBand}`} aria-labelledby="team-profile-name">

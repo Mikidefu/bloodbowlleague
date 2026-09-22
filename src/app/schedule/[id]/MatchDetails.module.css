@@ -1092,3 +1092,83 @@
 .tablesBody > a {
   justify-self: start;
 }
+
+/* ================================================================== */
+/*  PERCORSO GUIDATO (admin, partite di lega)                          */
+/* ================================================================== */
+.flow {
+  scroll-margin-top: 6rem;
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+/* Le quattro fasi: striscia scura smussata, come le barre dei filtri */
+.flowBar {
+  position: relative;
+  isolation: isolate;
+  list-style: none;
+  margin: 0;
+  padding: 0.9rem 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  color: var(--bb-parchment);
+}
+
+.flowBar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 6px 100% no-repeat,
+    repeating-linear-gradient(-45deg, #eab22a 0 8px, transparent 8px 16px) left bottom / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(100deg, #101318 0%, #1a1e25 60%, #1a2852 100%);
+  background-size: 6px 100%, 100% 4px, 200px, cover;
+  clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  box-shadow: var(--shadow-deep);
+}
+
+.flowItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  color: rgba(245, 236, 220, 0.55);
+}
+
+.flowNum {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-style: normal;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+}
+
+.flowDone {
+  color: rgba(245, 236, 220, 0.85);
+}
+
+.flowNow {
+  color: var(--bb-mustard);
+}
+
+.flowNow .flowNum {
+  color: #2a1a05;
+  background: var(--bb-mustard);
+  border-color: var(--bb-mustard);
+}
+
+@media (max-width: 760px) {
+  .flowBar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flowItem { font-size: 1rem; }
+}

@@ -46,7 +46,7 @@ export default function PostgamePanel({ team, isAdmin, onChange }: Props) {
 }
 
 // Nuovo Team Captain (p. 155): chiunque sia sulla Team Draft List tranne i Big Guy e i Journeymen
-function CaptainPicker({ team, onChange }: { team: TeamWithPlayers; onChange: () => void }) {
+export function CaptainPicker({ team, onChange }: { team: TeamWithPlayers; onChange: () => void }) {
   const { t } = useLanguage();
   const [choice, setChoice] = useState('');
   const [busy, setBusy] = useState(false);

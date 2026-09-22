@@ -127,7 +127,11 @@ export type PregameTeamInput = {
   riotous_roll?: number | null;
 };
 
-export type PregameInput = { teams: Record<string, PregameTeamInput> };
+export type PregameInput = {
+  teams: Record<string, PregameTeamInput>;
+  weather_roll?: number | null;      // 2D6 sulla tabella del Meteo (p. 46)
+  kicking_team_id?: string | null;   // chi calcia il primo drive, deciso con il roll-off (p. 46)
+};
 
 function validateInducements(
     choices: InducementChoice[], roster: Roster | null, favouredOf: string | null, league: string | null, players: Player[], journeymenCount: number,
@@ -290,7 +294,12 @@ export async function applyPregame(matchId: string, input: PregameInput) {
       inducements: JSON.stringify(p.choices), journeymen: p.journeymen,
     }));
   }
-  statements.push({ sql: 'UPDATE matches SET pregame_done = 1 WHERE id = ?', args: [matchId] });
+  // Meteo e squadra che calcia: facoltativi (il vecchio pannello non li mandava), ma se ci sono devono essere validi
+  const weather = input.weather_roll ?? null;
+  if (weather !== null && !isDieValue(weather, 2, 12)) throw new RuleError('Weather: the 2D6 total must be between 2 and 12 (p. 46)');
+  const kicking = input.kicking_team_id ?? null;
+  if (kicking !== null && !ctx.teamIds.includes(kicking)) throw new RuleError('The kicking team must be one of the two teams');
+  statements.push({ sql: 'UPDATE matches SET pregame_done = 1, weather_roll = ?, kicking_team_id = ? WHERE id = ?', args: [weather, kicking, matchId] });
   await db.batch(statements, 'write');
 }
 

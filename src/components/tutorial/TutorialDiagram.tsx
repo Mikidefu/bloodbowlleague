@@ -832,14 +832,14 @@ function Postgame({ lang }: { lang: Lang }) {
 
 // --- formazione: come si usa il sito -------------------------------------------
 
-/** Il giro di una partita nel sito: dove si fa ogni passo e in che ordine. */
+/** Il giro di una partita nel sito: le quattro fasi della pagina partita, nell'ordine. */
 function AppMatchday({ lang }: { lang: Lang }) {
-  const steps: [string, string, string, 'navy' | 'gold' | 'red'][] = [
-    ['PRE', t(lang, 'Pre-partita', 'Pre-game'), t(lang, 'Pagina della partita: tifosi, Journeymen, incentivi', 'Match page: fans, Journeymen, inducements'), 'navy'],
-    ['REF', t(lang, 'Referto', 'Match report'), t(lang, 'Pagina della partita: punteggio, statistiche, infortuni', 'Match page: score, stats, injuries'), 'navy'],
-    ['SPP', t(lang, 'Avanzamenti', 'Advancements'), t(lang, 'Pagina della squadra, prima di tutto il resto', 'Team page, before anything else'), 'gold'],
-    ['GP', t(lang, 'Ingaggi, staff, licenziamenti', 'Hiring, staff, firing'), t(lang, 'Pagina della squadra, pannello post-partita', 'Team page, post-game panel'), 'gold'],
-    ['END', 'Expensive Mistakes', t(lang, 'Chiude il post-partita: poi la prossima partita', 'Closes the post-game: then the next match'), 'red'],
+  const steps: [string, string, string, 'navy' | 'gold' | 'red' | 'green'][] = [
+    ['01', t(lang, 'Pre-partita', 'Pre-game'), t(lang, 'Tifosi, meteo, Journeymen, incentivi, chi calcia', 'Fans, weather, Journeymen, inducements, who kicks'), 'navy'],
+    ['02', t(lang, 'In campo', 'On the pitch'), t(lang, 'Si gioca, con le Tabelle di partita a portata', 'You play, with the Match tables at hand'), 'green'],
+    ['03', t(lang, 'Referto', 'Match report'), t(lang, 'Esito, statistiche, infortuni, MVP, incassi e fan', 'Outcome, stats, injuries, MVP, winnings and fans'), 'navy'],
+    ['04', t(lang, 'Post-partita', 'Post-game'), t(lang, 'Avanzamenti, ingaggi, Journeymen', 'Advancements, hiring, Journeymen'), 'gold'],
+    ['END', 'Expensive Mistakes', t(lang, 'Chiudono la partita: poi la prossima', 'They close the match: then the next one'), 'red'],
   ];
   return (
       <Plate label={t(lang, 'IL GIRO DI UNA PARTITA NEL SITO', 'A MATCH, STEP BY STEP, IN THE APP')} animated lang={lang}>
@@ -849,7 +849,7 @@ function AppMatchday({ lang }: { lang: Lang }) {
             </g>
         ))}
         <g className={styles.step} style={at(1.7)}>
-          <Note x={14} y={186}>{t(lang, 'Il sito tiene l\'ordine: finché un passo non è chiuso, quello dopo resta bloccato.', 'The app keeps the order: until a step is closed, the next one stays locked.')}</Note>
+          <Note x={14} y={186}>{t(lang, 'Tutto dalla pagina della partita, un passo alla volta: un passo non chiuso blocca quelli dopo.', 'All from the match page, one step at a time: an open step locks the ones after it.')}</Note>
         </g>
       </Plate>
   );

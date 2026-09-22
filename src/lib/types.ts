@@ -129,6 +129,8 @@ export type Match = {
   penalty_winner_id?: string | null;
   rules_applied?: SqlBoolean;
   pregame_done?: SqlBoolean;
+  weather_roll?: number | null;      // 2D6 del Meteo (p. 46)
+  kicking_team_id?: string | null;   // chi calcia il primo drive
 };
 
 export type MatchPlayer = Pick<Player, 'id' | 'jersey_number' | 'name' | 'role' | 'status' | 'team_id' | 'mng' | 'dead' | 'position_key' | 'advancements' | 'journeyman' | 'temp_retired' | 'niggling_injuries' | 'ma' | 'st' | 'ag' | 'pa' | 'av'> & {
