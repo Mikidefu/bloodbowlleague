@@ -170,6 +170,14 @@ export async function endLive(matchId: string) {
   ], 'write');
 }
 
+// Azzera il live (es. pre-partita rifatto: la fotografia di inizio partita non vale più). Il referto non si tocca.
+export async function resetLive(matchId: string) {
+  await db.batch([
+    { sql: 'DELETE FROM match_events WHERE match_id = ?', args: [matchId] },
+    { sql: 'DELETE FROM match_live WHERE match_id = ?', args: [matchId] },
+  ], 'write');
+}
+
 // ------------------------------------------------------------------
 // Abbinamento dei telefoni
 // ------------------------------------------------------------------

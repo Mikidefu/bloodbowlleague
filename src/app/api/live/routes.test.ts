@@ -38,6 +38,12 @@ describe('/api/live', () => {
   let code = '';
   let awayToken = '';
 
+  test('prima dell\'avvio la lettura risponde 200 con live null (non è un errore)', async () => {
+    const res = await call(`/api/live/${MATCH}`, live.GET, { method: 'GET' });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.live, null);
+  });
+
   test('avvio solo admin: il proxy blocca chiunque altro', async () => {
     const anonymous = await call(`/api/live/${MATCH}/start`, start.POST);
     assert.equal(anonymous.status, 401);

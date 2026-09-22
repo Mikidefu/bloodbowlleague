@@ -92,15 +92,19 @@ export function resolveKickoff(input: KickoffInput, roll: DieRoller = rollDie): 
 }
 
 // Frase breve per notifiche e cronologia: chi ha ottenuto cosa
-export function kickoffHeadline(result: KickoffResult, teamName: (id: string) => string): string {
-  const who = (ids: string[] = []) => ids.map(teamName).join(' e ');
+export function kickoffHeadline(result: KickoffResult, teamName: (id: string) => string, language: 'it' | 'en' = 'it'): string {
+  const it = language === 'it';
+  const who = (ids: string[] = []) => ids.map(teamName).join(it ? ' e ' : ' and ');
   switch (result.total) {
-    case 2: return 'Get the Ref: un Bribe gratis a entrambe le squadre';
-    case 3: return `Time-out: i segnalini turno ${result.turn_shift === -1 ? 'arretrano' : 'avanzano'} di uno`;
-    case 6: return `Cheering Fans: assist offensivo in più per ${who(result.winners)}`;
-    case 7: return `Brilliant Coaching: un Team Re-roll per questo drive a ${who(result.winners)}`;
-    case 11: return `Dodgy Snack: colpita ${who(result.winners)}`;
-    case 12: return `Pitch Invasion: ${result.d3} giocatori Stunned per ${who(result.winners)}`;
-    default: return result.d3 ? `${result.name}: ${result.d3 + 3} giocatori` : result.name;
+    case 2: return it ? 'Get the Ref: un Bribe gratis a entrambe le squadre' : 'Get the Ref: a free Bribe for both teams';
+    case 3: return it
+      ? `Time-out: i segnalini turno ${result.turn_shift === -1 ? 'arretrano' : 'avanzano'} di uno`
+      : `Time-out: both turn markers move ${result.turn_shift === -1 ? 'back' : 'forward'} one space`;
+    case 6: return it ? `Cheering Fans: un assist offensivo in più per ${who(result.winners)}` : `Cheering Fans: an extra Offensive Assist for ${who(result.winners)}`;
+    case 7: return it ? `Brilliant Coaching: un Team Re-roll per questo drive a ${who(result.winners)}` : `Brilliant Coaching: a Team Re-roll for this drive to ${who(result.winners)}`;
+    case 8: return it ? `Changing Weather: nuovo Meteo (${result.weather_roll})` : `Changing Weather: new Weather (${result.weather_roll})`;
+    case 11: return it ? `Dodgy Snack: tocca a ${who(result.winners)}` : `Dodgy Snack: ${who(result.winners)} is hit`;
+    case 12: return it ? `Pitch Invasion: ${result.d3} giocatori Stunned per ${who(result.winners)}` : `Pitch Invasion: ${result.d3} players Stunned for ${who(result.winners)}`;
+    default: return result.d3 ? `${result.name}: ${result.d3 + 3} ${it ? 'giocatori' : 'players'}` : result.name;
   }
 }

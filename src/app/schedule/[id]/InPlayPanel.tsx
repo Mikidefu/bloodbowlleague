@@ -7,6 +7,8 @@ import type { MatchDetails, MatchTeam } from '@/lib/types';
 import MatchTables from '@/components/match/MatchTables';
 import { WizardStepCard } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
+import { useLiveMatch } from '@/lib/live/useLiveMatch';
+import LiveBoard from './LiveBoard';
 import { reportOf, savedInducements } from './pregameModel';
 
 /** Si gioca: il riassunto del pre-partita a portata di mano, le tabelle per i tiri, e il passaggio al referto. */
@@ -18,6 +20,25 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
   const kicking = teams.find(tm => tm.id === match.kicking_team_id);
   const nameOf = (key: string, star?: string, name?: string) =>
     key === 'star_player' ? getStarHire(star)?.name ?? name ?? 'Star Player' : INDUCEMENTS.find(i => i.key === key)?.name ?? key;
+  const live = useLiveMatch({ matchId: match.id });
+  const isLive = live.live?.status === 'live';
+
+  // Finita la partita dal vivo, i telefoni non devono più scrivere: si chiude prima di passare al referto
+  const toReport = async () => {
+    if (isLive) {
+      if (!confirm(L('Chiudere la partita dal vivo? I telefoni non potranno più segnare niente (puoi riaprirla).', 'Close the live match? The phones will no longer be able to record anything (you can reopen it).'))) return;
+      await live.end();
+    }
+    onReport();
+  };
+  // Il live fotografa il pre-partita all'avvio: rifarlo vuol dire ripartire da zero
+  const redoPregame = async () => {
+    if (live.live) {
+      if (!confirm(L('Rifare il pre-partita azzera la partita dal vivo (cronologia e telefoni collegati). Continuare?', 'Redoing the pre-game resets the live match (timeline and connected phones). Continue?'))) return;
+      await live.reset();
+    }
+    onRedoPregame();
+  };
 
   return (
       <>
@@ -27,10 +48,10 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
             explain={[
               L('Il pre-partita è fatto. Ogni drive comincia così: la squadra che calcia schiera per prima, poi quella che riceve; si calcia, la palla devia e si tira il **Kick-off Event**.',
                 'The pre-game is done. Every drive starts like this: the kicking team sets up first, then the receiving team; the ball is kicked, it deviates and you roll the **Kick-off Event**.'),
-              L('Qui sotto trovi tutte le tabelle che servono in campo: Kick-off, infortuni, **Casualty**, **Argue the Call** e **Prayers to Nuffle**. Quando la partita è finita, passa al referto.',
-                'Below are all the tables you need on the pitch: Kick-off, injuries, **Casualty**, **Argue the Call** and **Prayers to Nuffle**. When the match is over, move on to the report.'),
+              L('Con la **partita dal vivo** tieni il conto di turni e reroll, e i telefoni degli allenatori vedono il kick-off appena lo tiri. Più sotto ci sono tutte le tabelle: Kick-off, infortuni, **Casualty**, **Argue the Call** e **Prayers to Nuffle**. Quando la partita è finita, passa al referto.',
+                'With the **live match** you keep track of turns and re-rolls, and the coaches’ phones see the kick-off as soon as you roll it. Further down are all the tables: Kick-off, injuries, **Casualty**, **Argue the Call** and **Prayers to Nuffle**. When the match is over, move on to the report.'),
             ]}
-            onNext={onReport}
+            onNext={toReport}
             nextLabel={L('La partita è finita: compila il referto', 'The match is over: fill in the report')}
         >
           <dl className={wz.facts}>
@@ -57,9 +78,12 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
             })}
           </div>
           <div className={wz.actions}>
-            <button type="button" className="btn" onClick={onRedoPregame}>{L('Rifai il pre-partita', 'Redo the pre-game')}</button>
+            <button type="button" className="btn" onClick={redoPregame}>{L('Rifai il pre-partita', 'Redo the pre-game')}</button>
           </div>
         </WizardStepCard>
+        <div style={{ marginTop: '1.5rem' }}>
+          <LiveBoard match={match} live={live} />
+        </div>
         <div style={{ marginTop: '1.5rem' }}>
           <MatchTables initial="kickoff" />
         </div>

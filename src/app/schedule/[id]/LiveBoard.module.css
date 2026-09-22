@@ -1,0 +1,297 @@
+/* Tabellone della partita dal vivo: stessa pergamena del percorso guidato, numeri grandi da leggere a bordo tavolo. */
+
+.board {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Barra di stato in alto */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--bb-navy);
+  color: var(--bb-parchment);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pillLive,
+.pillEnded {
+  padding: 0.15rem 0.6rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+}
+
+.pillLive {
+  background: var(--bb-red);
+  color: #fff;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pillEnded {
+  background: var(--bb-tan-dark);
+  color: #fff;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillLive { animation: none; }
+}
+
+.barItem {
+  font-size: 1.05rem;
+}
+
+.barSync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+/* Collegamento dei telefoni */
+.connect {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: var(--bb-paper);
+  border: 2px dashed var(--bb-tan-dark);
+}
+
+.connectLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.code {
+  display: block;
+  margin: 0.2rem 0;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 2.2rem;
+  letter-spacing: 0.25em;
+  color: var(--bb-navy-deep);
+}
+
+.connectHint {
+  font-size: 0.9rem;
+  color: var(--bb-ink-soft);
+}
+
+.paired {
+  display: grid;
+  gap: 0.4rem;
+  align-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+}
+
+.paired li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dotOn,
+.dotOff {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dotOn { background: var(--bb-success); }
+.dotOff { background: transparent; border: 2px solid var(--bb-tan-dark); }
+
+/* Kick-off */
+.kickoff {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.manual {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+
+.kickDice {
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.kickRolls {
+  font-weight: 600 !important;
+  color: var(--bb-ink-soft);
+}
+
+/* Squadre */
+.teamHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.score {
+  min-width: 3.2rem;
+  padding: 0.1rem 0.6rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.2rem;
+  line-height: 1.1;
+  background: var(--bb-ink);
+  color: var(--bb-mustard);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px dotted rgba(29, 26, 24, 0.25);
+  font-weight: 600;
+}
+
+.bonus {
+  padding: 0.45rem 0.55rem;
+  background: #fff1c4;
+  border-left: 4px solid var(--bb-mustard-deep);
+}
+
+.big {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.small.small {
+  min-height: 34px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.die.die {
+  min-width: 2.3rem;
+  padding: 0.2rem 0.4rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+.stats {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.stats select {
+  width: 100%;
+  min-height: 42px;
+}
+
+.statList {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+}
+
+.statList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border-bottom: 1px dotted rgba(29, 26, 24, 0.2);
+}
+
+.statList li span:last-child {
+  font-weight: 800;
+  text-align: right;
+}
+
+/* Cronologia */
+.timeline summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+}
+
+.timeline ol {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px dotted rgba(29, 26, 24, 0.2);
+}
+
+.source {
+  flex: none;
+  min-width: 2.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--bb-ink-soft);
+}
+
+.what {
+  flex: 1;
+  min-width: 0;
+}
+
+.voided .what {
+  text-decoration: line-through;
+  color: var(--bb-ink-soft);
+}
+
+.danger {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .barSync { margin-left: 0; }
+  .code { font-size: 1.8rem; }
+}
