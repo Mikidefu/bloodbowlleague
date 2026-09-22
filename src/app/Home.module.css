@@ -24,17 +24,14 @@
   display: grid;
   place-items: center;
   flex: none;
-  overflow: hidden;
-  border-radius: 50%;
   color: var(--team);
-  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
-  box-shadow: 0 0 0 3px var(--team), 0 0 0 6px #d9b268, 0 10px 18px -6px rgba(0, 0, 0, 0.6);
 }
 
 .teamBadge img {
-  width: 82%;
-  height: 82%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.45));
 }
 
 .moreLink {
@@ -808,17 +805,32 @@
 .cta {
   position: relative;
   margin-top: 2rem;
-  margin-bottom: -4rem;
-  padding-block: 0;
-  background: #101318;
+  margin-bottom: 0;
+  /* Spazio sotto per lo spessore e l'ombra delle sagome, sullo sfondo scuro */
+  padding-block: 0 2rem;
+  /* Fuori dalle due sagome resta lo sfondo scuro della pagina, come le sezioni sopra */
+  background: transparent;
+}
+
+/* La fascia chiude la home attaccata al footer: sulla home niente spazio sotto il main né sopra il footer */
+:global(main):has(.cta) {
+  padding-bottom: 0 !important;
+}
+
+:global(body):has(.cta) :global(footer) {
+  margin-top: 0;
 }
 
 .ctaInner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.4fr);
   max-width: 1240px;
   margin: 0 auto;
   min-height: 150px;
+  /* Profondità: il filtro segue le sagome tagliate. Uno spessore netto sotto (effetto blocco) e un'ombra morbida */
+  filter:
+    drop-shadow(0 7px 0 #07090c)
+    drop-shadow(0 18px 22px rgba(0, 0, 0, 0.55));
 }
 
 .ctaLeft,
@@ -826,23 +838,78 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding: 2rem 2.5rem;
+  min-width: 0;
 }
 
 .ctaLeft {
-  background: linear-gradient(120deg, #e0332f, #9a2226);
-  clip-path: polygon(4% 0, 100% 0, 88% 100%, 0 100%, 6% 50%);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.25);
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+    var(--tex-grain),
+    linear-gradient(120deg, #e0332f, #9a2226);
+  clip-path: polygon(24px 0, 100% 0, calc(100% - 60px) 100%, 0 100%, 36px 50%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Bordino spezzato: tratteggio in alto e in basso, tagliato dalla diagonale come la sagoma */
+.ctaLeft::before,
+.ctaLeft::after,
+.ctaRight::before,
+.ctaRight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--dash) 0 18px, transparent 18px 28px);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.ctaLeft::before,
+.ctaRight::before {
+  top: 9px;
+}
+
+.ctaLeft::after,
+.ctaRight::after {
+  bottom: 12px;
+}
+
+.ctaLeft {
+  --dash: #f3d897;
 }
 
 .ctaRight {
-  justify-content: flex-end;
+  --dash: #eab22a;
+}
+
+/* Tagli della diagonale in px: non mangiano più i pulsanti, qualunque sia la larghezza */
+.ctaRight {
   flex-wrap: wrap;
-  margin-left: -12%;
-  padding-left: 16%;
-  background: linear-gradient(120deg, #25386f, #1a2852);
-  clip-path: polygon(12% 0, 100% 0, 96% 50%, 100% 100%, 0 100%);
+  justify-content: flex-end;
+  margin-left: -60px;
+  padding-left: calc(60px + 2rem);
+  background:
+    radial-gradient(120% 90% at 70% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+    var(--tex-grain),
+    linear-gradient(120deg, #2f4585, #1a2852);
+  clip-path: polygon(60px 0, 100% 0, calc(100% - 20px) 50%, 100% 100%, 0 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+/* I pulsanti prendono la larghezza del loro testo: niente parole tagliate */
+.ctaRight :global(.btn) {
+  flex: 0 1 auto;
+  font-size: 1.1rem;
+  white-space: nowrap;
 }
 
 .ctaTitle {
@@ -865,7 +932,13 @@
 }
 
 .ctaArrowRight {
-  margin-left: 0.5rem;
+  margin-left: 0.25rem;
+}
+
+@media (max-width: 1300px) {
+  .ctaArrowRight {
+    display: none;
+  }
 }
 
 /* ================================================================== */
@@ -910,6 +983,26 @@
 
   .resultGrid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .ctaInner {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaLeft {
+    clip-path: none;
+    padding: 1.5rem 1.25rem;
+  }
+
+  .ctaRight {
+    margin-left: 0;
+    padding: 1.5rem 1.25rem;
+    justify-content: center;
+    clip-path: none;
+  }
+
+  .ctaArrow {
+    display: none;
   }
 
   .hotspots {
@@ -1004,27 +1097,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ctaInner {
-    grid-template-columns: 1fr;
-  }
-
-  .ctaLeft {
-    clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
-    padding: 1.5rem 1.25rem;
-  }
-
-  .ctaRight {
-    margin-left: 0;
-    padding: 1.5rem 1.25rem;
-    clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
-  }
-
   .ctaRight :global(.btn) {
     flex: 1 1 100%;
-  }
-
-  .ctaArrow {
-    display: none;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.15;
   }
 }
 
