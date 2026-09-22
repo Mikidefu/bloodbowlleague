@@ -25,10 +25,10 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
             title={L('Si gioca!', 'Play ball!')}
             page="pp. 47-50"
             explain={[
-              L('Il pre-partita è fatto. Ogni drive comincia così: la squadra che calcia schiera per prima, poi quella che riceve; si calcia, la palla devia e si tira il Kick-off Event.',
-                'The pre-game is done. Every drive starts like this: the kicking team sets up first, then the receiving team; the ball is kicked, it deviates and you roll the Kick-off Event.'),
-              L('Qui sotto trovi tutte le tabelle che servono in campo: Kick-off, infortuni, Casualty, Argue the Call e Prayers to Nuffle. Quando la partita è finita, passa al referto.',
-                'Below are all the tables you need on the pitch: Kick-off, injuries, Casualty, Argue the Call and Prayers to Nuffle. When the match is over, move on to the report.'),
+              L('Il pre-partita è fatto. Ogni drive comincia così: la squadra che calcia schiera per prima, poi quella che riceve; si calcia, la palla devia e si tira il **Kick-off Event**.',
+                'The pre-game is done. Every drive starts like this: the kicking team sets up first, then the receiving team; the ball is kicked, it deviates and you roll the **Kick-off Event**.'),
+              L('Qui sotto trovi tutte le tabelle che servono in campo: Kick-off, infortuni, **Casualty**, **Argue the Call** e **Prayers to Nuffle**. Quando la partita è finita, passa al referto.',
+                'Below are all the tables you need on the pitch: Kick-off, injuries, **Casualty**, **Argue the Call** and **Prayers to Nuffle**. When the match is over, move on to the report.'),
             ]}
             onNext={onReport}
             nextLabel={L('La partita è finita: compila il referto', 'The match is over: fill in the report')}

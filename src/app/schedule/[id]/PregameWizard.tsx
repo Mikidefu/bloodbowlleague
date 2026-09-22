@@ -5,7 +5,7 @@ import { PETTY_CASH_TREASURY_TOP_UP, type InducementChoice } from '@/lib/leagueR
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
-import { WizardStepCard, WizardSteps } from '@/components/match/Wizard';
+import { Facts, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
 import InducementPicker from './InducementPicker';
 import { pregameBudget, reportOf, savedInducements, teamPreview, type TeamPregameDraft } from './pregameModel';
@@ -127,11 +127,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
       </div>
   );
 
-  const facts = (rows: [string, React.ReactNode][]) => (
-      <dl className={wz.facts}>
-        {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-      </dl>
-  );
+  const facts = (rows: FactRow[]) => <Facts rows={rows} />;
 
   const d3Hint = L('Senza D3: tira un D6 e dividi, 1-2 = 1, 3-4 = 2, 5-6 = 3.', 'No D3? Roll a D6 and halve it: 1-2 = 1, 3-4 = 2, 5-6 = 3.');
 
@@ -143,10 +139,10 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title={L('Prima di iniziare', 'Before you start')}
               page="pp. 44, 94"
               explain={[
-                L('La sequenza pre-partita prepara le due squadre prima del calcio d\'inizio. Il sito ti guida un passo alla volta: tifosi, meteo, Journeymen, incentivi e chi calcia.',
-                  'The pre-game sequence gets both teams ready before kick-off. The app walks you through it one step at a time: fans, weather, Journeymen, inducements and who kicks.'),
-                L('Per ogni tiro puoi usare i dadi veri e scrivere quello che è uscito, oppure premere Tira. Se devi ripetere un tiro premi Ritira. Niente viene salvato finché non confermi l\'ultimo passo.',
-                  'For every roll you can use real dice and type what came up, or press Roll. If a roll has to be repeated, press Re-roll. Nothing is saved until you confirm the last step.'),
+                L('La sequenza pre-partita prepara le due squadre prima del calcio d\'inizio. Il sito ti guida un passo alla volta: tifosi, meteo, **Journeymen**, incentivi e chi calcia.',
+                  'The pre-game sequence gets both teams ready before kick-off. The app walks you through it one step at a time: fans, weather, **Journeymen**, inducements and who kicks.'),
+                L('Per ogni tiro puoi usare i dadi veri e scrivere quello che è uscito, oppure premere **Tira**. Se devi ripetere un tiro premi **Ritira**. Niente viene salvato finché non confermi l\'ultimo passo.',
+                  'For every roll you can use real dice and type what came up, or press **Roll**. If a roll has to be repeated, press **Re-roll**. Nothing is saved until you confirm the last step.'),
               ]}
               onNext={() => go(1)}
               nextLabel={L('Iniziamo', 'Let\'s start')}
@@ -157,7 +153,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                 return teamBox(team, (
                     <>
                       {facts([
-                        [L('Giocatori disponibili', 'Available players'), p.available],
+                        [L('Giocatori disponibili', 'Available players'), p.available, p.available < 11 ? 'bad' : undefined],
                         ['Dedicated Fans', team.dedicated_fans],
                         ['Treasury', `${gp(p.treasury)} gp`],
                         ['CTV', `${gp(team.ctv)} gp`],
@@ -179,10 +175,10 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title={L('I tifosi', 'The fans')}
               page="p. 45"
               explain={[
-                L('Ogni allenatore tira un D3 per i Fair-weather Fans, i tifosi occasionali, e lo somma ai Dedicated Fans della squadra: il totale è il Fan Factor di questa partita.',
-                  'Each coach rolls a D3 for Fair-weather Fans, the casual supporters, and adds it to the team\'s Dedicated Fans: the total is this match\'s Fan Factor.'),
-                L('Il Fan Factor conta dopo la partita per gli incassi e, durante, per alcuni eventi di Kick-off come la Pitch Invasion.',
-                  'Fan Factor matters after the match for the winnings and, during it, for some Kick-off events such as Pitch Invasion.'),
+                L('Ogni allenatore tira un **D3** per i **Fair-weather Fans**, i tifosi occasionali, e lo somma ai **Dedicated Fans** della squadra: il totale è il **Fan Factor** di questa partita.',
+                  'Each coach rolls a **D3** for **Fair-weather Fans**, the casual supporters, and adds it to the team\'s **Dedicated Fans**: the total is this match\'s **Fan Factor**.'),
+                L('Il **Fan Factor** conta dopo la partita per gli **incassi** e, durante, per alcuni eventi di Kick-off come la **Pitch Invasion**.',
+                  '**Fan Factor** matters after the match for the **winnings** and, during it, for some Kick-off events such as **Pitch Invasion**.'),
               ]}
               onBack={() => go(0)}
               onNext={() => go(2)}
@@ -193,7 +189,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   <>
                     <DiceRoll label="Fair-weather Fans" sides={3} values={draft.fans[team.id] ?? emptyDice()} hint={d3Hint}
                               onChange={v => patch({ fans: { ...draft.fans, [team.id]: v } })} />
-                    {facts([['Dedicated Fans', team.dedicated_fans], ['Fan Factor', preview(team.id).ff ?? '—']])}
+                    {facts([['Dedicated Fans', team.dedicated_fans], ['Fan Factor', preview(team.id).ff ?? '—', 'strong']])}
                   </>
               )))}
             </div>
@@ -207,8 +203,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title={L('Il meteo', 'The weather')}
               page="p. 46"
               explain={[
-                L('Ogni allenatore tira un D6 e si sommano i due risultati: la tabella del Meteo dice che tempo farà. Vale per tutta la partita, a meno che un evento di Kick-off non lo cambi.',
-                  'Each coach rolls a D6 and the two results are added: the Weather table says what it will be like. It lasts the whole match, unless a Kick-off event changes it.'),
+                L('Ogni allenatore tira un **D6** e si sommano i due risultati: la tabella del **Meteo** dice che tempo farà. Vale per tutta la partita, a meno che un evento di Kick-off non lo cambi.',
+                  'Each coach rolls a **D6** and the two results are added: the **Weather** table says what it will be like. It lasts the whole match, unless a Kick-off event changes it.'),
               ]}
               onBack={() => go(1)}
               onNext={() => go(3)}
@@ -235,10 +231,10 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title="Journeymen"
               page="p. 94"
               explain={[
-                L('Ogni squadra deve poter schierare 11 giocatori. Se tra i disponibili ne ha meno, prende gratis dei Journeymen fino ad arrivare a 11: sono Lineman della posizione 0-16 del roster, con in più Loner (4+).',
-                  'Each team must be able to field 11 players. If fewer are available, it takes free Journeymen up to 11: Linemen from the roster\'s 0-16 position, with Loner (4+) on top.'),
-                L('I Journeymen contano nel CTV, quindi pesano sugli incentivi. Dopo la partita potrai decidere se ingaggiarli.',
-                  'Journeymen count towards CTV, so they affect inducements. After the match you can decide whether to hire them.'),
+                L('Ogni squadra deve poter schierare **11 giocatori**. Se tra i disponibili ne ha meno, prende gratis dei **Journeymen** fino ad arrivare a 11: sono Lineman della posizione 0-16 del roster, con in più **Loner (4+)**.',
+                  'Each team must be able to field **11 players**. If fewer are available, it takes free **Journeymen** up to 11: Linemen from the roster\'s 0-16 position, with **Loner (4+)** on top.'),
+                L('I **Journeymen** contano nel **CTV**, quindi pesano sugli incentivi. Dopo la partita potrai decidere se ingaggiarli.',
+                  '**Journeymen** count towards **CTV**, so they affect inducements. After the match you can decide whether to hire them.'),
               ]}
               onBack={() => go(2)}
               onNext={() => go(4)}
@@ -249,7 +245,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                 const p = preview(team.id);
                 return teamBox(team, (
                     <>
-                      {facts([[L('Disponibili', 'Available'), p.available], ['Journeymen', p.baseJourneymen]])}
+                      {facts([[L('Disponibili', 'Available'), p.available, p.available < 11 ? 'bad' : undefined], ['Journeymen', p.baseJourneymen, p.baseJourneymen ? 'strong' : undefined]])}
                       {p.baseJourneymen === 0 && <p className={wz.note}>{L('Ha almeno 11 giocatori: niente Journeymen.', 'At least 11 players: no Journeymen.')}</p>}
                       {p.baseJourneymen > 0 && p.options.length === 0 && (
                           <p className={wz.warn}>{L('Collega prima la squadra al suo Team Roster: senza non si sa da quale posizione arrivano.', 'Link the team to its Team Roster first: without it the position is unknown.')}</p>
@@ -286,22 +282,24 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title={L('Gli incentivi', 'Inducements')}
               page="pp. 94, 142-149"
               explain={[
-                L('Si confronta il CTV delle due squadre, Journeymen compresi. La squadra con il CTV più alto spende per prima, solo dalla propria Treasury.',
-                  'Compare the two teams\' CTV, Journeymen included. The team with the higher CTV spends first, from its own Treasury only.'),
-                L('L\'altra riceve la Petty Cash: la differenza di CTV più quanto ha speso la prima. Può aggiungere al massimo 50.000 dalla sua Treasury. A CTV pari nessuna delle due compra incentivi.',
-                  'The other gets Petty Cash: the CTV difference plus whatever the first one spent. It may add at most 50,000 from its own Treasury. With equal CTV neither buys inducements.'),
-                L('Gli Star Player si scelgono dal catalogo, e compaiono solo quelli che giocano per la squadra. Se non vuoi incentivi, conferma e basta.',
-                  'Star Players come from the catalogue, and only those who play for the team are listed. If you want no inducements, just confirm.'),
+                L('Si confronta il **CTV** delle due squadre, **Journeymen** compresi. La squadra con il CTV più alto spende per prima, solo dalla propria **Treasury**.',
+                  'Compare the two teams\' **CTV**, **Journeymen** included. The team with the higher CTV spends first, from its own **Treasury** only.'),
+                L('L\'altra riceve la **Petty Cash**: la differenza di **CTV** più quanto ha speso la prima. Può aggiungere al massimo **50.000** dalla sua **Treasury**. A CTV pari nessuna delle due compra incentivi.',
+                  'The other gets **Petty Cash**: the **CTV** difference plus whatever the first one spent. It may add at most **50,000** from its own **Treasury**. With equal CTV neither buys inducements.'),
+                L('Gli **Star Player** si scelgono dal catalogo, e compaiono solo quelli che giocano per la squadra. Se non vuoi incentivi, conferma e basta.',
+                  '**Star Players** come from the catalogue, and only those who play for the team are listed. If you want no inducements, just confirm.'),
               ]}
               onBack={() => go(3)}
               onNext={() => go(5)}
               blocker={blocker}
           >
             {budget.equal ? (
-                <p className={wz.note}>{L('CTV pari', 'Equal CTV')}: {gp(pHome.ctv)} gp — {L('nessuna squadra può comprare incentivi.', 'neither team may buy inducements.')}</p>
+                <p className={wz.note}>{rich(L(`**CTV** pari (${gp(pHome.ctv)} gp): nessuna squadra può comprare incentivi.`, `Equal **CTV** (${gp(pHome.ctv)} gp): neither team may buy inducements.`), language)}</p>
             ) : (
                 <p className={wz.note}>
-                  {L('Spende per prima', 'Spends first')}: <strong>{budget.higher.name}</strong> (CTV {gp(budget.pHigher.ctv)}) · Petty Cash {L('per', 'for')} <strong>{budget.lower.name}</strong>: {gp(budget.petty)} gp
+                  {rich(L(
+                      `**${budget.higher.name}** ha il CTV più alto: spende per prima, dalla sua **Treasury**. **${budget.lower.name}** riceve **${gp(budget.petty)} gp** di **Petty Cash**.`,
+                      `**${budget.higher.name}** has the higher CTV: it spends first, from its **Treasury**. **${budget.lower.name}** gets **${gp(budget.petty)} gp** of **Petty Cash**.`), language)}
                 </p>
             )}
             <div className={wz.teams}>
@@ -312,11 +310,11 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                     <>
                       {facts([
                         ['CTV', `${gp(p.ctv)} gp`],
-                        [isHigher ? 'Treasury' : 'Petty Cash', isHigher ? `${gp(p.treasury)} gp` : `${gp(budget.equal ? 0 : budget.petty)} gp + max ${gp(budget.maxTopUp)}`],
-                        [L('Spesa', 'Spent'), `${gp(p.cost)} gp`],
+                        [L('Turno', 'Order'), budget.equal ? '—' : isHigher ? L('Spende per prima', 'Spends first') : 'Petty Cash'],
                       ])}
                       {!budget.equal && (
                           <InducementPicker team={team} preview={p} inducements={draft.inducements[team.id] ?? []}
+                                            budget={isHigher ? { total: p.treasury, petty: 0, fromTreasury: p.treasury } : { total: budget.petty + budget.maxTopUp, petty: budget.petty, fromTreasury: budget.maxTopUp }}
                                             onChange={next => patch({ inducements: { ...draft.inducements, [team.id]: next } })} />
                       )}
                       {(draft.inducements[team.id] ?? []).some(c => c.key === 'riotous_rookies') && (
@@ -328,7 +326,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               })}
             </div>
             {prayers.length > 0 && (
-                <p className={wz.note}>{L('Prayers to Nuffle: tirerai il D16 per ogni preghiera all\'inizio della partita, dalle Tabelle di partita.', 'Prayers to Nuffle: roll the D16 for each prayer at the start of the match, from the Match tables.')}</p>
+                <p className={wz.note}>{rich(L('**Prayers to Nuffle**: tirerai il **D16** per ogni preghiera all\'inizio della partita, dalle Tabelle di partita.', '**Prayers to Nuffle**: roll the **D16** for each prayer at the start of the match, from the Match tables.'), language)}</p>
             )}
           </WizardStepCard>
       );
@@ -341,8 +339,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               title={L('Chi calcia', 'Who kicks off')}
               page="pp. 33, 46"
               explain={[
-                L('Ultimo passo: un roll-off. Ogni allenatore tira un D6 e chi fa di più decide se calciare o ricevere il primo drive. Con un pareggio si ritira.',
-                  'Last step: a roll-off. Each coach rolls a D6 and the higher decides whether to kick or receive the first drive. On a tie, roll again.'),
+                L('Ultimo passo: un **roll-off**. Ogni allenatore tira un **D6** e chi fa di più decide se calciare o ricevere il primo drive. Con un pareggio si ritira.',
+                  'Last step: a **roll-off**. Each coach rolls a **D6** and the higher decides whether to kick or receive the first drive. On a tie, roll again.'),
                 L('Nel secondo tempo le parti si invertono: calcia chi aveva ricevuto.', 'In the second half it swaps: whoever received now kicks.'),
               ]}
               onBack={() => go(4)}
@@ -374,8 +372,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
           <WizardStepCard
               title={L('Riepilogo e conferma', 'Summary and confirm')}
               explain={[
-                L('Controlla tutto. Con la conferma il sito salva il pre-partita: aggiunge i Journeymen, scala la Treasury per gli incentivi e registra meteo e squadra che calcia.',
-                  'Check everything. Confirming saves the pre-game: the app adds the Journeymen, takes the inducements out of the Treasury and records weather and kicking team.'),
+                L('Controlla tutto. Con la conferma il sito salva il pre-partita: aggiunge i **Journeymen**, scala la **Treasury** per gli incentivi e registra meteo e squadra che calcia.',
+                  'Check everything. Confirming saves the pre-game: the app adds the **Journeymen**, takes the inducements out of the **Treasury** and records weather and kicking team.'),
                 L('Finché la partita non è giocata potrai rifarlo da capo.', 'Until the match is played you can redo it from scratch.'),
               ]}
               onBack={() => go(5)}
@@ -385,17 +383,19 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               blocker={serverError}
           >
             {facts([
-              [L('Meteo', 'Weather'), weatherRow ? `${weatherRow.name} (${diceTotal(draft.weather)})` : '—'],
-              [L('Calcia il primo drive', 'Kicks the first drive'), kickingTeam?.name ?? '—'],
+              [L('Meteo', 'Weather'), weatherRow ? `${weatherRow.name} (${diceTotal(draft.weather)})` : '—', 'strong'],
+              [L('Calcia il primo drive', 'Kicks the first drive'), kickingTeam?.name ?? '—', 'strong'],
             ])}
             <div className={wz.teams}>
               {teams.map(team => {
                 const p = preview(team.id);
+                const fromTreasury = budget.equal ? 0 : team.id === budget.higher.id ? p.cost : Math.max(0, p.cost - budget.petty);
                 return teamBox(team, facts([
-                  ['Fan Factor', p.ff ?? '—'],
+                  ['Fan Factor', p.ff ?? '—', 'strong'],
                   ['Journeymen', p.journeymen],
                   ['CTV', `${gp(p.ctv)} gp`],
                   [L('Incentivi', 'Inducements'), p.cost ? `${gp(p.cost)} gp` : L('nessuno', 'none')],
+                  ['Treasury', fromTreasury ? `${gp(p.treasury)} → ${gp(p.treasury - fromTreasury)} gp` : `${gp(p.treasury)} gp`, fromTreasury ? 'bad' : undefined],
                 ]));
               })}
             </div>

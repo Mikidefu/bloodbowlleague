@@ -2,6 +2,7 @@
 import { Dices, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { rollDie } from '@/lib/leagueRules';
+import { rich, Term } from './Wizard';
 import styles from './Wizard.module.css';
 
 export type DiceValues = (number | null)[];
@@ -39,7 +40,7 @@ export default function DiceRoll({ label, sides, count = 1, values, onChange, mo
   return (
       <div className={styles.dice}>
         <div className={styles.diceHead}>
-          <span className={styles.diceLabel}>{label}</span>
+          <span className={styles.diceLabel}><Term>{label}</Term></span>
           <span className="tag tag-navy">{name}{modifier ? ` ${modifier > 0 ? '+' : ''}${modifier}` : ''}</span>
         </div>
         <div className={styles.diceRow}>
@@ -74,7 +75,7 @@ export default function DiceRoll({ label, sides, count = 1, values, onChange, mo
         {current.some(v => v !== null && (v < 1 || v > sides)) && (
             <p className={styles.diceError}>{L(`Ogni dado va da 1 a ${sides}.`, `Each die goes from 1 to ${sides}.`)}</p>
         )}
-        {hint && <p className={styles.diceHint}>{hint}</p>}
+        {hint && <p className={styles.diceHint}>{rich(hint, language)}</p>}
       </div>
   );
 }
