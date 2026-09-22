@@ -1,216 +1,261 @@
-/* Tabelle di partita: schede in alto, poi la tabella scelta come una pagina del Rulebook */
+/* Tabelle di partita: stessa grammatica del resto del sito.
+   Striscia scura smussata con i filtri (come la ricerca delle Skills), pergamena con
+   cornice d'ottone (.card), placca d'ottone per il tiro (.plate), tabella roster del
+   Rulebook (.data-table) con testata rossa e righe alternate. */
 
 .wrap {
   display: grid;
-  gap: 0.75rem;
+  gap: 0;
   min-width: 0;
 }
 
-/* --- schede ------------------------------------------------------------------- */
-.tabs {
+/* ------------------------------------------------------------------ */
+/*  STRISCIA SCURA CON I FILTRI                                        */
+/* ------------------------------------------------------------------ */
+.toolbar {
+  position: relative;
+  z-index: 2;
+  padding: 1.2rem 1.5rem 1.4rem;
+  color: var(--bb-parchment);
+}
+
+.toolbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) left top / 6px 100% no-repeat,
+    repeating-linear-gradient(-45deg, #eab22a 0 8px, transparent 8px 16px) left bottom / 100% 4px no-repeat,
+    var(--tex-grain),
+    radial-gradient(ellipse 50% 120% at 100% 0%, rgba(52, 80, 154, 0.35), transparent 70%),
+    linear-gradient(100deg, #101318 0%, #1a1e25 60%, #1a2852 100%);
+  background-size: 6px 100%, 100% 4px, 200px, cover, cover;
+  clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%, 0 24px);
+  box-shadow: var(--shadow-deep);
+}
+
+.toolbarMicro {
   display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  scrollbar-width: thin;
-}
-
-.tab {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0.5rem 0.85rem;
-  border: 2px solid var(--bb-tan-dark);
-  border-radius: var(--radius);
-  background: var(--bb-paper);
-  color: var(--bb-ink);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.05rem;
-  font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.tab:hover {
-  background: var(--bb-parchment);
-}
-
-.tab:focus-visible {
-  outline: 3px solid var(--bb-mustard);
-  outline-offset: 2px;
-}
-
-.tabActive,
-.tabActive:hover {
-  background: var(--bb-red);
-  border-color: var(--bb-red);
-  color: var(--bb-paper);
-}
-
-.tabDice {
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-bottom: 1rem;
   font-family: var(--font-data);
-  font-style: normal;
-  font-weight: 700;
-  font-size: 0.75rem;
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.toolbarMicro > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toolbarCount {
+  color: var(--bb-slate-300);
+}
+
+.microSquares {
+  display: inline-block;
+  flex: none;
+  width: 26px;
+  height: 6px;
+  background:
+    linear-gradient(var(--bb-red), var(--bb-red)) 0 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0 / 6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 20px 0 / 6px 6px no-repeat;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.7rem;
+}
+
+.filters .filterBtn {
+  min-height: 44px;
+  padding: 0.4rem 0.95rem;
+  font-size: 1.05rem;
+}
+
+.filterDice {
+  margin-left: 0.25rem;
+  font-size: 0.78em;
   opacity: 0.75;
 }
 
-/* --- pannello ----------------------------------------------------------------- */
-.panel {
-  background: var(--bb-paper);
-  border: 2px solid var(--bb-ink);
-  box-shadow: var(--shadow-hard);
-  padding: 1rem;
+/* ------------------------------------------------------------------ */
+/*  PERGAMENA                                                          */
+/* ------------------------------------------------------------------ */
+.panel.panel {
+  margin: 0;
+  padding: 2rem 2.2rem 2.2rem;
   display: grid;
-  gap: 1rem;
+  gap: 1.1rem;
   min-width: 0;
 }
 
 .head {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  border-bottom: 3px solid var(--bb-red);
-  padding-bottom: 0.6rem;
+  gap: 0.6rem 1rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--bb-blood-700);
 }
 
-.headText {
-  min-width: 0;
-  flex: 1 1 18rem;
-}
-
+/* Slab rosso del Rulebook ("WEATHER TABLE") */
 .title {
   margin: 0;
   font-family: var(--font-slab);
-  font-weight: 800;
-  font-size: 1.6rem;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 0.95;
   text-transform: uppercase;
-  color: var(--bb-red);
-  line-height: 1.1;
-}
-
-.who {
-  margin: 0.25rem 0 0;
-  color: var(--bb-ink-soft);
-  font-size: 0.95rem;
+  color: var(--bb-blood-700);
 }
 
 .meta {
   display: flex;
-  gap: 0.4rem;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.3rem;
 }
 
-.metaTag {
-  font-variant-numeric: tabular-nums;
+.who {
+  margin: 0;
+  font-family: var(--font-read);
+  font-size: 1.1rem;
+  line-height: 1.55;
+  color: var(--bb-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/*  PLACCA DEL TIRO                                                    */
+/* ------------------------------------------------------------------ */
+.rollPlate {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
 }
 
 .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1.25rem;
+  gap: 0.8rem 1.25rem;
 }
 
 .rollBtn {
-  min-height: 48px;
+  min-height: 52px;
+  font-size: 1.2rem;
 }
 
 .modifier {
   display: grid;
   grid-template-columns: auto 4.5rem;
   align-items: center;
-  gap: 0.25rem 0.5rem;
-  font-weight: 700;
+  gap: 0.2rem 0.6rem;
+}
+
+.modifierLabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
 }
 
 .modifier input {
   min-height: 44px;
-  padding: 0.3rem 0.5rem;
-  font: inherit;
-  font-variant-numeric: tabular-nums;
   text-align: center;
-  border: 2px solid var(--bb-tan-dark);
-  background: #fff;
+  font-variant-numeric: tabular-nums;
 }
 
-.modifier small {
+.modifierHint {
   grid-column: 1 / -1;
-  font-weight: 400;
-  color: var(--bb-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
-/* --- risultato del tiro ----------------------------------------------------- */
 .result {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1rem;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  min-height: 4rem;
+  gap: 1rem 1.4rem;
+  min-height: 3.5rem;
 }
 
 .empty {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--bb-ink-soft);
-  font-style: italic;
+  font-weight: 600;
 }
 
 .dice {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.6rem;
-  font-variant-numeric: tabular-nums;
+  gap: 0.45rem;
 }
 
+/* Dado: quadrato scuro con numero dorato */
 .die {
   display: grid;
   place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 8px;
-  background: var(--bb-ink);
-  color: var(--bb-paper);
-  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.15);
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.9rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-mustard);
+  background: linear-gradient(160deg, #2d323a, #101318);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 3px 0 rgba(40, 22, 6, 0.6);
   animation: dieIn 0.35s var(--ease-out);
 }
 
-.plus,
-.total {
-  color: var(--bb-ink);
+.sum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  white-space: nowrap;
+}
+
+.sum b {
+  font-weight: 900;
 }
 
 .outcome {
   min-width: 0;
-  border-left: 6px solid var(--bb-tan);
-  padding: 0.35rem 0 0.35rem 0.85rem;
 }
 
 .outcomeName {
   display: block;
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 800;
-  font-size: 1.5rem;
+  font-weight: 900;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  line-height: 1;
   text-transform: uppercase;
-  line-height: 1.1;
 }
 
 .outcomeText {
-  margin: 0.2rem 0 0;
+  margin: 0.35rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .nextBtn {
-  margin-top: 0.6rem;
+  margin-top: 0.75rem;
 }
 
 @keyframes dieIn {
@@ -218,78 +263,82 @@
   to { transform: none; opacity: 1; }
 }
 
-/* --- righe della tabella ------------------------------------------------------ */
-.rows {
-  list-style: none;
+/* ------------------------------------------------------------------ */
+/*  TABELLA (roster del Rulebook)                                      */
+/* ------------------------------------------------------------------ */
+.tableWrap.tableWrap {
   margin: 0;
-  padding: 0;
-  display: grid;
-  border-top: 2px solid var(--bb-ink);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 4rem 1fr;
-  gap: 0.75rem;
-  padding: 0.55rem 0.5rem;
-  border-bottom: 1px solid rgba(29, 26, 24, 0.18);
-  border-left: 5px solid transparent;
-  transition: background-color 0.2s;
+.table {
+  font-size: 1rem;
 }
 
-.row:nth-child(even) {
-  background: var(--bb-sky);
+.table th:first-child {
+  width: 4.5rem;
+  text-align: center;
+}
+
+.table td {
+  line-height: 1.45;
 }
 
 .range {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.2rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  align-self: start;
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.25rem;
+  white-space: nowrap;
 }
 
+/* Nome del risultato come nel libro: corsivo, maiuscolo, colorato */
 .rowName {
   display: block;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  font-stretch: normal;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  font-size: 0.95rem;
 }
 
 .rowText {
   display: block;
-  color: var(--bb-ink-soft);
-  font-size: 0.95rem;
-}
-
-.rowHit,
-.rowHit:nth-child(even) {
-  background: #fff1c4;
-  border-left-color: var(--bb-mustard-deep);
-}
-
-.rowHit .rowText {
+  font-weight: 500;
   color: var(--bb-ink);
 }
 
-/* Il tono colora il bordo del risultato: rosso se fa male, verde se aiuta */
-.good.outcome { border-left-color: var(--bb-success); }
-.bad.outcome { border-left-color: var(--bb-red); }
-.neutral.outcome { border-left-color: var(--bb-tan); }
+/* Riga uscita: fascia senape con segnalino rosso */
+.table tbody tr.hit td,
+.table tbody tr.hit:nth-child(even) td {
+  background: #f6d57a;
+}
+
+.table tbody tr.hit td:first-child {
+  box-shadow: inset 6px 0 0 var(--bb-red);
+}
+
+/* Toni: rosso sangue se fa male, verde se aiuta, inchiostro se neutro */
+.bad { color: var(--bb-blood-700); }
+.good { color: var(--bb-success); }
+.neutral { color: var(--bb-navy); }
 
 .note {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--bb-ink-soft);
-  border-left: 3px solid var(--bb-navy);
-  padding-left: 0.6rem;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--bb-ink);
+  background: rgba(37, 56, 111, 0.1);
+  border-left: 4px solid var(--bb-navy);
 }
 
-@media (max-width: 560px) {
-  .panel { padding: 0.75rem; }
+@media (max-width: 640px) {
+  .toolbar { padding: 1rem 1rem 1.2rem; }
+  .panel.panel { padding: 1.4rem 1.1rem 1.5rem; }
   .result { grid-template-columns: 1fr; }
-  .row { grid-template-columns: 3rem 1fr; gap: 0.5rem; }
+  .table th:first-child { width: 3.2rem; }
+  .table th, .table td { padding: 0.5rem 0.55rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
