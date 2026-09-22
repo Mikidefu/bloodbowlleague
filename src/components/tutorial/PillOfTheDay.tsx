@@ -11,7 +11,8 @@ import styles from './PillOfTheDay.module.css';
 // La scelta avviene dopo il mount: la data del server e quella di chi legge non coincidono
 // sempre, e un disallineamento in idratazione si vedrebbe come uno sfarfallio.
 
-const ALL = TRACKS.flatMap(track => track.pills.map((pill, i) => ({ track, pill, step: i + 1 })));
+// Solo le regole: il percorso Formazione spiega il sito e non ha pagine del Rulebook
+const ALL = TRACKS.filter(track => !track.guide).flatMap(track => track.pills.map((pill, i) => ({ track, pill, step: i + 1 })));
 
 function dayNumber(now: Date) {
   const start = Date.UTC(now.getFullYear(), 0, 0);

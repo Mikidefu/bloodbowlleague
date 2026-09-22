@@ -282,7 +282,7 @@ export const translations = {
     tutorial: {
       title: 'TUTORIAL',
       subtitle: 'Blood Bowl explained in short pills',
-      intro: 'Five tracks, one screen each pill: what you need to play, and what you need to run a team in this league. Rules are summed up in our own words, with the rulebook page next to each pill.',
+      intro: 'Six tracks, one screen each pill: what you need to play, what you need to run a team in this league, and a Training track on how to use this app. Rules are summed up in our own words, with the rulebook page next to each pill.',
       tracks: 'TRACKS',
       tracksMicro: 'Pick where to start',
       start: 'Start',
@@ -713,7 +713,7 @@ export const translations = {
     tutorial: {
       title: 'TUTORIAL',
       subtitle: 'Blood Bowl spiegato a pillole',
-      intro: 'Cinque percorsi, una schermata per pillola: quello che serve per giocare e quello che serve per gestire una squadra in questa lega. Le regole sono riassunte con parole nostre, con accanto la pagina del regolamento.',
+      intro: 'Sei percorsi, una schermata per pillola: quello che serve per giocare, quello che serve per gestire una squadra in questa lega e la Formazione su come si usa questo sito. Le regole sono riassunte con parole nostre, con accanto la pagina del regolamento.',
       tracks: 'PERCORSI',
       tracksMicro: 'Scegli da dove partire',
       start: 'Inizia',
