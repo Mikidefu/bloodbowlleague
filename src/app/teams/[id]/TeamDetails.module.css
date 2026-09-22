@@ -46,7 +46,10 @@
   width: 64px;
   height: 64px;
   margin: 0.7rem;
-  --patch-color: var(--team-accent);
+  border-radius: 50%;
+  color: var(--bb-ink-soft);
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb);
+  box-shadow: 0 0 0 3px var(--team-accent), 0 0 0 5px #d9b268, 0 8px 14px -6px rgba(0, 0, 0, 0.6);
 }
 
 /* ================================================================== */
@@ -170,9 +173,28 @@
   place-items: center;
   width: min(250px, 62%);
   aspect-ratio: 1;
-  --patch-color: var(--team-accent);
-  --patch-pop: 1.4;
+  border-radius: 50%;
+  color: var(--team-accent);
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cdb994);
+  box-shadow:
+    0 0 0 5px var(--team-accent),
+    0 0 0 14px #2a1a05,
+    0 0 0 16px #d9b268,
+    0 30px 50px -18px rgba(0, 0, 0, 0.9);
+  --crest-pop: 1.4;
   animation: bb-badge-in 0.9s var(--ease-out) backwards 0.15s;
+}
+
+/* Anello d'ottone vero (gradiente conico) tra i due filetti */
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 20deg, #f7e2ab, #8d6831, #f3d897, #b8893f, #f7e2ab, #8d6831, #d9b268, #f7e2ab);
+  -webkit-mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
+  mask: radial-gradient(circle, transparent calc(50% - 9px), #000 calc(50% - 8px));
 }
 
 @keyframes bb-badge-in {

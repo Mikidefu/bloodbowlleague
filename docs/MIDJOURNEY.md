@@ -122,18 +122,6 @@ a stout dwarf blocker in heavy riveted armor with arms crossed, braided beard, p
 seamless tileable texture of aged parchment paper, subtle stains, fibers and creases, warm cream and tan tones, even lighting, flat top-down scan, no objects --ar 1:1 --v 7 --style raw --tile --no text, letters, shadows, vignette
 ```
 
-## 8. Toppa di cuoio dietro agli stemmi delle squadre
-
-`art-src/patch.png` → `public/art/patch.webp`
-
-Serve **solo il disco di cuoio**: il bordo ricamato nel colore della squadra e l'impuntura dorata li disegna il sito
-(classe `.team-patch` in `globals.css`), così ogni squadra ha il suo colore. Il centro deve restare liscio perché
-sopra ci va il logo. Senza questo file la toppa usa un cuoio a gradiente.
-
-```
-hand-drawn round patch of battered brown leather, flat front view, perfectly circular disc, same leather as an old american football, fine pebbled leather grain drawn with tiny ink dots, a few deep scratches and scuffs, darker worn rim, big plain center left mostly empty, thick black ink outline, comic book inking with dense cross-hatching in the shadows, cel shading with painterly texture, brown leather with warm highlights and a touch of mustard gold, gritty vintage print feel, bold simple silhouette readable at small size, perfectly centered, isolated on a plain flat white background, no shadow --ar 1:1 --v 7 --style raw --stylize 150 --no text, letters, numbers, logo, emblem, symbol, ball, laces, blood, stitching, border, frame, sticker edge, metal, photo, 3d render, watermark
-```
-
 ---
 
 ## Mappa slot → pagina
@@ -146,5 +134,4 @@ hand-drawn round patch of battered brown leather, flat front view, perfectly cir
 | `trivium.webp` | Logo dello sponsor/organizzatore nella copertina della home ("Trivium presenta:"). Nero su trasparente, schiarito via CSS |
 | `trophy.webp` | Podio della home, sopra la squadra prima in classifica |
 | `star-player.webp` | Riquadro "Star Player" della home |
-| `patch.webp` | Toppa di cuoio dietro agli stemmi delle squadre (home, calendario, partita, classifica, squadre, allenatori) |
 | `header-*.webp` | Testata della rispettiva pagina (sostituisce la filigrana dello stemma) |

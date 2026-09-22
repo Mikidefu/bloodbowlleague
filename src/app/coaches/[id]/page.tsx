@@ -164,7 +164,7 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
               {latest && (
                   <Link href={`/teams/${latest.team_id}`} className={`chamfer ${styles.portraitTeam}`}>
                     {latest.team_logo
-                        ? <span className={`team-patch ${styles.portraitTeamLogo}`}><img src={latest.team_logo} alt="" /></span>
+                        ? <span className={`team-crest ${styles.portraitTeamLogo}`}><img src={latest.team_logo} alt="" /></span>
                         : <ShieldAlert size={28} aria-hidden="true" />}
                     <span>
                       <small>{t.coaches.current}</small>
@@ -296,7 +296,7 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
                                     style={s.team_color ? ({ '--team-color': s.team_color } as CSSProperties) : undefined}
                                 >
                                   {s.team_logo
-                                      ? <span className={`team-patch ${styles.teamLogo}`}><img src={s.team_logo} alt="" /></span>
+                                      ? <span className={`team-crest ${styles.teamLogo}`}><img src={s.team_logo} alt="" /></span>
                                       : <ShieldAlert size={30} className={styles.teamShield} />}
                                   <span><span className={styles.teamName}>{s.team_name}</span><span className={styles.muted}>{s.team_race}</span></span>
                                 </Link>

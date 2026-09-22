@@ -269,10 +269,10 @@ export default function SchedulePage() {
 
   const renderTeam = (name: string, logo: string | null, color: string | null, side: 'home' | 'away') => (
       <div className={styles.team}>
-        <div className={`team-patch ${styles.logoRing}`} style={teamRing(color)}>
+        <div className={`team-crest ${styles.logoRing}`} style={teamRing(color)}>
           {logo
               ? <img src={logo} alt="" />
-              : <ShieldAlert size={28} />}
+              : <ShieldAlert size={28} color={color ?? undefined} />}
         </div>
         <span className={styles.teamName} data-side={side}>{name}</span>
       </div>

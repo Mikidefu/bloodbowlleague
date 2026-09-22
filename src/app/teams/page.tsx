@@ -95,7 +95,7 @@ export default function TeamsPage() {
                             {`BBL // ${team.race}`}
                           </span>
 
-                          <span className={`team-patch ${styles.logoWrapper}`}>
+                          <span className={`team-crest ${styles.logoWrapper}`}>
                             {team.logo_url ? (
                                 <img src={team.logo_url} alt={team.name} />
                             ) : (

@@ -102,7 +102,7 @@ export default function StandingsPage() {
                                                     <span className={styles.podiumMicro}>
                                                         {`P${pad(place)} // ${team.wins}W ${team.draws}D ${team.losses}L`}
                                                     </span>
-                                                    <span className={`team-patch ${styles.podiumBadge}`}>
+                                                    <span className={`team-crest ${styles.podiumBadge}`}>
                                                         {team.logo_url ? (
                                                             <img src={team.logo_url} alt={team.name} />
                                                         ) : (
@@ -195,8 +195,8 @@ export default function StandingsPage() {
                                                     <td className={styles.teamCell}>
                                                         <Link href={`/teams/${team.id}`} className={styles.teamLink}>
                                                             <span
-                                                                className={`team-patch ${styles.logoRing}`}
-                                                                style={team.primary_color ? { ['--patch-color' as string]: team.primary_color } : undefined}
+                                                                className={`team-crest ${styles.logoRing}`}
+                                                                style={{ borderColor: team.primary_color || undefined }}
                                                             >
                                                                 {team.logo_url ? (
                                                                     <img src={team.logo_url} alt={team.name} />

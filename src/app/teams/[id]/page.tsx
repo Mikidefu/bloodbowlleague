@@ -557,7 +557,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             title={team.name}
             kicker={team.race}
             icon={
-              <span className={`team-patch ${styles.logoFrame}`}>
+              <span className={`team-crest ${styles.logoFrame}`}>
                 {team.logo_url ? (
                     <img src={team.logo_url} alt="" />
                 ) : (
@@ -592,7 +592,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               <span className={styles.portraitCount} aria-hidden="true">{pad(activePlayers.length)}</span>
               <span className={styles.portraitMicro} aria-hidden="true">{`Roster // ${activePlayers.length} of 16`}</span>
 
-              <span className={`team-patch ${styles.badge}`}>
+              <span className={`team-crest ${styles.badge}`}>
                 {team.logo_url ? (
                     <img src={team.logo_url} alt={team.name} />
                 ) : (
