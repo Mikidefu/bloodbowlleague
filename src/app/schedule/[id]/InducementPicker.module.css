@@ -1,0 +1,260 @@
+/* Scelta degli incentivi: budget in evidenza, righe grandi e leggibili */
+.picker {
+  display: grid;
+  gap: 0.8rem;
+}
+
+/* ---------- Budget ---------- */
+.budget {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--bb-paper);
+  border: 2px solid var(--bb-success);
+}
+
+.budgetOver {
+  border-color: var(--bb-red);
+  background: #fdecea;
+}
+
+.budgetRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.budgetCell {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.budgetCell small {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bb-ink-soft);
+}
+
+.budgetCell b {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.bar {
+  height: 8px;
+  background: rgba(29, 26, 24, 0.12);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--bb-success);
+  transition: width 0.2s ease;
+}
+
+.budgetOver .bar span {
+  background: var(--bb-red);
+}
+
+.budgetNote {
+  margin: 0;
+  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.25rem;
+}
+
+.overMsg {
+  margin: 0;
+  font-weight: 800;
+  color: var(--bb-blood-700);
+}
+
+.red {
+  color: var(--bb-red) !important;
+}
+
+.green {
+  color: var(--bb-success);
+}
+
+/* ---------- Righe ---------- */
+.list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row,
+.special {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(29, 26, 24, 0.15);
+  border-left: 4px solid transparent;
+}
+
+.rowOn {
+  background: #fff7dc;
+  border-left-color: var(--bb-mustard-deep, #b8860b);
+}
+
+.rowMain {
+  display: grid;
+  gap: 0.1rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: var(--bb-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta b {
+  color: var(--bb-ink);
+}
+
+.subtotal {
+  min-width: 4.5rem;
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--bb-blood-700);
+}
+
+.stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.stepBtn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.stepBtn:hover:not(:disabled) {
+  background: var(--bb-red);
+}
+
+.stepBtn:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: 2px;
+}
+
+.stepBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Il + resta attivo ma avvisa: uno in più sfora */
+.stepWarn {
+  background: var(--bb-tan-dark);
+}
+
+.stepValue {
+  min-width: 1.8rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.special select {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.link {
+  font-weight: 700;
+  color: var(--bb-navy);
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--bb-blood-700);
+  background: transparent;
+  border: 1px solid rgba(200, 37, 44, 0.4);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: rgba(200, 37, 44, 0.1);
+}
+
+.add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.add :global(.btn) {
+  min-height: 40px;
+  font-size: 0.95rem;
+}
+
+.add small {
+  opacity: 0.7;
+}

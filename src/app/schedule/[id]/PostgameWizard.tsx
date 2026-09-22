@@ -9,7 +9,7 @@ import { mustAdvance, onDraftList } from '@/lib/players';
 import { hasRule, getRoster } from '@/lib/rosters';
 import { isTrue, type MatchDetails, type MatchTeam, type Player, type TeamWithPlayers } from '@/lib/types';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
-import { WizardStepCard, WizardSteps } from '@/components/match/Wizard';
+import { Facts, WizardStepCard, WizardSteps, type FactRow } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
 import { CaptainPicker } from '../../teams/[id]/PostgamePanel';
 import { reportOf } from './pregameModel';
@@ -73,9 +73,7 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
         {children}
       </div>
   );
-  const facts = (rows: [string, React.ReactNode][]) => (
-      <dl className={wz.facts}>{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-  );
+  const facts = (rows: FactRow[]) => <Facts rows={rows} />;
   const back = encodeURIComponent(`/schedule/${match.id}`);
   const playersOf = (teamId: string): Player[] => squads[teamId]?.players ?? [];
   const loading = teams.some(tm => !squads[tm.id]);
@@ -90,10 +88,10 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
               title={L('Il post-partita', 'The post-game')}
               page="p. 95"
               explain={[
-                L('Il referto è salvato: il sito ha già aggiunto gli incassi alla Treasury, aggiornato i Dedicated Fans, assegnato gli SPP e applicato gli infortuni.',
-                  'The report is saved: the app has already added the winnings to the Treasury, updated Dedicated Fans, awarded the SPP and applied the injuries.'),
-                L('Restano tre passi, nell\'ordine del libro: avanzamenti dei giocatori, ingaggi e Journeymen, Expensive Mistakes. Dopo gli Expensive Mistakes il post-partita è chiuso.',
-                  'Three steps remain, in the book\'s order: player advancements, hiring and Journeymen, Expensive Mistakes. After Expensive Mistakes the post-game is closed.'),
+                L('Il referto è salvato: il sito ha già aggiunto gli **incassi** alla **Treasury**, aggiornato i **Dedicated Fans**, assegnato gli **SPP** e applicato gli infortuni.',
+                  'The report is saved: the app has already added the **winnings** to the **Treasury**, updated **Dedicated Fans**, awarded the **SPP** and applied the injuries.'),
+                L('Restano tre passi, nell\'ordine del libro: avanzamenti dei giocatori, ingaggi e **Journeymen**, **Expensive Mistakes**. Dopo gli Expensive Mistakes il post-partita è chiuso.',
+                  'Three steps remain, in the book\'s order: player advancements, hiring and **Journeymen**, **Expensive Mistakes**. After Expensive Mistakes the post-game is closed.'),
               ]}
               onNext={() => go(1)}
           >
@@ -104,9 +102,9 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
                 const injuries = match.injuries.filter(i => matchPlayers.find(p => p.id === i.player_id)?.team_id === team.id);
                 const nameOf = (pid: string) => matchPlayers.find(p => p.id === pid)?.name ?? pid;
                 return teamBox(team, facts([
-                  [L('Incasso', 'Winnings'), `+${gp(report?.winnings ?? 0)} gp`],
-                  ['Dedicated Fans', `${(report?.df_change ?? 0) > 0 ? '+' : ''}${report?.df_change ?? 0}`],
-                  [L('Infortuni', 'Injuries'), injuries.map(i => `${nameOf(i.player_id)} (${CASUALTY_RESULTS.find(c => c.key === i.result)?.name ?? i.result})`).join(', ') || '—'],
+                  [L('Incasso', 'Winnings'), `+${gp(report?.winnings ?? 0)} gp`, 'good'],
+                  ['Dedicated Fans', `${(report?.df_change ?? 0) > 0 ? '+' : ''}${report?.df_change ?? 0}`, (report?.df_change ?? 0) > 0 ? 'good' : (report?.df_change ?? 0) < 0 ? 'bad' : undefined],
+                  [L('Infortuni', 'Injuries'), injuries.map(i => `${nameOf(i.player_id)} (${CASUALTY_RESULTS.find(c => c.key === i.result)?.name ?? i.result})`).join(', ') || '—', injuries.length ? 'bad' : undefined],
                 ]));
               })}
             </div>
@@ -126,10 +124,10 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
               title={L('Avanzamenti', 'Advancements')}
               page="pp. 96-98"
               explain={[
-                L('I giocatori possono spendere gli SPP per una skill o per migliorare una caratteristica. Si possono anche risparmiare, tranne in un caso: chi ha abbastanza SPP per un Characteristic Improvement deve prendere un avanzamento (va bene anche una skill).',
-                  'Players may spend SPP on a skill or a characteristic improvement. They may also save them, except in one case: anyone with enough SPP for a Characteristic Improvement must take an advancement (a skill is fine too).'),
-                L('Premi "Avanzamento" accanto al giocatore: si apre la sua scheda nella pagina della squadra, con i dadi tirati dal sito. Poi torna qui con "Torna alla partita" e premi Aggiorna.',
-                  'Press "Advancement" next to the player: their sheet opens on the team page, with the dice rolled by the app. Then come back with "Back to the match" and press Refresh.'),
+                L('I giocatori possono spendere gli **SPP** per una skill o per migliorare una caratteristica. Si possono anche risparmiare, tranne in un caso: chi ha abbastanza SPP per un **Characteristic Improvement** deve prendere un **avanzamento** (va bene anche una skill).',
+                  'Players may spend **SPP** on a skill or a characteristic improvement. They may also save them, except in one case: anyone with enough SPP for a **Characteristic Improvement** must take an **advancement** (a skill is fine too).'),
+                L('Premi **"Avanzamento"** accanto al giocatore: si apre la sua scheda nella pagina della squadra, con i dadi tirati dal sito. Poi torna qui con **"Torna alla partita"** e premi **Aggiorna**.',
+                  'Press **"Advancement"** next to the player: their sheet opens on the team page, with the dice rolled by the app. Then come back with **"Back to the match"** and press **Refresh**.'),
               ]}
               onBack={() => go(0)}
               onNext={() => go(2)}
@@ -146,7 +144,7 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
                     <ul className={wz.list}>
                       {ready.map(p => (
                           <li key={p.id} className={wz.listRow}>
-                            <span><strong>{p.name}</strong> · {p.spp} SPP {mustAdvance(p) && <span className="tag tag-red">{t.rules.mustAdvance}</span>}</span>
+                            <span><strong>{p.name}</strong> · <b className={wz.sppBadge}>{p.spp} SPP</b> {mustAdvance(p) && <span className="tag tag-red">{t.rules.mustAdvance}</span>}</span>
                             <Link href={`/teams/${team.id}?advance=${p.id}&back=${back}`} className="btn btn-primary">{L('Avanzamento', 'Advancement')}</Link>
                           </li>
                       ))}
@@ -165,10 +163,10 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
               title={L('Ingaggi e Journeymen', 'Hiring and Journeymen')}
               page="pp. 99, 155"
               explain={[
-                L('Ora si sistema la rosa: prima si tolgono i morti (lo fa il sito), poi si ingaggia, si licenzia e si compra lo staff dalla Treasury. Queste cose si fanno nella pagina della squadra.',
-                  'Now the roster: first the dead are removed (the app does it), then hiring, firing and staff are paid from the Treasury. Those are done on the team page.'),
-                L('I Journeymen di questa partita si ingaggiano qui: costano il loro valore, perdono Loner e tengono gli SPP. Chi non viene ingaggiato se ne va alla fine del post-partita. Se il Team Captain è morto, qui ne nomini un altro.',
-                  'This match\'s Journeymen are hired here: they cost their value, lose Loner and keep their SPP. Anyone not hired leaves at the end of the post-game. If the Team Captain died, you appoint a new one here.'),
+                L('Ora si sistema la rosa: prima si tolgono i morti (lo fa il sito), poi si ingaggia, si licenzia e si compra lo staff dalla **Treasury**. Queste cose si fanno nella pagina della squadra.',
+                  'Now the roster: first the dead are removed (the app does it), then hiring, firing and staff are paid from the **Treasury**. Those are done on the team page.'),
+                L('I **Journeymen** di questa partita si ingaggiano qui: costano il loro valore, perdono Loner e tengono gli **SPP**. Chi non viene ingaggiato se ne va alla fine del post-partita. Se il **Team Captain** è morto, qui ne nomini un altro.',
+                  'This match\'s **Journeymen** are hired here: they cost their value, lose Loner and keep their **SPP**. Anyone not hired leaves at the end of the post-game. If the **Team Captain** died, you appoint a new one here.'),
               ]}
               onBack={() => go(1)}
               onNext={() => go(3)}
@@ -184,7 +182,7 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
                     && !squad.players.some(p => isTrue(p.is_captain) && onDraftList(p)) && squad.players.some(p => isTrue(p.is_captain) && isTrue(p.dead));
                 return teamBox(team, (
                     <>
-                      {facts([['Treasury', `${gp(squad?.treasury ?? 0)} gp`]])}
+                      {facts([['Treasury', `${gp(squad?.treasury ?? 0)} gp`, 'strong']])}
                       {journeymen.length ? (
                           <ul className={wz.list}>
                             {journeymen.map(j => (
@@ -209,10 +207,10 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
               title="Expensive Mistakes"
               page="p. 100"
               explain={[
-                L('Ultimo passo: la tassa sui ricchi. Una squadra con 100.000 gp o più in Treasury tira un D6: più oro ha, più rischia di perderne. Sotto i 100.000 non si tira.',
-                  'Last step: the tax on hoarders. A team with 100,000 gp or more in the Treasury rolls a D6: the more gold, the bigger the risk. Below 100,000 there is no roll.'),
-                L('Minor Incident toglie D3 x 10.000; Major Incident dimezza la Treasury; Catastrophe lascia solo 2D6 x 10.000. Quando confermi, il post-partita di quella squadra è chiuso e i Journeymen non ingaggiati se ne vanno.',
-                  'Minor Incident takes D3 x 10,000; Major Incident halves the Treasury; Catastrophe leaves only 2D6 x 10,000. Once you confirm, that team\'s post-game is closed and unhired Journeymen leave.'),
+                L('Ultimo passo: la tassa sui ricchi. Una squadra con **100.000 gp** o più in **Treasury** tira un **D6**: più oro ha, più rischia di perderne. Sotto i 100.000 non si tira.',
+                  'Last step: the tax on hoarders. A team with **100,000 gp** or more in the **Treasury** rolls a **D6**: the more gold, the bigger the risk. Below 100,000 there is no roll.'),
+                L('**Minor Incident** toglie **D3** x 10.000; **Major Incident** dimezza la **Treasury**; **Catastrophe** lascia solo **2D6** x 10.000. Quando confermi, il post-partita di quella squadra è chiuso e i **Journeymen** non ingaggiati se ne vanno.',
+                  '**Minor Incident** takes **D3** x 10,000; **Major Incident** halves the **Treasury**; **Catastrophe** leaves only **2D6** x 10,000. Once you confirm, that team\'s post-game is closed and unhired **Journeymen** leave.'),
               ]}
               onBack={() => go(2)}
               onNext={() => go(4)}
@@ -237,7 +235,7 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
               explain={[
                 L('La partita è chiusa. Le due squadre possono giocare la prossima: ingaggi, staff e avanzamenti riapriranno con il post-partita della partita successiva.',
                   'The match is closed. Both teams can play their next one: hiring, staff and advancements open again with the next match\'s post-game.'),
-                L('Se hai sbagliato gli Expensive Mistakes puoi annullarli qui sotto: il post-partita di quella squadra si riapre.', 'If Expensive Mistakes went wrong you can undo them below: that team\'s post-game reopens.'),
+                L('Se hai sbagliato gli **Expensive Mistakes** puoi annullarli qui sotto: il post-partita di quella squadra si riapre.', 'If **Expensive Mistakes** went wrong you can undo them below: that team\'s post-game reopens.'),
               ]}
           >
             <div className={wz.teams}>
@@ -246,8 +244,8 @@ export default function PostgameWizard({ match, onChanged, onCorrectReport }: { 
                 return teamBox(team, (
                     <>
                       {facts([
-                        ['Expensive Mistakes', report?.mistake_result ? t.rules.mistakeResult[report.mistake_result as keyof typeof t.rules.mistakeResult] : '—'],
-                        ['Treasury', `${gp(squads[team.id]?.treasury ?? 0)} gp`],
+                        ['Expensive Mistakes', report?.mistake_result ? t.rules.mistakeResult[report.mistake_result as keyof typeof t.rules.mistakeResult] : '—', (report?.mistake_loss ?? 0) > 0 ? 'bad' : 'good'],
+                        ['Treasury', `${gp(squads[team.id]?.treasury ?? 0)} gp`, 'strong'],
                       ])}
                       {report?.mistake_result && (
                           <button type="button" className="btn" disabled={busy} onClick={async () => { if (await post(`/api/schedule/${match.id}/mistakes?team=${team.id}`, {}, 'DELETE')) go(3); }}>
@@ -282,7 +280,7 @@ function JourneymanRow({ player, canPay, busy, onHire }: { player: Player; canPa
   const [name, setName] = useState(player.name);
   return (
       <li className={wz.listRow}>
-        <span><strong>{player.role}</strong> · {player.spp} SPP · {gp(player.value)} gp</span>
+        <span><strong>{player.role}</strong> · {player.spp} SPP · <b className={canPay ? undefined : wz.bad}>{gp(player.value)} gp</b></span>
         <input type="text" value={name} onChange={e => setName(e.target.value)} aria-label={L('Nome', 'Name')} />
         <button type="button" className="btn btn-navy" disabled={busy || !canPay || !name.trim()} onClick={() => onHire(name.trim())}>
           {canPay ? L('Ingaggia', 'Hire') : L('Treasury insufficiente', 'Not enough Treasury')}
@@ -342,7 +340,7 @@ function MistakesBox({ match, team, treasury, busy, onConfirm, onUndo }: {
             <DiceRoll label={extraKind === 'd3' ? 'Minor Incident (D3)' : 'Catastrophe (2D6)'} sides={extraSides} count={extraCount}
                       values={extraVals} onChange={setExtra} />
         )}
-        {after !== null && <p className={wz.note}>Treasury: {gp(treasury)} → <strong>{gp(after)} gp</strong></p>}
+        {after !== null && <p className={wz.note}>Treasury: {gp(treasury)} → <strong className={after < treasury ? wz.bad : wz.good}>{gp(after)} gp</strong>{after < treasury ? ` (-${gp(treasury - after)})` : ''}</p>}
         <button type="button" className="btn btn-primary" disabled={busy || !result || !extraOk}
                 onClick={() => onConfirm(d6[0]!, extraKind ? diceTotal(extraVals) : null)}>
           {L('Conferma Expensive Mistakes', 'Confirm Expensive Mistakes')}

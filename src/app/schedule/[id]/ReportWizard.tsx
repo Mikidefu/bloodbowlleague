@@ -9,7 +9,8 @@ import {
 import { isLeagueMatch } from '@/lib/matchTypes';
 import type { MatchDetails, MatchTeam } from '@/lib/types';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
-import { WizardStepCard, WizardSteps } from '@/components/match/Wizard';
+import { Facts, Term, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
+import { glossaryTip } from '@/lib/glossary';
 import wz from '@/components/match/Wizard.module.css';
 import { casualtyForRoll, toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import styles from './MatchDetails.module.css';
@@ -62,9 +63,7 @@ export default function ReportWizard(props: Props) {
         {children}
       </div>
   );
-  const facts = (rows: [string, React.ReactNode][]) => (
-      <dl className={wz.facts}>{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-  );
+  const facts = (rows: FactRow[]) => <Facts rows={rows} />;
 
   // MVP ammessi per squadra (pp. 96, 101-102)
   const mvpMax = (teamId: string) => {
@@ -86,11 +85,11 @@ export default function ReportWizard(props: Props) {
               title={L('Com\'è andata?', 'How did it go?')}
               page="pp. 101-102"
               explain={[
-                L('Quasi sempre la partita è stata giocata fino in fondo: scegli "Giocata" e vai avanti.', 'Almost always the match was played to the end: pick "Played" and move on.'),
-                L('Se un allenatore ha concesso durante la partita, perde: l\'avversario vince almeno 2-0, chi concede perde i suoi SPP e i giocatori con 3 o più avanzamenti rischiano di andarsene. "Concede Without Penalty" vale solo quando chi concede non può più schierare giocatori.',
-                  'If a coach conceded during the match, they lose: the opponent wins at least 2-0, the conceding team loses its SPP and players with 3 or more advancements may leave. "Concede Without Penalty" only applies when the conceding team can no longer field players.'),
-                L('Una partita non giocata entro il limite è una sconfitta per tutte e due. Se invece un allenatore rinuncia per impegni personali, l\'avversario vince e tira un D6 per l\'incasso.',
-                  'A match not played by the deadline is a loss for both. If a coach withdraws for personal commitments, the opponent wins and rolls a D6 for the winnings.'),
+                L('Quasi sempre la partita è stata giocata fino in fondo: scegli "**Giocata**" e vai avanti.', 'Almost always the match was played to the end: pick "**Played**" and move on.'),
+                L('Se un allenatore ha concesso durante la partita, **perde**: l\'avversario vince almeno **2-0**, chi concede perde i suoi **SPP** e i giocatori con 3 o più avanzamenti rischiano di andarsene. "**Concede Without Penalty**" vale solo quando chi concede non può più schierare giocatori.',
+                  'If a coach conceded during the match, they lose: the opponent wins at least **2-0**, the conceding team loses its **SPP** and players with 3 or more advancements may leave. "**Concede Without Penalty**" only applies when the conceding team can no longer field players.'),
+                L('Una partita non giocata entro il limite è una sconfitta per tutte e due. Se invece un allenatore rinuncia per impegni personali, l\'avversario vince e tira un **D6** per l\'incasso.',
+                  'A match not played by the deadline is a loss for both. If a coach withdraws for personal commitments, the opponent wins and rolls a **D6** for the **winnings**.'),
               ]}
               onBack={props.onExit}
               onNext={() => go(1)}
@@ -122,12 +121,12 @@ export default function ReportWizard(props: Props) {
               title={played ? L('Touchdown e statistiche', 'Touchdowns and stats') : L('Nessuna statistica', 'No stats')}
               page="pp. 95-96"
               explain={played ? [
-                L('Scrivi per ogni giocatore cosa ha fatto: il sito calcola gli SPP. TD vale 3, CAS 2 (solo le Casualty causate con un Block), INT 2, CMP 1 per un passaggio completato, TTM 1 per un Throw Team-mate riuscito, ATT 1 per chi atterra bene dopo un lancio.',
-                  'Record what each player did: the app works out the SPP. TD is worth 3, CAS 2 (only Casualties caused by a Block), INT 2, CMP 1 for a completed pass, TTM 1 for a successful Throw Team-mate, LAND 1 for a safe landing after being thrown.'),
-                L('Il punteggio si somma dai TD dei giocatori. Se ha segnato uno Star Player o un Mercenario, che non sono nel roster, correggi il totale a mano.',
-                  'The score adds up the players\' TDs. If a Star Player or a Mercenary scored, since they are not on the roster, fix the total by hand.'),
+                L('Scrivi per ogni giocatore cosa ha fatto: il sito calcola gli **SPP**. **TD** vale 3, **CAS** 2 (solo le **Casualty** causate con un **Block**), **INT** 2, **CMP** 1 per un passaggio completato, **TTM** 1 per un **Throw Team-mate** riuscito, **ATT** 1 per chi atterra bene dopo un lancio.',
+                  'Record what each player did: the app works out the **SPP**. **TD** is worth 3, **CAS** 2 (only Casualties caused by a **Block**), **INT** 2, **CMP** 1 for a completed pass, **TTM** 1 for a successful **Throw Team-mate**, **LAND** 1 for a safe landing after being thrown.'),
+                L('Il punteggio si somma dai **TD** dei giocatori. Se ha segnato uno **Star Player** o un **Mercenario**, che non sono nel roster, correggi il totale a mano.',
+                  'The score adds up the players\' TDs. If a **Star Player** or a **Mercenary** scored, since they are not on the roster, fix the total by hand.'),
               ] : [
-                L('La partita non è stata giocata: niente touchdown, statistiche né infortuni. Si registrano solo gli MVP, al passo dopo.', 'The match was not played: no touchdowns, stats or injuries. Only the MVPs are recorded, in the next step.'),
+                L('La partita non è stata giocata: niente touchdown, statistiche né infortuni. Si registrano solo gli **MVP**, al passo dopo.', 'The match was not played: no touchdowns, stats or injuries. Only the **MVPs** are recorded, in the next step.'),
               ]}
               onBack={() => go(0)}
               onNext={() => go(played ? 2 : 3)}
@@ -142,7 +141,7 @@ export default function ReportWizard(props: Props) {
                         <tr>
                           <th className="num">N°</th>
                           <th>{t.match.thPlayer}</th>
-                          {STAT_FIELDS.map(f => <th key={f} className="num">{f === 'comp' ? 'CMP' : f === 'ttm' ? t.rules.ttm : f === 'landing' ? t.rules.landing : f.toUpperCase()}</th>)}
+                          {STAT_FIELDS.map(f => <th key={f} className="num"><Term>{f === 'comp' ? 'CMP' : f === 'ttm' ? t.rules.ttm : f === 'landing' ? t.rules.landing : f.toUpperCase()}</Term></th>)}
                         </tr>
                       </thead>
                       <tbody>
@@ -161,6 +160,14 @@ export default function ReportWizard(props: Props) {
                       </tbody>
                     </table>
                   </div>
+                  {(() => {
+                    const playerTd = roster(team.id).reduce((sum, p) => sum + (Number(p.td) || 0), 0);
+                    const teamTd = Number(team.id === home.id ? props.scores.home : props.scores.away) || 0;
+                    return playerTd !== teamTd ? (
+                        <p className={wz.warn}>{L(`I giocatori hanno ${playerTd} TD, la squadra ${teamTd}: va bene solo se ha segnato uno Star Player o un Mercenario.`,
+                            `Players have ${playerTd} TD, the team ${teamTd}: fine only if a Star Player or Mercenary scored.`)}</p>
+                    ) : null;
+                  })()}
                   <label className={wz.field}>{L('Touchdown della squadra (totale)', 'Team touchdowns (total)')}
                     <input type="number" min="0" inputMode="numeric" className={styles.statsInput}
                            value={zeroAsEmpty(team.id === home.id ? props.scores.home : props.scores.away)} placeholder="0"
@@ -176,7 +183,7 @@ export default function ReportWizard(props: Props) {
                   </select>
                 </label>
             )}
-            <p className={wz.note}>{home.name} <strong>{props.projected.h} – {props.projected.a}</strong> {away.name}</p>
+            <p className={wz.score}>{home.name} <strong>{props.projected.h} – {props.projected.a}</strong> {away.name}</p>
           </WizardStepCard>
       );
       break;
@@ -192,8 +199,8 @@ export default function ReportWizard(props: Props) {
               title="MVP"
               page="p. 96"
               explain={[
-                L('Ogni allenatore sceglie l\'MVP della propria squadra tra chi ha giocato: vale 4 SPP. Il libro lo fa estrarre: si nominano fino a 6 giocatori, si numerano da 1 a 6 e si tira un D6.',
-                  'Each coach picks their team\'s MVP among those who played: it is worth 4 SPP. The book has it drawn: nominate up to 6 players, number them 1 to 6 and roll a D6.'),
+                L('Ogni allenatore sceglie l\'**MVP** della propria squadra tra chi ha giocato: vale 4 **SPP**. Il libro lo fa estrarre: si nominano fino a 6 giocatori, si numerano da 1 a 6 e si tira un **D6**.',
+                  'Each coach picks their team\'s **MVP** among those who played: it is worth 4 **SPP**. The book has it drawn: nominate up to 6 players, number them 1 to 6 and roll a **D6**.'),
                 L('Se l\'avversario ha concesso ne spettano due; chi concede non ne ha.', 'If the opponent conceded you get two; the conceding team gets none.'),
               ]}
               onBack={() => go(played ? 2 : 1)}
@@ -213,10 +220,10 @@ export default function ReportWizard(props: Props) {
               title={L('Incassi e Dedicated Fans', 'Winnings and Dedicated Fans')}
               page="pp. 95, 101-102"
               explain={[
-                L('Gli incassi li calcola il sito: metà del pubblico (la somma dei due Fan Factor) più i touchdown segnati, più 1 se nessuno ha fatto Stalling, per 10.000.',
-                  'The app works out the winnings: half the Fan Attendance (both Fan Factors added) plus the touchdowns scored, plus 1 if nobody was Stalling, times 10,000.'),
-                L('Stalling è tenere la palla in End Zone senza segnare per far passare il tempo. Chi vince tira un D6: se è pari o più alto dei suoi Dedicated Fans ne guadagna uno. Chi perde tira un D6: se è più basso ne perde uno. Il pareggio non cambia nulla.',
-                  'Stalling is sitting on the ball instead of scoring to run the clock. The winner rolls a D6: equal to or higher than their Dedicated Fans gains one. The loser rolls a D6: lower loses one. A draw changes nothing.'),
+                L('Gli **incassi** li calcola il sito: metà del pubblico (la somma dei due **Fan Factor**) più i touchdown segnati, più 1 se nessuno ha fatto **Stalling**, per 10.000.',
+                  'The app works out the **winnings**: half the **Fan Attendance** (both Fan Factors added) plus the touchdowns scored, plus 1 if nobody was **Stalling**, times 10,000.'),
+                L('**Stalling** è tenere la palla in End Zone senza segnare per far passare il tempo. Chi vince tira un **D6**: se è pari o più alto dei suoi **Dedicated Fans** ne guadagna uno. Chi **perde** tira un D6: se è più basso ne perde uno. Il pareggio non cambia nulla.',
+                  '**Stalling** is sitting on the ball instead of scoring to run the clock. The winner rolls a **D6**: equal to or higher than their **Dedicated Fans** gains one. The loser rolls a D6: lower loses one. A draw changes nothing.'),
               ]}
               onBack={() => go(3)}
               onNext={() => go(5)}
@@ -248,13 +255,13 @@ export default function ReportWizard(props: Props) {
                 return teamBox(team, (
                     <>
                       {facts([
-                        [L('Risultato', 'Result'), result === 'win' ? L('Vittoria', 'Win') : result === 'loss' ? L('Sconfitta', 'Loss') : L('Pareggio', 'Draw')],
-                        [L('Incasso', 'Winnings'), `${gp(props.winningsPreview(team.id))} gp`],
+                        [L('Risultato', 'Result'), result === 'win' ? L('Vittoria', 'Win') : result === 'loss' ? L('Sconfitta', 'Loss') : L('Pareggio', 'Draw'), result === 'win' ? 'good' : result === 'loss' ? 'bad' : undefined],
+                        [L('Incasso', 'Winnings'), `+${gp(props.winningsPreview(team.id))} gp`, 'good'],
                         ['Dedicated Fans', df],
                       ])}
                       {(outcome === 'played' || outcome === 'conceded_no_penalty') && (
                           <label className={wz.check}>
-                            <input type="checkbox" checked={r.stalling} onChange={e => props.updateTeamResult(team.id, { stalling: e.target.checked })} /> {t.rules.stalling}
+                            <input type="checkbox" checked={r.stalling} onChange={e => props.updateTeamResult(team.id, { stalling: e.target.checked })} /> <Term tip={glossaryTip('Stalling')?.[language]}>{t.rules.stalling}</Term>
                           </label>
                       )}
                       {dfDie > 0 && (
@@ -262,7 +269,10 @@ export default function ReportWizard(props: Props) {
                                     values={dice1(r.df_roll)} onChange={v => props.updateTeamResult(team.id, { df_roll: v[0] ? String(v[0]) : '' })} />
                       )}
                       {change !== null && (
-                          <p className={wz.note}>Dedicated Fans: {df} → <strong>{df + change}</strong></p>
+                          <p className={`${wz.outcome} ${change > 0 ? wz.outcomeGood : change < 0 ? wz.outcomeBad : ''}`}>
+                            <span className={wz.outcomeName}>Dedicated Fans {df} → {df + change}</span>
+                            {change > 0 ? L('Un tifoso fedele in più!', 'One more loyal fan!') : change < 0 ? L(`${-change} in meno.`, `${-change} fewer.`) : L('Restano uguali.', 'They stay the same.')}
+                          </p>
                       )}
                       {dfDie === 0 && <p className={wz.note}>{L('Pareggio: i Dedicated Fans restano uguali.', 'Draw: Dedicated Fans stay the same.')}</p>}
                       {outcome === 'forfeit_commitments' && concededTeam && !isConceder && (
@@ -293,9 +303,9 @@ export default function ReportWizard(props: Props) {
           <WizardStepCard
               title={L('Riepilogo e conferma', 'Summary and confirm')}
               explain={[
-                L('Controlla il referto. Con la conferma il sito assegna gli SPP, aggiorna Treasury e Dedicated Fans e applica gli infortuni.',
-                  'Check the report. Confirming awards the SPP, updates Treasury and Dedicated Fans and applies the injuries.'),
-                L('Fino agli Expensive Mistakes potrai ancora correggerlo: il sito ricalcola tutto.', 'Until Expensive Mistakes you can still correct it: the app recalculates everything.'),
+                L('Controlla il referto. Con la conferma il sito assegna gli **SPP**, aggiorna **Treasury** e **Dedicated Fans** e applica gli infortuni.',
+                  'Check the report. Confirming awards the **SPP**, updates **Treasury** and **Dedicated Fans** and applies the injuries.'),
+                L('Fino agli **Expensive Mistakes** potrai ancora correggerlo: il sito ricalcola tutto.', 'Until **Expensive Mistakes** you can still correct it: the app recalculates everything.'),
               ]}
               onBack={() => go(4)}
               onNext={async () => { setError(null); if (!(await props.onSave())) setError(L('Il salvataggio non è riuscito: controlla il messaggio e correggi.', 'Saving failed: check the message and fix it.')); }}
@@ -303,11 +313,11 @@ export default function ReportWizard(props: Props) {
               busy={props.saving}
               blocker={error}
           >
-            <p className={wz.note}>{home.name} <strong>{props.projected.h} – {props.projected.a}</strong> {away.name} · {t.rules.outcomes[outcome]}</p>
+            <p className={wz.score}>{home.name} <strong>{props.projected.h} – {props.projected.a}</strong> {away.name} <small>{t.rules.outcomes[outcome]}</small></p>
             <div className={wz.teams}>
               {teams.map(team => teamBox(team, facts([
-                [L('Incasso', 'Winnings'), `${gp(props.winningsPreview(team.id))} gp`],
-                ['MVP', mvpsOf(team.id).map(p => p.name).join(', ') || '—'],
+                [L('Incasso', 'Winnings'), `+${gp(props.winningsPreview(team.id))} gp`, 'good'],
+                ['MVP', mvpsOf(team.id).map(p => p.name).join(', ') || '—', 'strong'],
                 [L('Infortuni', 'Injuries'), injured.filter(p => p.team_id === team.id).map(p => `${p.name} (${p.injury})`).join(', ') || '—'],
               ])))}
             </div>
@@ -365,12 +375,12 @@ function InjuryStep({ playerStats, updatePlayer, teams, onBack, onNext }: Props 
           title={L('Infortuni', 'Injuries')}
           page="pp. 66-68"
           explain={[
-            L('Registra qui ogni giocatore che ha subito una Casualty, di tutte e due le squadre: è diverso dalla colonna CAS di prima, che contava chi l\'ha causata. KO e Stunned non si registrano.',
-              'Record here every player who suffered a Casualty, from both teams: this is not the CAS column from before, which counted who caused it. KOs and Stunned are not recorded.'),
-            L('Tira il D16 sulla Casualty Table: il sito aggiunge da solo +1 per ogni Niggling Injury che il giocatore ha già. Con un Lasting Injury tiri anche un D6 per la caratteristica. Dopo un SH, SI o LI c\'è il Getting Even: con 4+ sul D6 il giocatore ottiene Hatred verso una keyword di chi l\'ha infortunato.',
-              'Roll the D16 on the Casualty Table: the app adds +1 for each Niggling Injury the player already has. On a Lasting Injury you also roll a D6 for the characteristic. After SH, SI or LI comes Getting Even: on a 4+ on the D6 the player gains Hatred towards a keyword of whoever injured them.'),
-            L('Se hai usato l\'Apothecary, la Regeneration o un giocatore Stunty ha preso Badly Hurt dalla sua tabella, scegli a mano il risultato finale.',
-              'If you used the Apothecary or Regeneration, or a Stunty player got Badly Hurt from their own table, pick the final result by hand.'),
+            L('Registra qui ogni giocatore che ha subito una **Casualty**, di tutte e due le squadre: è diverso dalla colonna **CAS** di prima, che contava chi l\'ha causata. KO e Stunned non si registrano.',
+              'Record here every player who suffered a **Casualty**, from both teams: this is not the **CAS** column from before, which counted who caused it. KOs and Stunned are not recorded.'),
+            L('Tira il **D16** sulla **Casualty Table**: il sito aggiunge da solo +1 per ogni **Niggling Injury** che il giocatore ha già. Con un **Lasting Injury** tiri anche un **D6** per la caratteristica. Dopo un SH, SI o LI c\'è il **Getting Even**: con **4+** sul D6 il giocatore ottiene **Hatred** verso una keyword di chi l\'ha infortunato.',
+              'Roll the **D16** on the **Casualty Table**: the app adds +1 for each **Niggling Injury** the player already has. On a **Lasting Injury** you also roll a **D6** for the characteristic. After SH, SI or LI comes **Getting Even**: on a **4+** on the D6 the player gains **Hatred** towards a keyword of whoever injured them.'),
+            L('Se hai usato l\'**Apothecary**, la **Regeneration** o un giocatore **Stunty** ha preso **Badly Hurt** dalla sua tabella, scegli a mano il risultato finale.',
+              'If you used the **Apothecary** or **Regeneration**, or a **Stunty** player got **Badly Hurt** from their own table, pick the final result by hand.'),
           ]}
           onBack={onBack}
           onNext={onNext}
@@ -412,6 +422,12 @@ function InjuryStep({ playerStats, updatePlayer, teams, onBack, onNext }: Props 
                   {CASUALTY_RESULTS.map(c => <option key={c.key} value={c.key}>{c.name} ({c.d16})</option>)}
                 </select>
               </label>
+              {result && (
+                  <div className={`${wz.outcome} ${result === 'BH' ? '' : wz.outcomeBad}`}>
+                    <span className={wz.outcomeName}>{nameOf(result)}</span>
+                    <p>{glossaryTip(nameOf(result))?.[language]}{result !== 'DEAD' && modifier ? ` ${L(`(D16 ${diceTotal(d16, 0)} + ${modifier} Niggling = ${diceTotal(d16, modifier)})`, `(D16 ${diceTotal(d16, 0)} + ${modifier} Niggling = ${diceTotal(d16, modifier)})`)}` : ''}</p>
+                  </div>
+              )}
               {result === 'LI' && (
                   <>
                     <DiceRoll label="Lasting Injury" sides={6} values={lasting} onChange={v => { setLasting(v); setLastingStat(''); }} />
@@ -426,7 +442,7 @@ function InjuryStep({ playerStats, updatePlayer, teams, onBack, onNext }: Props 
               {missNext && (
                   <>
                     <DiceRoll label="Getting Even (4+)" sides={6} values={getEven} onChange={setGetEven} />
-                    {evenDone && !gotHatred && <p className={wz.note}>{L('Niente Hatred questa volta.', 'No Hatred this time.')}</p>}
+                    {evenDone && !gotHatred && <p className={wz.note}>{rich(L('Niente **Hatred** questa volta.', 'No **Hatred** this time.'), language)}</p>}
                     {gotHatred && (
                         <label className={wz.field}>{L('Keyword di chi l\'ha infortunato (non Big Guy, Blitzer, Blocker, Catcher, Lineman, Runner, Special, Thrower)', 'Keyword of whoever injured them (not Big Guy, Blitzer, Blocker, Catcher, Lineman, Runner, Special, Thrower)')}
                           <input type="text" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="es. Orc, Elf, Undead" />

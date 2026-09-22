@@ -15,6 +15,7 @@ import PregameWizard from './PregameWizard';
 import InPlayPanel from './InPlayPanel';
 import ReportWizard from './ReportWizard';
 import PostgameWizard from './PostgameWizard';
+import MatchPlayerStats from './MatchPlayerStats';
 import { toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import MatchTables from '@/components/match/MatchTables';
 import { isTrue, type MatchDetails } from '@/lib/types';
@@ -288,6 +289,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     { key: 'post', it: 'Post-partita', en: 'Post-game' },
   ];
   const phaseIndex = PHASES.findIndex(ph => ph.key === phase);
+  // Le statistiche in sola lettura si vedono a referto salvato (non mentre lo si sta correggendo)
+  const showPlayedStats = isTrue(match.is_played) && phase !== 'report';
   const toFlow = () => requestAnimationFrame(() => document.getElementById('match-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
   // Anteprima del risultato registrato (il server applica le stesse regole, pp. 101-102)
@@ -681,6 +684,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         <section className={`bleed ${styles.reports}`}>
           <span className={`ghost-text on-light ${styles.ghostReport}`} aria-hidden="true">Report</span>
           <div className={`${styles.inner} ${styles.teamReports}`}>
+            {/* Referto giocato: chi ha fatto cosa in questa partita, per tutti */}
+            {showPlayedStats && <MatchPlayerStats match={match} playerStats={playerStats} />}
+
             {/* Tabelle di partita (meteo, kick-off, infortuni...): chiuse di default per non allungare il referto */}
             <details className={styles.tablesBox}>
               <summary className={styles.tablesSummary}>
@@ -735,8 +741,8 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   </section>
               )}
 
-              {!wizardMode && renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
-              {!wizardMode && renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
+              {!wizardMode && !(showPlayedStats && !canEdit) && renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
+              {!wizardMode && !(showPlayedStats && !canEdit) && renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
             </fieldset>
           </div>
         </section>

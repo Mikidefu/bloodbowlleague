@@ -1,0 +1,127 @@
+/* Statistiche dei giocatori di una partita: due schede affiancate, una per squadra */
+.wrap {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+  border-bottom: 2px solid var(--bb-blood-700);
+  padding-bottom: 0.35rem;
+}
+
+.lead {
+  margin: 0;
+  font-family: var(--font-read);
+  font-size: 1.05rem;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+}
+
+.team {
+  min-width: 0;
+  background: var(--bb-paper);
+  border: 1px solid rgba(29, 26, 24, 0.2);
+  border-top: 6px solid var(--team-color, var(--bb-navy));
+  box-shadow: 4px 4px 0 rgba(29, 26, 24, 0.18);
+}
+
+.teamHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem 0.5rem;
+}
+
+.teamName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.teamScore {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: var(--bb-blood-700);
+}
+
+.scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  min-width: 560px;
+}
+
+.table th,
+.table td {
+  padding: 0.45rem 0.4rem;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+/* Le cifre che contano risaltano, gli zeri spariscono */
+.hit {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--bb-blood-700);
+}
+
+.zero {
+  color: rgba(29, 26, 24, 0.3);
+}
+
+.sppHead {
+  background: var(--bb-mustard-deep, #b8860b);
+}
+
+.spp {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.15rem;
+  background: rgba(234, 178, 42, 0.18);
+}
+
+.quiet td {
+  opacity: 0.55;
+}
+
+.dead .name {
+  text-decoration: line-through;
+}
+
+.empty {
+  text-align: center;
+  font-style: italic;
+}
+
+@media (max-width: 1100px) {
+  .teams { grid-template-columns: 1fr; }
+}

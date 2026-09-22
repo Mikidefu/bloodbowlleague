@@ -136,6 +136,16 @@ button.stepBtn:focus-visible {
   margin: 0;
 }
 
+/* Parole chiave: grassetto con un colpo di evidenziatore senape */
+.key {
+  font-weight: 800;
+  color: var(--bb-ink);
+  background: linear-gradient(transparent 58%, rgba(234, 178, 42, 0.55) 58%);
+  padding: 0 0.1em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 .body {
   display: grid;
   gap: 1rem;
@@ -218,6 +228,28 @@ button.stepBtn:focus-visible {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.facts dt {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Valori colorati: rosso se si sfora o si perde, verde se si guadagna */
+.bad {
+  color: var(--bb-red) !important;
+  font-weight: 900 !important;
+}
+
+.good {
+  color: var(--bb-success) !important;
+  font-weight: 900 !important;
+}
+
+.strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 900;
 }
 
 /* Esito di un tiro: nome del risultato come nel libro + spiegazione */
@@ -352,14 +384,21 @@ button.stepBtn:focus-visible {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 1.6rem;
-  color: var(--bb-mustard);
+  color: #ffd35c !important;
+  -webkit-text-fill-color: #ffd35c;
+  caret-color: #ffd35c;
   background: linear-gradient(160deg, #2d323a, #101318) !important;
   border: 2px solid #101318 !important;
   border-radius: 6px !important;
 }
 
 .dieInput::placeholder {
-  color: rgba(234, 178, 42, 0.45);
+  color: rgba(255, 211, 92, 0.5);
+  -webkit-text-fill-color: rgba(255, 211, 92, 0.5);
+}
+
+.dieInput:disabled {
+  opacity: 0.6;
 }
 
 .dieInput:focus-visible {
@@ -405,4 +444,39 @@ button.stepBtn:focus-visible {
   .card.card { padding: 1.3rem 1.1rem 1.2rem; }
   .teams { grid-template-columns: 1fr; }
   .diceActions { margin-left: 0; }
+}
+
+/* Punteggio in grande nel referto */
+.score {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  background: var(--bb-navy);
+  color: var(--bb-parchment);
+}
+
+.score strong {
+  margin: 0 0.5rem;
+  font-size: 1.8rem;
+  color: var(--bb-mustard);
+}
+
+.score small {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.sppBadge {
+  display: inline-block;
+  padding: 0 0.4rem;
+  background: var(--bb-mustard);
+  color: var(--bb-ink);
+  font-weight: 900;
 }
