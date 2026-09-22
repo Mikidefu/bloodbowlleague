@@ -8,12 +8,16 @@ export type Lang = 'it' | 'en';
 export type Text = Record<Lang, string>;
 export type Paragraphs = Record<Lang, string[]>;
 
+/** Foto di un dado (o di un'altra immagine) con la sua didascalia. */
+export type Shot = { src: string; label: Text; note?: Text };
+
 export type Pill = {
   id: string;
   title: Text;
   body: Paragraphs;
   page: string;                 // pagina/e del regolamento
   diagram?: string;             // chiave in TutorialDiagram
+  gallery?: Shot[];             // immagini vere (i dadi), al posto o accanto al diagramma
   video?: string;               // file in public/tutorial/ (facoltativo)
   link?: { href: string; label: Text };
 };
@@ -33,6 +37,60 @@ export type Track = {
   summary: Text;
   pills: Pill[];
   quiz: QuizQuestion[];
+};
+
+// --- Immagini dei dadi (generate da scripts/make-dice.mjs) ------------------
+// Sono disegni nostri: i risultati seguono il Rulebook 2025, i simboli sono ridisegnati.
+
+const shot = (src: string, it: string, en: string, noteIt?: string, noteEn?: string): Shot => ({
+  src: `/tutorial/dice/${src}.webp`,
+  label: { it, en },
+  ...(noteIt && noteEn ? { note: { it: noteIt, en: noteEn } } : {}),
+});
+
+/** I dadi normali del gioco (p. 32). */
+export const DICE_BASIC: Shot[] = [
+  shot('d6', 'D6', 'D6', 'il dado di quasi tutti i test', 'the dice behind nearly every test'),
+  shot('d8', 'D8', 'D8', 'direzioni casuali: rimbalzi e scatter', 'random directions: bounces and scatter'),
+  shot('d16', 'D16', 'D16', 'giocatore a caso e tabella Casualty', 'random player and the Casualty table'),
+];
+
+/** Le cinque facce del dado da blocco (p. 62). */
+export const DICE_BLOCK: Shot[] = [
+  shot('block-player-down', 'Player Down', 'Player Down', 'cadi tu: turnover', 'you fall: turnover'),
+  shot('block-both-down', 'Both Down', 'Both Down', 'cadete tutti e due', 'both of you go down'),
+  shot('block-push-back', 'Push Back', 'Push Back', 'lo spingi di una casella', 'you shove them one square'),
+  shot('block-stumble', 'Stumble', 'Stumble', 'con Dodge è una spinta, altrimenti POW', 'with Dodge it is a push, otherwise POW'),
+  shot('block-pow', 'POW!', 'POW!', 'spinto e atterrato', 'pushed back and knocked down'),
+];
+
+/** Parole da mettere in evidenza nel testo delle pillole (prima occorrenza). */
+export const KEY_TERMS: string[] = [
+  'Line of Scrimmage', 'Secure the Ball', 'Throw Team-mate', 'Expensive Mistakes', 'Dedicated Fans',
+  'Fan Attendance', 'Petty Cash', 'Team Re-roll', 'Team Re-rolls', 'Tackle Zone', 'Tackle Zones',
+  'Niggling Injury', 'Wide Zone', 'Wide Zones', 'Centre Field', 'End Zone', 'Touchdown', 'Touchdowns',
+  'Quick Pass', 'Short Pass', 'Long Pass', 'Long Bomb', 'Player Down', 'Both Down', 'Push Back',
+  'Stumble', 'POW', 'Casualty', 'Casualties', 'Journeymen', 'Apothecary', 'Stalling', 'Turnover',
+  'turnover', 'Blitz', 'Hand-off', 'Rush', 'Dodge', 'Fumble', 'fumble', 'MVP', 'SPP', 'CTV', 'KO',
+  'Sideline', 'Sidelines', 'Kick-off', 'Drive', 'drive', 'Prone', 'Stunned', 'Distratto', 'Distracted',
+  'Argue the Call', 'Journeyman', 'Re-roll', 'Re-rolls', 'incentivi', 'inducements',
+];
+
+/** Due righe di spiegazione per i termini più ostici (tooltip sul testo evidenziato). */
+export const GLOSSARY: Record<string, Text> = {
+  'tackle zone': { it: 'Le otto caselle attorno a un giocatore in piedi: uscirne costa una schivata.', en: 'The eight squares around a standing player: leaving one needs a Dodge.' },
+  'turnover': { it: 'Il turno finisce subito e passa all\'avversario.', en: 'Your turn ends immediately and passes to the opponent.' },
+  'rush': { it: 'Una casella in più oltre il movimento, con un 2+ (due al massimo per attivazione).', en: 'One extra square beyond your movement, on a 2+ (two at most per activation).' },
+  'spp': { it: 'Star Player Points: i punti esperienza con cui si comprano gli avanzamenti.', en: 'Star Player Points: the experience you spend on advancements.' },
+  'mvp': { it: 'Il premio di fine partita: 4 SPP a un giocatore estratto a caso.', en: 'The end-of-game award: 4 SPP to a randomly drawn player.' },
+  'ctv': { it: 'Current Team Value: quanto vale oggi la squadra, giocatori e staff compresi.', en: 'Current Team Value: what the team is worth today, players and staff included.' },
+  'petty cash': { it: 'I soldi che la squadra meno quotata riceve per comprare incentivi.', en: 'The money the cheaper team gets to buy inducements.' },
+  'dedicated fans': { it: 'I tifosi fissi della squadra, da 1 a 7: contano sul pubblico e sull\'incasso.', en: 'The team\'s loyal fans, 1 to 7: they feed the crowd and the winnings.' },
+  'stalling': { it: 'Rimandare un touchdown sicuro per far scorrere il tempo.', en: 'Sitting on a certain touchdown to burn the clock.' },
+  'casualty': { it: 'L\'infortunio vero: si tira sulla tabella e può lasciare segni per tutta la stagione.', en: 'A real injury: roll on the table, and it can last all season.' },
+  'journeymen': { it: 'I giocatori di scorta che si presentano gratis quando sei sotto gli undici.', en: 'The stand-ins who show up for free when you are below eleven players.' },
+  'expensive mistakes': { it: 'La tassa sui ricchi a fine partita: più oro tieni in cassa, più rischi di perderlo.', en: 'The post-game tax on hoarders: the more gold you keep, the more you risk.' },
+  'end zone': { it: 'La striscia di una casella in fondo al campo: è lì che si segna.', en: 'The one-square strip at each end of the pitch: that is where you score.' },
 };
 
 export const TRACKS: Track[] = [
@@ -104,6 +162,7 @@ export const TRACKS: Track[] = [
         id: 'dadi',
         page: 'pp. 32-33',
         diagram: 'dice',
+        gallery: DICE_BASIC,
         title: { it: 'Dadi e re-roll', en: 'Dice and re-rolls' },
         body: {
           it: [
@@ -377,6 +436,7 @@ export const TRACKS: Track[] = [
         id: 'blocco',
         page: 'pp. 60-62',
         diagram: 'blockDice',
+        gallery: DICE_BLOCK,
         title: { it: 'Il blocco', en: 'The block' },
         body: {
           it: [

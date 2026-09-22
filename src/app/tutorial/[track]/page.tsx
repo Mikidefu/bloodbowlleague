@@ -1,26 +1,44 @@
 'use client';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, GraduationCap, XCircle } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
 import TutorialDiagram from '@/components/tutorial/TutorialDiagram';
+import PillBody from '@/components/tutorial/PillBody';
 import { TRACKS, getTrack } from '@/lib/tutorial';
 import { useTutorialProgress } from '@/lib/tutorialProgress';
 import styles from '../Tutorial.module.css';
+
+// Dalla home si arriva con /tutorial/<percorso>#<numero della pillola>.
+// L'ancora si legge come sorgente esterna (come la lingua e l'avanzamento):
+// niente setState dentro un effect e nessun disallineamento con l'idratazione.
+const subscribeHash = (onChange: () => void) => {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+};
+
+function pillFromHash(hash: string): number | null {
+  const n = Number(hash.slice(1));
+  return Number.isInteger(n) && n > 0 ? n - 1 : null;
+}
 
 export default function TrackPage({ params }: { params: Promise<{ track: string }> }) {
   const { track: trackId } = use(params);
   const router = useRouter();
   const { language, t } = useLanguage();
-  const { markPill, markQuiz, isQuizDone, readCount } = useTutorialProgress();
+  const { markPill, markQuiz, isQuizDone, isPillRead, readCount } = useTutorialProgress();
 
   const track = getTrack(trackId);
-  const [index, setIndex] = useState(0);
+  const [chosen, setChosen] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const hash = useSyncExternalStore(subscribeHash, () => window.location.hash, () => '');
 
   const pills = useMemo(() => track?.pills ?? [], [track]);
+  // La pillola aperta: quella scelta con i pulsanti, altrimenti quella dell'ancora
+  const index = Math.min(chosen ?? pillFromHash(hash) ?? 0, pills.length);
+  const setIndex = setChosen;
   const onQuiz = index >= pills.length;
   const pill = onQuiz ? null : pills[index];
 
@@ -47,9 +65,6 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
     if (track.quiz.every(q => next[q.id] === q.answer)) markQuiz(track.id);
   };
 
-  const step = onQuiz ? pills.length + 1 : index + 1;
-  const percent = Math.round((step / (pills.length + 1)) * 100);
-
   return (
       <div className={styles.page}>
         <PageHeader
@@ -60,8 +75,27 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
             actions={<Link href="/tutorial" className="btn"><ArrowLeft size={18} /> <span>{t.tutorial.allTracks}</span></Link>}
         />
 
+        {/* Una tacca per pillola più il quiz: si vede a colpo d'occhio dove sei e ci si salta sopra */}
         <div className={styles.readerBar}>
-          <div className={styles.bar}><span style={{ width: `${percent}%` }} /></div>
+          <div className={styles.steps}>
+            {pills.map((p, i) => (
+                <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setIndex(i)}
+                    aria-label={t.tutorial.pillStep.replace('{step}', String(i + 1)).replace('{total}', String(pills.length))}
+                    aria-current={i === index ? 'step' : undefined}
+                    className={`${styles.step} ${i === index ? styles.stepCurrent : isPillRead(track.id, p.id) ? styles.stepRead : ''}`}
+                />
+            ))}
+            <button
+                type="button"
+                onClick={() => setIndex(pills.length)}
+                aria-label={t.tutorial.quiz}
+                aria-current={onQuiz ? 'step' : undefined}
+                className={`${styles.step} ${onQuiz ? styles.stepCurrent : isQuizDone(track.id) ? styles.stepRead : ''}`}
+            />
+          </div>
           <span className={styles.readerStep}>
             {onQuiz ? t.tutorial.quiz : t.tutorial.pillStep.replace('{step}', String(index + 1)).replace('{total}', String(pills.length))}
           </span>
@@ -75,8 +109,8 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
               </header>
 
               <div className={styles.pillBody}>
-                <div className={styles.pillText}>
-                  {pill.body[language].map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+                <div>
+                  <PillBody paragraphs={pill.body[language]} lang={language} />
                   {pill.link && (
                       <Link href={pill.link.href} className={styles.pillLink}>
                         {pill.link.label[language]} <ArrowRight size={14} aria-hidden="true" />
@@ -85,6 +119,17 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
                 </div>
 
                 <div className={styles.pillMedia}>
+                  {pill.gallery && (
+                      <div className={styles.shotGrid}>
+                        {pill.gallery.map(s => (
+                            <figure key={s.src} className={styles.shot}>
+                              <img src={s.src} alt={s.label[language]} loading="lazy" />
+                              <figcaption className={styles.shotLabel}>{s.label[language]}</figcaption>
+                              {s.note && <span className={styles.shotNote}>{s.note[language]}</span>}
+                            </figure>
+                        ))}
+                      </div>
+                  )}
                   <TutorialDiagram id={pill.diagram} lang={language} />
                   {pill.video && (
                       // Il video compare solo se il file esiste in public/tutorial/
@@ -97,7 +142,10 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
 
         {onQuiz && (
             <article className={`card ${styles.pill}`}>
-              <h2 className={styles.pillTitle}>{t.tutorial.quizTitle}</h2>
+              <header className={styles.pillHead}>
+                <h2 className={styles.pillTitle}>{t.tutorial.quizTitle}</h2>
+                <span className={styles.pillPage}>{track.title[language]}</span>
+              </header>
               <p className={styles.quizIntro}>{t.tutorial.quizIntro}</p>
 
               {track.quiz.map(question => {
@@ -127,19 +175,19 @@ export default function TrackPage({ params }: { params: Promise<{ track: string 
 
               {quizDone && (
                   <p className={styles.quizDone}>
-                    <CheckCircle2 size={18} aria-hidden="true" /> {t.tutorial.quizDone}
+                    <CheckCircle2 size={22} aria-hidden="true" /> {t.tutorial.quizDone}
                   </p>
               )}
             </article>
         )}
 
         <nav className={styles.nav} aria-label={t.tutorial.title}>
-          <button type="button" className="btn" disabled={index === 0} onClick={() => setIndex(i => Math.max(0, i - 1))}>
+          <button type="button" className="btn" disabled={index === 0} onClick={() => setIndex(Math.max(0, index - 1))}>
             <ArrowLeft size={18} /> <span>{t.tutorial.prev}</span>
           </button>
 
           {!onQuiz ? (
-              <button type="button" className="btn btn-primary" onClick={() => setIndex(i => i + 1)}>
+              <button type="button" className="btn btn-primary" onClick={() => setIndex(index + 1)}>
                 <span>{index === pills.length - 1 ? t.tutorial.goQuiz : t.tutorial.next}</span> <ArrowRight size={18} />
               </button>
           ) : nextTrack ? (

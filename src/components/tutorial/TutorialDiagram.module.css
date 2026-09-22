@@ -1,4 +1,5 @@
-/* Diagrammi del tutorial: disegni originali, nessuna immagine del manuale. */
+/* Diagrammi del tutorial: disegni originali, nessuna immagine del manuale.
+   Stessa tavolozza del sito (globals.css): carta, rosso Rulebook, blu, ottone. */
 .figure {
   margin: 0;
 }
@@ -7,98 +8,414 @@
   display: block;
   width: 100%;
   height: auto;
-  background: var(--bb-paper);
-  border: 2px solid var(--bb-tan-dark);
-  border-radius: var(--radius);
+  filter: drop-shadow(0 8px 16px rgba(20, 8, 4, 0.28));
 }
 
-/* superfici */
-.field { fill: #dfe7cf; }
-.endzone { fill: #c9d6b0; }
-.wide { fill: rgba(37, 56, 111, 0.07); }
-.zone { fill: rgba(200, 37, 44, 0.16); }
-.panel { fill: var(--bb-sky); }
-.panelAlt { fill: rgba(234, 178, 42, 0.25); }
-.panelWarn { fill: rgba(200, 37, 44, 0.16); }
-.band { fill: var(--bb-navy); }
+/* --- tavola ------------------------------------------------------------- */
+.paper { fill: var(--bb-paper); }
 
-.grid line {
-  stroke: rgba(29, 26, 24, 0.18);
-  stroke-width: 0.6;
+.frame {
+  fill: none;
+  stroke: var(--bb-ink);
+  stroke-width: 2;
+}
+
+.head { fill: var(--bb-blood-700); }
+.headCorner { fill: var(--bb-mustard); }
+
+.headText {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  fill: var(--bb-parchment);
+}
+
+/* --- campo -------------------------------------------------------------- */
+.turfA { fill: #6f8f43; }
+.turfB { fill: #648339; }
+
+.chalk line {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 0.5;
+}
+
+.pitchEdge {
+  fill: none;
+  stroke: #eef3e4;
+  stroke-width: 1.6;
+}
+
+.endzone {
+  fill: rgba(37, 56, 111, 0.55);
+  stroke: #eef3e4;
+  stroke-width: 1;
+}
+
+.wide { fill: rgba(255, 255, 255, 0.1); }
+
+.wideEdge line {
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
 }
 
 .scrimmage {
-  stroke: var(--bb-red);
-  stroke-width: 1.6;
-  stroke-dasharray: 4 3;
+  stroke: var(--bb-mustard);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
 }
 
-/* pedine */
-.home { fill: var(--bb-navy); }
-.away { fill: var(--bb-blood-700); }
+.zone { fill: rgba(200, 37, 44, 0.42); }
+.zoneHole { fill: rgba(0, 0, 0, 0); }
 
-.pieceLabel {
+/* --- pedine ------------------------------------------------------------- */
+.tokenShadow { fill: rgba(0, 0, 0, 0.35); }
+.tokenHome { fill: #1b2a52; stroke: #eef3e4; stroke-width: 1.4; }
+.tokenAway { fill: #7a1a1c; stroke: #eef3e4; stroke-width: 1.4; }
+.tokenBall { fill: var(--bb-tan-dark); stroke: #eef3e4; stroke-width: 1.4; }
+.tokenInner { fill: rgba(255, 255, 255, 0.12); }
+.tokenHelmet { fill: rgba(255, 255, 255, 0.35); }
+
+.tokenLabel {
   font-family: var(--font-data);
-  font-size: 6px;
-  font-weight: 800;
-  fill: var(--bb-paper);
+  font-stretch: 80%;
+  font-size: 8px;
+  font-weight: 900;
+  fill: #fff6e2;
   text-anchor: middle;
 }
 
-/* etichette */
-.chip { fill: var(--bb-sky); stroke: var(--bb-navy); stroke-width: 1; }
-.chipOk { fill: rgba(61, 122, 52, 0.25); stroke: var(--bb-success); stroke-width: 1; }
-.chipWarn { fill: rgba(200, 37, 44, 0.18); stroke: var(--bb-blood-700); stroke-width: 1; }
+.ball { fill: #8a5a28; stroke: #f2e3c6; stroke-width: 1; }
+.ballSeam { stroke: #f2e3c6; stroke-width: 0.8; }
 
-.chipText {
-  font-family: var(--font-data);
-  font-stretch: 85%;
-  font-size: 10px;
-  font-weight: 800;
-  fill: var(--bb-ink);
+/* --- righe tabella ------------------------------------------------------ */
+.rowBg {
+  fill: rgba(37, 56, 111, 0.07);
+  stroke: rgba(29, 26, 24, 0.18);
+  stroke-width: 0.8;
 }
 
-.chipTextSmall {
+.badgeNavy { fill: var(--bb-navy); }
+.badgeRed { fill: var(--bb-blood-700); }
+.badgeGreen { fill: var(--bb-success); }
+.badgeGold { fill: var(--bb-mustard-deep); }
+
+.badgeText {
   font-family: var(--font-data);
-  font-stretch: 85%;
-  font-size: 8px;
+  font-stretch: 80%;
+  font-size: 11px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.rowTitle {
+  font-family: var(--font-slab);
+  font-size: 12px;
   font-weight: 800;
+  text-transform: uppercase;
   fill: var(--bb-ink);
 }
 
 .body {
   font-family: var(--font-body);
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 600;
   fill: var(--bb-ink);
 }
 
 .caption {
   font-family: var(--font-body);
-  font-size: 7.5px;
+  font-size: 8.5px;
   fill: var(--bb-ink-soft);
 }
 
-.formula {
+.captionLight {
+  font-family: var(--font-body);
+  font-size: 8.5px;
+  fill: rgba(246, 242, 234, 0.85);
+}
+
+.captionStrong {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-blood-700);
+}
+
+.vLabel {
+  font-family: var(--font-data);
+  font-stretch: 75%;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  fill: #eef3e4;
+  text-anchor: middle;
+}
+
+.mod {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
+}
+
+/* --- pannelli ----------------------------------------------------------- */
+.panelRed { fill: rgba(200, 37, 44, 0.12); stroke: var(--bb-blood-700); stroke-width: 1.5; }
+.panelGreen { fill: rgba(61, 122, 52, 0.14); stroke: var(--bb-success); stroke-width: 1.5; }
+.panelNavy { fill: var(--bb-navy); }
+.panelGold { fill: var(--bb-mustard); }
+.panelPaper { fill: rgba(37, 56, 111, 0.07); stroke: var(--bb-navy); stroke-width: 1.2; }
+
+.panelTitle {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-parchment);
+}
+
+.panelTitleGreen {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-success);
+}
+
+.panelTitleDark {
+  font-family: var(--font-slab);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--bb-blood-700);
+}
+
+/* --- pasticche ---------------------------------------------------------- */
+.chipNavy { fill: var(--bb-navy); }
+.chipRed { fill: var(--bb-blood-700); }
+.chipGreen { fill: var(--bb-success); }
+.chipGold { fill: var(--bb-mustard); }
+.chipPaper { fill: var(--bb-parchment); stroke: var(--bb-tan-dark); stroke-width: 1; }
+
+.chipText {
   font-family: var(--font-data);
   font-stretch: 85%;
+  font-size: 9.5px;
+  font-weight: 800;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.chipTextDark {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-size: 9.5px;
+  font-weight: 800;
+  fill: var(--bb-ink);
+  text-anchor: middle;
+}
+
+/* --- scheda giocatore --------------------------------------------------- */
+.cardHead { fill: var(--bb-slate-900); }
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  fill: var(--bb-mustard);
+}
+
+.statBox { fill: var(--bb-sky); stroke: var(--bb-navy); stroke-width: 1.2; }
+.statHead { fill: var(--bb-navy); }
+
+.statKey {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.statValue {
+  font-family: var(--font-slab);
+  font-size: 24px;
+  font-weight: 900;
+  fill: var(--bb-ink);
+  text-anchor: middle;
+}
+
+.statNote {
+  font-family: var(--font-body);
+  font-size: 8px;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+/* --- numeri bersaglio --------------------------------------------------- */
+.faceOk { fill: rgba(61, 122, 52, 0.2); stroke: var(--bb-success); stroke-width: 1.5; }
+.faceNo { fill: rgba(200, 37, 44, 0.12); stroke: var(--bb-blood-700); stroke-width: 1.5; }
+
+.faceNumOk {
+  font-family: var(--font-slab);
+  font-size: 22px;
+  font-weight: 900;
+  fill: var(--bb-success);
+  text-anchor: middle;
+}
+
+.faceNumNo {
+  font-family: var(--font-slab);
+  font-size: 22px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
+  text-anchor: middle;
+}
+
+.braceNo { stroke: var(--bb-blood-700); stroke-width: 2; }
+.braceOk { stroke: var(--bb-success); stroke-width: 2; }
+
+/* --- struttura della partita -------------------------------------------- */
+.halfBox { fill: var(--bb-slate-900); }
+
+.halfNum {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
+  fill: var(--bb-mustard);
+  text-anchor: middle;
+}
+
+.halfLabel {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  fill: var(--bb-parchment);
+  text-anchor: middle;
+}
+
+.roundBox { fill: var(--bb-parchment); stroke: var(--bb-tan-dark); stroke-width: 1; }
+
+.roundNum {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9px;
+  font-weight: 900;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+.turnA { fill: var(--bb-navy); }
+.turnB { fill: var(--bb-blood-700); }
+
+.turnLabel {
+  font-family: var(--font-data);
+  font-size: 7px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+.halfTime {
+  stroke: var(--bb-mustard-deep);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+/* --- gittate ------------------------------------------------------------ */
+.rangeName {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+}
+
+.rangeMod {
+  font-family: var(--font-slab);
+  font-size: 15px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+/* --- catena degli infortuni e passi ------------------------------------- */
+.stepNavy { fill: rgba(37, 56, 111, 0.12); stroke: var(--bb-navy); stroke-width: 1.4; }
+.stepGold { fill: rgba(234, 178, 42, 0.22); stroke: var(--bb-mustard-deep); stroke-width: 1.4; }
+.stepRed { fill: rgba(200, 37, 44, 0.16); stroke: var(--bb-blood-700); stroke-width: 1.4; }
+.stepArrow { fill: var(--bb-ink-soft); }
+.dotNavy { fill: var(--bb-navy); }
+.dotRed { fill: var(--bb-blood-700); }
+
+.stepNumber {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
+}
+
+/* --- dadi in miniatura (solo per contarli) ------------------------------ */
+.miniDie { fill: var(--bb-blood-700); stroke: var(--bb-blood-950); stroke-width: 1; }
+.miniDieMark { fill: var(--bb-parchment); }
+
+/* --- formule e tifosi ---------------------------------------------------- */
+.formulaBox { fill: rgba(234, 178, 42, 0.18); stroke: var(--bb-mustard-deep); stroke-width: 1.4; }
+
+.formula {
+  font-family: var(--font-slab);
   font-size: 13px;
   font-weight: 800;
   fill: var(--bb-ink);
 }
 
-.dot { fill: var(--bb-blood-700); }
-.dotOk { fill: var(--bb-success); }
-.dotStep { fill: var(--bb-navy); }
-.dotWarn { fill: var(--bb-blood-700); }
+.fanOn { fill: var(--bb-blood-700); }
+.fanOff { fill: var(--bb-parchment-2); stroke: var(--bb-tan-dark); stroke-width: 1; }
 
-.stepNumber {
-  font-family: var(--font-data);
-  font-size: 9px;
-  font-weight: 800;
-  fill: var(--bb-paper);
+.fanNumOn {
+  font-family: var(--font-slab);
+  font-size: 14px;
+  font-weight: 900;
+  fill: #fff6e2;
+  text-anchor: middle;
 }
 
-.stepLine {
-  stroke: var(--bb-navy);
-  stroke-width: 1.5;
+.fanNumOff {
+  font-family: var(--font-slab);
+  font-size: 14px;
+  font-weight: 900;
+  fill: var(--bb-ink-soft);
+  text-anchor: middle;
+}
+
+/* --- frecce -------------------------------------------------------------- */
+.arrowLine {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.arrowRed { stroke: var(--bb-blood-700); fill: var(--bb-blood-700); }
+.arrowNavy { stroke: var(--bb-navy); fill: var(--bb-navy); }
+
+.arrowLabel {
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 900;
+  fill: var(--bb-blood-700);
 }

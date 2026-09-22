@@ -1,0 +1,44 @@
+/* Testo della pillola: carattere da lettura e termini evidenziati. */
+.text {
+  font-family: var(--font-read);
+  font-size: 1.08rem;
+  line-height: 1.62;
+  color: var(--bb-ink);
+  hyphens: auto;
+}
+
+.text p {
+  margin: 0 0 0.9rem;
+}
+
+.text p:first-child::first-letter {
+  float: left;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 3.1em;
+  line-height: 0.78;
+  margin: 0.06em 0.1em 0 0;
+  color: var(--bb-blood-700);
+}
+
+/* Evidenziatore: la stessa riga gialla di .marker-highlight, ma solo sotto la parola */
+.key {
+  padding: 0 0.12em;
+  color: inherit;
+  font-weight: 700;
+  background: linear-gradient(transparent 58%, rgba(234, 178, 42, 0.62) 58%, rgba(234, 178, 42, 0.62) 94%, transparent 94%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Termine con spiegazione: si capisce che c'è altro da leggere */
+.hasGloss {
+  cursor: help;
+  border-bottom: 1px dotted var(--bb-blood-700);
+}
+
+@media (max-width: 860px) {
+  .text {
+    font-size: 1.04rem;
+  }
+}

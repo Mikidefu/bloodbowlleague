@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Calendar, Trophy, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Users, Calendar, Trophy, ShieldAlert, ArrowRight, GraduationCap } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
@@ -12,6 +12,7 @@ import Shards from '@/components/brand/Shards';
 import TapeStrip from '@/components/brand/TapeStrip';
 import SectionTitle from '@/components/brand/SectionTitle';
 import Hotspot from '@/components/brand/Hotspot';
+import PillOfTheDay from '@/components/tutorial/PillOfTheDay';
 import styles from './Home.module.css';
 
 type Standing = {
@@ -320,6 +321,17 @@ export default function Home() {
                         ))}
                     </div>
                 )}
+            </section>
+
+            {/* ============ 04 · PILLOLA DEL GIORNO ============ */}
+            <section className={styles.pillSection}>
+                <SectionTitle
+                    index="04"
+                    micro={t.home.pillOfTheDayMicro}
+                    title={t.home.pillOfTheDay}
+                    action={<Link href="/tutorial" className={`${styles.moreLink} ${styles.moreLinkDark}`}><GraduationCap size={18} /> {t.nav.tutorial}</Link>}
+                />
+                <PillOfTheDay />
             </section>
 
             {/* ============ INVITO FINALE ============ */}

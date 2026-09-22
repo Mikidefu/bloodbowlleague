@@ -1,0 +1,77 @@
+/* Pillola del giorno in home: mezza pagina di regolamento, niente di più. */
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: 1.5rem 2rem;
+  align-items: center;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.7rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  transform: skewX(-10deg);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-read);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--bb-ink);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bb-ink-soft);
+}
+
+.page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.track { color: var(--bb-blood-700); }
+
+.figure { min-width: 0; }
+
+@media (max-width: 860px) {
+  .card { grid-template-columns: 1fr; }
+}

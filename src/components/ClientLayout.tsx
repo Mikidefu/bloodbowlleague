@@ -19,7 +19,6 @@ const NAV_LINKS = [
   { href: '/stats', key: 'stats', Icon: BarChart3 },
   { href: '/coaches', key: 'coaches', Icon: UserRound },
   { href: '/skills', key: 'skills', Icon: Book },
-  { href: '/tutorial', key: 'tutorial', Icon: GraduationCap },
 ] as const;
 
 function NavBar() {
@@ -69,6 +68,11 @@ function NavBar() {
           </div>
 
           <div className={styles.navTools}>
+            {/* Il tutorial sta qui e non tra le sezioni: e' l'ingresso per chi non sa ancora giocare */}
+            <Link href="/tutorial" className={`${styles.ctaBtn} ${styles.ctaTutorial} ${isActive('/tutorial') ? styles.ctaTutorialActive : ''}`}>
+              <GraduationCap size={16} /><span>{t.nav.tutorial}</span>
+            </Link>
+
             {isAdmin ? (
                 <button onClick={handleLogout} className={styles.ctaBtn}>
                   <LogOut size={16} /><span>{t.nav.logout}</span>
@@ -129,6 +133,10 @@ function NavBar() {
                   <Icon size={22} className={styles.mobileIcon} />
                 </Link>
             ))}
+
+            <Link href="/tutorial" className={`${styles.mobileCta} ${styles.mobileCtaTutorial}`} onClick={closeMenu}>
+              <GraduationCap size={20} />{t.nav.tutorial}
+            </Link>
 
             {isAdmin ? (
                 <button onClick={handleLogout} className={styles.mobileCta}>

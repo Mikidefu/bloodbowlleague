@@ -31,22 +31,23 @@ export default function TutorialPage() {
 
         <section className={`card ${styles.intro}`}>
           <p className={styles.introText}>{t.tutorial.intro}</p>
-          <div className={styles.overall}>
+          <div className={styles.meter}>
+            <span className={styles.meterValue}>{percent}%</span>
             <div className={styles.bar}><span style={{ width: `${percent}%` }} /></div>
-            <span className={styles.overallLabel}>
+            <span className={styles.meterLabel}>
               {t.tutorial.readCount.replace('{read}', String(readTotal)).replace('{total}', String(totalPills))}
             </span>
           </div>
         </section>
 
-        <SectionTitle index="01" on="light" micro={t.tutorial.tracksMicro} title={t.tutorial.tracks} />
+        <SectionTitle index="01" micro={t.tutorial.tracksMicro} title={t.tutorial.tracks} />
 
         <div className={styles.trackGrid}>
           {TRACKS.map(track => {
             const read = readCount(track.id);
             const done = read >= track.pills.length && isQuizDone(track.id);
             return (
-                <Link key={track.id} href={`/tutorial/${track.id}`} className={`card ${styles.trackCard} ${done ? styles.trackDone : ''}`}>
+                <Link key={track.id} href={`/tutorial/${track.id}`} className={`${styles.trackCard} ${done ? styles.trackDone : ''}`}>
                   <span className={styles.trackNumber} aria-hidden="true">{track.number}</span>
                   <h3 className={styles.trackTitle}>{track.title[language]}</h3>
                   <p className={styles.trackSummary}>{track.summary[language]}</p>
