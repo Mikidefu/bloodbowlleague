@@ -3,6 +3,7 @@ import db from '@/lib/db';
 import { LIMITS } from '@/lib/leagueRules';
 import { PlayerInputError, canPlayNextMatch, onDraftList, parsePlayerProfile, toPlayer } from '@/lib/players';
 import { getPosition, getRoster } from '@/lib/rosters';
+import { postgamePhase, rosterChangesBlocked, POSTGAME_CLOSED_MESSAGE } from '@/lib/postgame';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -44,13 +45,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     });
     if (!player) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Temporarily Retiring (p. 99): solo per chi ha subito un Lasting Injury
+    // Temporarily Retiring (p. 99): si decide nel post-partita della partita in cui il giocatore ha
+    // subito un Lasting Injury, e da lì vale per il resto della stagione. Annullarlo si può solo per
+    // correggere una scelta di quello stesso post-partita, finché è aperto.
     let tempRetired: number | null = null;
-    if (body.temp_retired !== undefined) {
+    if (body.temp_retired !== undefined && (body.temp_retired ? 1 : 0) !== (Number(player.temp_retired) ? 1 : 0)) {
       tempRetired = body.temp_retired ? 1 : 0;
-      if (tempRetired) {
-        const { rows: [li] } = await db.execute({ sql: "SELECT 1 FROM player_injuries WHERE player_id = ? AND result = 'LI' LIMIT 1", args: [id] });
-        if (!li) return NextResponse.json({ error: 'Only a player who suffered a Lasting Injury can be Temporarily Retiring (p. 99)' }, { status: 400 });
+      const { phase, pendingMatchIds } = await postgamePhase(String(player.team_id));
+      if (phase === 'closed') {
+        return NextResponse.json({ error: tempRetired ? POSTGAME_CLOSED_MESSAGE : 'A Temporarily Retiring player plays no further part in the season (p. 99)' }, { status: 409 });
+      }
+      // Nel post-partita conta il Lasting Injury di quella partita; per le squadre senza partite con le regole, uno qualsiasi
+      const scope = phase === 'open' ? ` AND match_id IN (${pendingMatchIds.map(() => '?').join(', ')})` : '';
+      const { rows: [li] } = await db.execute({
+        sql: `SELECT 1 FROM player_injuries WHERE player_id = ? AND result = 'LI'${scope} LIMIT 1`,
+        args: [id, ...(phase === 'open' ? pendingMatchIds : [])],
+      });
+      if (tempRetired && !li) {
+        return NextResponse.json({ error: 'Only a player who suffered a Lasting Injury in this match can be Temporarily Retiring (p. 99)' }, { status: 400 });
+      }
+      if (!tempRetired && !li) {
+        return NextResponse.json({ error: 'A Temporarily Retiring player plays no further part in the season (p. 99)' }, { status: 409 });
       }
     }
 
@@ -109,6 +124,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const { rows: [row] } = await db.execute({ sql: 'SELECT * FROM players WHERE id = ?', args: [id] });
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const player = toPlayer(row);
+    const blocked = await rosterChangesBlocked(player.team_id);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
 
     if (onDraftList(player)) {
       // Chi conta per il minimo di 11: i giocatori disponibili per la prossima partita (p. 99)

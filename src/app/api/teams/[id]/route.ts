@@ -9,6 +9,7 @@ import { LIMITS } from '@/lib/leagueRules';
 import { favouredOptions, getRoster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
 import { toPlayer } from '@/lib/players';
+import { postgamePhase } from '@/lib/postgame';
 
 export async function GET(
     request: Request,
@@ -85,6 +86,7 @@ export async function GET(
       ...team,
       ...computeTeamValue(team, mappedPlayers),
       pending_postgame: pending,
+      postgame_phase: (await postgamePhase(id)).phase,
       players: mappedPlayers,
       in_active_season: !!activeEntry,
       coach_id: activeEntry?.coach_id ?? history[0]?.coach_id ?? null,
@@ -133,6 +135,24 @@ export async function PUT(
     const favouredChoices = favouredOptions(roster, teamLeague);
     if (favouredOf && !favouredChoices.includes(favouredOf)) {
       return NextResponse.json({ error: `Favoured of ${favouredOf} is not an option for this team` }, { status: 400 });
+    }
+
+    // Roster, League e Favoured of si scelgono con la Team Draft List e non si cambiano più (pp. 152, 154).
+    // Da vuoto si possono sempre impostare (squadre create prima dei roster); una scelta già fatta
+    // si corregge solo finché la squadra non ha giocato.
+    const changed = [
+      ['Team Roster', current.roster, rosterKey],
+      ['League', current.team_league, teamLeague],
+      ['Favoured of', current.favoured_of, favouredOf],
+    ].filter(([, before, after]) => before && before !== after).map(([label]) => label);
+    if (changed.length) {
+      const { rows: [played] } = await db.execute({
+        sql: 'SELECT 1 FROM matches WHERE is_played = 1 AND (home_team_id = ? OR away_team_id = ?) LIMIT 1',
+        args: [id, id],
+      });
+      if (played) {
+        return NextResponse.json({ error: `${changed.join(', ')} cannot be changed once the team has played (pp. 152, 154)` }, { status: 409 });
+      }
     }
 
     // Limiti del regolamento (pp. 90-91)

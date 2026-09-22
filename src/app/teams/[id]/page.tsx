@@ -15,6 +15,7 @@ import { CHARACTERISTIC_VALUES, parseCharacteristic, statLabel, type Characteris
 import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
 import { ROSTERS, favouredOptions, getRoster, type SkillCategory } from '@/lib/rosters';
 import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
+import { mustAdvance } from '@/lib/players';
 import PostgamePanel from './PostgamePanel';
 
 const SORTED_ROSTERS = [...ROSTERS].sort((a, b) => a.name.localeCompare(b.name));
@@ -463,6 +464,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   // Team Value e Current Team Value calcolati dal server (src/lib/teamValue.ts, p. 91)
   const totalValue = team.tv;
   const roster = getRoster(team.roster);
+  // Post-partita concluso (p. 95): rosa e staff si toccano di nuovo dopo la prossima partita
+  const locked = team.postgame_phase === 'closed';
   const editRoster = getRoster(editForm.roster);
   const editFavoured = favouredOptions(editRoster, editForm.team_league);
   const hirePosition = roster?.positions.find(p => p.key === hireForm.position_key) ?? null;
@@ -648,11 +651,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 ]).filter(s => s.allowed).map(s => (
                     <span key={s.item} className={`chamfer ${styles.staffItem}`}>
                       <span>{s.label}: <strong>{s.count}/{s.max}</strong></span>
-                      <button type="button" className="btn btn-navy" disabled={staffBusy || s.count >= s.max || (team.treasury || 0) < s.cost} onClick={() => handleStaff(s.item, 'hire')}>
+                      <button type="button" className="btn btn-navy" disabled={locked || staffBusy || s.count >= s.max || (team.treasury || 0) < s.cost} onClick={() => handleStaff(s.item, 'hire')}>
                         {t.rules.buy} {s.cost.toLocaleString()}
                       </button>
                       {s.canFire && (
-                          <button type="button" className="btn" disabled={staffBusy || s.count <= 0} onClick={() => handleStaff(s.item, 'fire')}>{t.rules.fire}</button>
+                          <button type="button" className="btn" disabled={locked || staffBusy || s.count <= 0} onClick={() => handleStaff(s.item, 'fire')}>{t.rules.fire}</button>
                       )}
                     </span>
                 ))}
@@ -947,7 +950,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 on="light"
                 micro={`Roster sheet // ${draftListCount} of ${LIMITS.maxPlayers}`}
                 title={`ROSTER (${draftListCount} / ${LIMITS.maxPlayers})`}
-                action={isAdmin && !showPlayerForm && draftListCount < LIMITS.maxPlayers ? (
+                action={isAdmin && !locked && !showPlayerForm && draftListCount < LIMITS.maxPlayers ? (
                     <button className="btn btn-primary" onClick={() => setShowPlayerForm(true)}>
                       <Plus size={20} /><span>{t.teamDetail.hirePlayer}</span>
                     </button>
@@ -955,6 +958,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             />
 
             <PostgamePanel team={team} isAdmin={isAdmin} onChange={fetchTeamAndSkills} />
+            {isAdmin && locked && <p className={styles.postgameClosed}>{t.rules.postgameClosed}</p>}
 
             {/* INGAGGIO DAL TEAM ROSTER */}
             {showPlayerForm && roster && (
@@ -1243,6 +1247,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                               <td className={styles.playerName}>
                                 {player.name}
                                 {isTrue(player.is_captain) && <span className={`tag ${styles.miniTag}`} title={t.rules.captain}>C</span>}
+                                {mustAdvance(player) && <span className={`tag tag-red ${styles.miniTag}`} title={t.rules.mustAdvanceTitle}>{t.rules.mustAdvance}</span>}
                                 {isTrue(player.journeyman) && <span className={`tag ${styles.miniTag}`} title={t.rules.journeyman}>J</span>}
                                 {player.hatreds && <span className={styles.hatred}>{t.rules.hatred} ({player.hatreds})</span>}
                               </td>
@@ -1304,17 +1309,17 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                               {isAdmin && (
                               <td>
                                 <div className={styles.rowActions}>
-                                  {canLevelUp && (
+                                  {canLevelUp && !locked && (
                                       <button onClick={() => setLevelUpPlayer(player)} className={`${styles.iconBtn} ${styles.iconLevel}`} title="SPP Advancement" aria-label="SPP Advancement"><ArrowUpCircle size={22} /></button>
                                   )}
-                                  {!isDead && (player.lasting_injuries > 0 || isTrue(player.temp_retired)) && (
+                                  {!isDead && !locked && (player.lasting_injuries > 0 || isTrue(player.temp_retired)) && (
                                       <button onClick={() => handleTempRetire(player)} className={styles.iconBtn}
                                               title={isTrue(player.temp_retired) ? t.rules.unretire : t.rules.retire} aria-label={isTrue(player.temp_retired) ? t.rules.unretire : t.rules.retire}>
                                         <span className={styles.trIcon}>{t.rules.tempRetired}</span>
                                       </button>
                                   )}
                                   <button onClick={() => startEditPlayer(player)} className={styles.iconBtn} title="Edit" aria-label="Edit"><Edit2 size={20} /></button>
-                                  <button onClick={() => handleDeletePlayer(player.id, player.name)} className={`${styles.iconBtn} ${styles.iconDanger}`} title={t.rules.fire} aria-label={t.rules.fire}><Trash2 size={20} /></button>
+                                  <button onClick={() => handleDeletePlayer(player.id, player.name)} disabled={locked} className={`${styles.iconBtn} ${styles.iconDanger}`} title={locked ? t.rules.postgameClosed : t.rules.fire} aria-label={t.rules.fire}><Trash2 size={20} /></button>
                                 </div>
                               </td>
                               )}

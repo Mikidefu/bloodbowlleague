@@ -16,7 +16,8 @@ import {
   treasuryAfterMistake, winnings,
   type CasualtyResult, type InducementChoice, type InjuryStat, type MatchOutcome, type MatchResult, type MistakeResult, type SppStats,
 } from '@/lib/leagueRules';
-import { canPlayNextMatch, flag, hatredList, isPlayerStatus, onDraftList, playerStatus, toPlayer, toPlayerInjury } from '@/lib/players';
+import { canPlayNextMatch, flag, hatredList, isPlayerStatus, mustAdvance, onDraftList, playerStatus, toPlayer, toPlayerInjury } from '@/lib/players';
+import { postgamePhase } from '@/lib/postgame';
 import { getPosition, getRoster, hasRule, journeymanPositions, skillBaseName, type Roster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
 import type { MatchInjury, Player, PlayerStatus } from '@/lib/types';
@@ -97,6 +98,13 @@ export function skillLinks(playerId: string, skills: string[], ids: Map<string, 
 
 // Chi può scendere in campo nella prossima partita: vedi canPlayNextMatch in src/lib/players.ts
 const canPlayNext = canPlayNextMatch;
+
+// Avanzamenti obbligatori ancora da prendere (p. 96): bloccano la chiusura del post-partita e la partita dopo
+function pendingAdvancements(players: Player[], teamId: string, teamName: unknown) {
+  const due = players.filter(p => p.team_id === teamId && mustAdvance(p));
+  if (!due.length) return null;
+  return `${teamName}: ${due.map(p => p.name).join(', ')} must take an advancement first, having enough SPP for a Characteristic Improvement (p. 96)`;
+}
 
 const upsertReport = (matchId: string, teamId: string, fields: Record<string, Arg>): Statement => {
   const keys = Object.keys(fields);
@@ -188,6 +196,11 @@ export async function applyPregame(matchId: string, input: PregameInput) {
     const roster = getRoster(str(team.roster));
     const t = input?.teams?.[teamId];
     if (!t) throw new RuleError(`Missing pre-game data for ${team.name}`);
+    // Prepare for Next Fixture (p. 95): il post-partita precedente dev'essere concluso
+    const { phase } = await postgamePhase(teamId);
+    if (phase === 'open') throw new RuleError(`${team.name}: finish the post-game sequence of the previous match first (Expensive Mistakes, p. 95)`, 409);
+    const due = pendingAdvancements(ctx.players, teamId, team.name);
+    if (due) throw new RuleError(due, 409);
     if (!isDieValue(t.fair_weather, 1, 3)) throw new RuleError(`${team.name}: Fair-weather Fans must be a D3 roll (1-3)`);
 
     // Annulla un eventuale pre-partita precedente: Treasury spesa e Journeymen creati per questa partita
@@ -617,6 +630,9 @@ export async function applyExpensiveMistakes(matchId: string, teamId: string, ro
   const report = ctx.reports.get(teamId);
   if (!team || !report) throw new RuleError('Team not found in this match', 404);
   if (report.mistake_result) throw new RuleError('Expensive Mistakes have already been resolved for this team', 409);
+  // Player Advancement viene prima degli Expensive Mistakes (p. 95)
+  const due = pendingAdvancements(ctx.players, teamId, team.name);
+  if (due) throw new RuleError(due, 409);
 
   const treasury = num(team.treasury);
   let result: MistakeResult | null = null;   // null = Treasury sotto 100.000: nessun tiro

@@ -8,6 +8,7 @@ import {
 import { improveCharacteristic } from '@/lib/characteristics';
 import { rollDie } from '@/lib/leagueRules';
 import { toPlayer } from '@/lib/players';
+import { rosterChangesBlocked } from '@/lib/postgame';
 
 // Tiri degli avanzamenti (pp. 97-98). Tira il server e restituisce un token firmato:
 // il giocatore sceglie tra i risultati usciti e POST /advance verifica che siano quelli.
@@ -27,6 +28,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ]);
     if (!playerRes.rows[0]) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     const player = toPlayer(playerRes.rows[0]);
+    const blocked = await rosterChangesBlocked(player.team_id);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
     if (player.dead) return NextResponse.json({ error: 'Dead players cannot advance' }, { status: 400 });
 
     const { advancements, spp } = player;

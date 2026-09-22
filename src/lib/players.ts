@@ -6,7 +6,7 @@
 // `String(...)` e valori fuori regolamento. Qui le righe entrano come Record<string, unknown>
 // ed escono come Player, con caratteristiche sempre valide (src/lib/characteristics.ts).
 
-import { parseCategories } from '@/lib/advancement';
+import { MAX_ADVANCEMENTS, advancementCost, parseCategories } from '@/lib/advancement';
 import {
   STAT_KEYS, allowedValues, isStatKey, parseCharacteristic, statLabel, toCharacteristics,
   type Characteristics, type StatKey,
@@ -55,6 +55,16 @@ export const onDraftList = (player: PlayerFlags) => !flag(player.dead) && !flag(
 // non Temporarily Retiring e non Journeyman in attesa del post-partita
 export const canPlayNextMatch = (player: PlayerFlags) =>
   onDraftList(player) && !flag(player.mng) && !flag(player.temp_retired) && !flag(player.journeyman);
+
+// Avanzamento obbligatorio (p. 96): gli SPP si possono risparmiare, ma quando bastano per un
+// Characteristic Improvement al livello attuale il giocatore deve prendere un avanzamento
+// (anche una skill, se preferisce). Vale per chi è sulla Team Draft List, Journeymen esclusi.
+export function mustAdvance(player: PlayerFlags & { spp?: unknown; advancements?: unknown }) {
+  if (!onDraftList(player) || flag(player.journeyman)) return false;
+  const advancements = Number(player.advancements ?? 0) || 0;
+  if (advancements >= MAX_ADVANCEMENTS) return false;
+  return (Number(player.spp ?? 0) || 0) >= advancementCost('stat', advancements);
+}
 
 export const PLAYER_STATUSES: readonly PlayerStatus[] = ['Active', 'Injured', 'Dead'];
 export const isPlayerStatus = (value: unknown): value is PlayerStatus => PLAYER_STATUSES.includes(value as PlayerStatus);

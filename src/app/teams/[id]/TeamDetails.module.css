@@ -1419,6 +1419,29 @@
   margin-bottom: 1.5rem;
 }
 
+.postgameClosed {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--bb-ink);
+  background: rgba(37, 56, 111, 0.1);
+  border-left: 4px solid var(--bb-navy);
+}
+
+.mustAdvanceList {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  font-weight: 700;
+}
+
+.captainRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  margin-top: 0.5rem;
+}
+
 .postgameSteps {
   margin: 0.25rem 0 0.75rem;
   font-size: 0.85rem;

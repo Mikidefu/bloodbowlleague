@@ -10,6 +10,7 @@ import {
 } from '@/lib/advancement';
 import { improveCharacteristic, type Characteristic } from '@/lib/characteristics';
 import { toPlayer } from '@/lib/players';
+import { rosterChangesBlocked } from '@/lib/postgame';
 
 const KINDS: AdvancementKind[] = ['randomPrimary', 'choosePrimary', 'chooseSecondary', 'stat', 'statDeclined'];
 const STATS: StatKey[] = ['ma', 'st', 'ag', 'pa', 'av'];
@@ -36,6 +37,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (!playerRes.rows[0]) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     const player = toPlayer(playerRes.rows[0]);
+    const blocked = await rosterChangesBlocked(player.team_id);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
     if (player.dead) return NextResponse.json({ error: 'Dead players cannot advance' }, { status: 400 });
 
     const { advancements, spp } = player;
