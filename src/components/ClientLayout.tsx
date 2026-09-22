@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound } from 'lucide-react';
+import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRound, GraduationCap } from 'lucide-react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/stats', key: 'stats', Icon: BarChart3 },
   { href: '/coaches', key: 'coaches', Icon: UserRound },
   { href: '/skills', key: 'skills', Icon: Book },
+  { href: '/tutorial', key: 'tutorial', Icon: GraduationCap },
 ] as const;
 
 function NavBar() {
