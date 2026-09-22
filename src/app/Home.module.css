@@ -806,7 +806,8 @@
   position: relative;
   margin-top: 2rem;
   margin-bottom: 0;
-  padding-block: 0;
+  /* Spazio sotto per lo spessore e l'ombra delle sagome, sullo sfondo scuro */
+  padding-block: 0 2rem;
   /* Fuori dalle due sagome resta lo sfondo scuro della pagina, come le sezioni sopra */
   background: transparent;
 }
@@ -826,6 +827,10 @@
   max-width: 1240px;
   margin: 0 auto;
   min-height: 150px;
+  /* Profondità: il filtro segue le sagome tagliate. Uno spessore netto sotto (effetto blocco) e un'ombra morbida */
+  filter:
+    drop-shadow(0 7px 0 #07090c)
+    drop-shadow(0 18px 22px rgba(0, 0, 0, 0.55));
 }
 
 .ctaLeft,
@@ -839,9 +844,48 @@
 }
 
 .ctaLeft {
-  background: linear-gradient(120deg, #e0332f, #9a2226);
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+    var(--tex-grain),
+    linear-gradient(120deg, #e0332f, #9a2226);
   clip-path: polygon(24px 0, 100% 0, calc(100% - 60px) 100%, 0 100%, 36px 50%);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Bordino spezzato: tratteggio in alto e in basso, tagliato dalla diagonale come la sagoma */
+.ctaLeft::before,
+.ctaLeft::after,
+.ctaRight::before,
+.ctaRight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--dash) 0 18px, transparent 18px 28px);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.ctaLeft::before,
+.ctaRight::before {
+  top: 9px;
+}
+
+.ctaLeft::after,
+.ctaRight::after {
+  bottom: 12px;
+}
+
+.ctaLeft {
+  --dash: #f3d897;
+}
+
+.ctaRight {
+  --dash: #eab22a;
 }
 
 /* Tagli della diagonale in px: non mangiano più i pulsanti, qualunque sia la larghezza */
@@ -850,8 +894,15 @@
   justify-content: flex-end;
   margin-left: -60px;
   padding-left: calc(60px + 2rem);
-  background: linear-gradient(120deg, #25386f, #1a2852);
+  background:
+    radial-gradient(120% 90% at 70% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+    var(--tex-grain),
+    linear-gradient(120deg, #2f4585, #1a2852);
   clip-path: polygon(60px 0, 100% 0, calc(100% - 20px) 50%, 100% 100%, 0 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
 }
 
 /* I pulsanti prendono la larghezza del loro testo: niente parole tagliate */
