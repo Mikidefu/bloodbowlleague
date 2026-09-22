@@ -222,3 +222,34 @@ CREATE TABLE IF NOT EXISTS match_team_reports (
     FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
     FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
+
+-- Partita dal vivo (src/lib/live): collegamento dei telefoni companion, uno per squadra
+CREATE TABLE IF NOT EXISTS match_live (
+    match_id TEXT PRIMARY KEY,
+    join_code TEXT NOT NULL UNIQUE,         -- 6 caratteri, nel QR o da digitare
+    home_nonce TEXT,                        -- cambia a ogni abbinamento: scollegando, il token del vecchio telefono non vale più
+    away_nonce TEXT,
+    home_device TEXT,                       -- UUID del telefono abbinato, per farlo rientrare se perde il token
+    away_device TEXT,
+    status TEXT NOT NULL DEFAULT 'live' CHECK (status IN ('live', 'ended')),
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ended_at DATETIME,
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+);
+
+-- Registro eventi della partita dal vivo: solo aggiunte, gli errori si annullano con un evento 'undo'.
+-- Lo stato del tabellone (turni, reroll, punteggio) si ricalcola dagli eventi (src/lib/live/reduce.ts).
+CREATE TABLE IF NOT EXISTS match_events (
+    id TEXT PRIMARY KEY,                    -- UUID scelto da chi crea l'evento: rimandarlo non lo duplica
+    match_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,                   -- ordine nella partita, assegnato dal server
+    team_id TEXT,
+    type TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',     -- JSON
+    source TEXT NOT NULL CHECK (source IN ('admin', 'companion', 'server')),
+    dedupe_key TEXT,                        -- stessa azione dallo stesso stato (doppio tap, web e telefono insieme): una sola
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (match_id, seq),
+    UNIQUE (match_id, dedupe_key),
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+);

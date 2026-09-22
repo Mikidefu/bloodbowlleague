@@ -350,7 +350,7 @@ export const MATCH_TABLES: MatchTable[] = [
 export const getMatchTable = (key: string | null | undefined) => MATCH_TABLES.find(t => t.key === key) ?? null;
 
 // Tiro vero, non Math.random: con crypto il dado non ha distorsioni
-function rollDie(sides: number) {
+export function rollDie(sides: number) {
   const buffer = new Uint32Array(1);
   const limit = Math.floor(0x100000000 / sides) * sides;   // scarta la coda per non favorire i numeri bassi
   let value: number;
