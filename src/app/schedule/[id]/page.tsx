@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, useCallback, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock, Dices, Undo2 } from 'lucide-react';
@@ -16,6 +16,8 @@ import InPlayPanel from './InPlayPanel';
 import ReportWizard from './ReportWizard';
 import PostgameWizard from './PostgameWizard';
 import MatchPlayerStats from './MatchPlayerStats';
+import LivePrefillNote from './LivePrefillNote';
+import { livePrefill, type LivePrefill } from '@/lib/live/prefill';
 import { toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import MatchTables from '@/components/match/MatchTables';
 import { isTrue, type MatchDetails } from '@/lib/types';
@@ -62,6 +64,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const [reportOpen, setReportOpen] = useState(false);     // "la partita è finita": dal campo al referto
   const [correcting, setCorrecting] = useState(false);     // correzione del referto dal post-partita
   const [redoPregame, setRedoPregame] = useState(false);   // rifare il pre-partita prima di giocare
+  // Numeri della partita dal vivo per il referto (applied: già copiati nei campi)
+  const [livePre, setLivePre] = useState<{ prefill: LivePrefill; applied: boolean } | null>(null);
+  const liveAutoApplied = useRef(false);   // si copia da solo una volta: riaprendo il referto non si perdono le correzioni
 
   const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
     { field: 'td', label: 'TD', title: 'Touchdowns (3 SPP)' },
@@ -168,6 +173,39 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
       return updatedStats;
     });
+  };
+
+  // Copia nel referto punteggio, Casualty e statistiche del live. Infortuni e MVP non si toccano.
+  const applyLive = (prefill: LivePrefill) => {
+    if (!match) return;
+    setPlayerStats(prev => prev.map(p => {
+      const s = prefill.players[p.player_id];
+      return { ...p, td: s?.td ?? 0, cas: s?.cas ?? 0, int: s?.int ?? 0, comp: s?.comp ?? 0, ttm: s?.ttm ?? 0, landing: s?.landing ?? 0 };
+    }));
+    setHomeScore(prefill.scores[match.home_team_id] ?? 0);
+    setAwayScore(prefill.scores[match.away_team_id] ?? 0);
+    setHomeCas(prefill.casualties[match.home_team_id] ?? 0);
+    setAwayCas(prefill.casualties[match.away_team_id] ?? 0);
+    setLivePre({ prefill, applied: true });
+  };
+
+  // Aprendo il referto si guarda se c'è una partita dal vivo: su un referto nuovo i numeri si copiano subito,
+  // correggendo un referto già salvato si propone soltanto (quello salvato potrebbe essere già stato corretto a mano)
+  const loadLivePrefill = async (autoApply: boolean) => {
+    if (!match) return;
+    setLivePre(null);
+    try {
+      const json = await fetch(`/api/live/${id}`, { cache: 'no-store' }).then(r => r.json());
+      const players = [...match.homePlayers, ...match.awayPlayers].map(p => ({ player_id: p.id, team_id: p.team_id, unavailable: p.unavailable }));
+      const prefill = json?.live ? livePrefill(json.state, players) : null;
+      if (!prefill) return;
+      if (autoApply && !liveAutoApplied.current) {
+        liveAutoApplied.current = true;
+        applyLive(prefill);
+      } else {
+        setLivePre({ prefill, applied: false });
+      }
+    } catch { /* senza live il referto si compila a mano come sempre */ }
   };
 
   const updatePlayer = (playerId: string, patch: Partial<PlayerStatDraft>) => {
@@ -606,7 +644,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                 ))}
               </ol>
               {phase === 'pre' && <PregameWizard match={match} onSaved={() => { setRedoPregame(false); load(); toFlow(); }} />}
-              {phase === 'field' && <InPlayPanel match={match} onReport={() => { setReportOpen(true); toFlow(); }} onRedoPregame={() => { setRedoPregame(true); toFlow(); }} />}
+              {phase === 'field' && <InPlayPanel match={match} onReport={() => { setReportOpen(true); void loadLivePrefill(!isTrue(match.is_played)); toFlow(); }} onRedoPregame={() => { setRedoPregame(true); toFlow(); }} />}
+              {phase === 'report' && livePre && (
+                  <LivePrefillNote match={match} prefill={livePre.prefill} applied={livePre.applied} onApply={() => applyLive(livePre.prefill)} />
+              )}
               {phase === 'report' && (
                   <ReportWizard
                       match={match}
@@ -629,7 +670,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                       onExit={() => { setReportOpen(false); setCorrecting(false); toFlow(); }}
                   />
               )}
-              {phase === 'post' && <PostgameWizard match={match} onChanged={load} onCorrectReport={() => { setCorrecting(true); toFlow(); }} />}
+              {phase === 'post' && <PostgameWizard match={match} onChanged={load} onCorrectReport={() => { setCorrecting(true); void loadLivePrefill(false); toFlow(); }} />}
             </section>
         )}
 
