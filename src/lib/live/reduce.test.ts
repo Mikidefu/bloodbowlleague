@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { describe, test } from 'node:test';
 import { reduceLive } from './reduce';
-import { LiveRuleError, validateLiveEvent, type ClientEventInput, type LiveActor } from './rules';
+import { LiveRuleError, kickoffDedupeKey, validateLiveEvent, type ClientEventInput, type LiveActor } from './rules';
 import type { KickoffResult, LiveEvent, LiveStartPayload, LiveTeamSetup } from './types';
 
 const H = 'home-team';
@@ -190,7 +190,7 @@ describe('validateLiveEvent', () => {
     const b = validateLiveEvent(g.state(), input('turn_started', {}, H), homePhone, g.events);
     assert.equal(a.dedupe_key, b.dedupe_key);
     g.add('turn_started', H, a.payload);
-    const c = validateLiveEvent(g.state(), input('turn_started', {}, H), admin, g.events);
+    const c = validateLiveEvent(g.state(), input('turn_started', {}, A), admin, g.events);
     assert.notEqual(c.dedupe_key, a.dedupe_key);
   });
 
@@ -205,15 +205,16 @@ describe('validateLiveEvent', () => {
   test('supplementari solo nei playoff, in parità, con la squadra che calcia', () => {
     const league = game();
     league.add('half_started', null, { half: 2 });
-    rejects(() => validateLiveEvent(league.state(), input('half_started', { half: 3, kicking_team_id: A }), admin, league.events), 409);
+    rejects(() => validateLiveEvent(league.state(), input('half_started', { half: 3, kicking_team_id: A, force: true }), admin, league.events), 409);
     const cup = game({ knockout: true });
     cup.add('half_started', null, { half: 2 });
-    assert.throws(() => validateLiveEvent(cup.state(), input('half_started', { half: 3 }), admin, cup.events), LiveRuleError);
-    const ok = validateLiveEvent(cup.state(), input('half_started', { half: 3, kicking_team_id: H }), admin, cup.events);
+    assert.throws(() => validateLiveEvent(cup.state(), input('half_started', { half: 3, force: true }), admin, cup.events), LiveRuleError);
+    const ok = validateLiveEvent(cup.state(), input('half_started', { half: 3, kicking_team_id: H, force: true }), admin, cup.events);
     assert.equal(ok.payload.kicking_team_id, H);
     cup.kickoff(5);
+    cup.add('turn_started', A, { turn: 1 });
     cup.add('touchdown', H, {});
-    rejects(() => validateLiveEvent(cup.state(), input('half_started', { half: 3, kicking_team_id: H }), admin, cup.events), 409);
+    rejects(() => validateLiveEvent(cup.state(), input('half_started', { half: 3, kicking_team_id: H, force: true }), admin, cup.events), 409);
   });
 
   test('undo: il telefono annulla solo i suoi eventi, mai quelli del server', () => {
@@ -239,5 +240,97 @@ describe('validateLiveEvent', () => {
   test('id non UUID rifiutato (serve per l\'idempotenza)', () => {
     const g = game();
     rejects(() => validateLiveEvent(g.state(), { id: '1', type: 'casualty', team_id: H }, admin, g.events), 400);
+  });
+});
+
+describe('flusso di gioco', () => {
+  const admin: LiveActor = { role: 'admin' };
+  const homePhone: LiveActor = { role: 'companion', teamId: H };
+  const awayPhone: LiveActor = { role: 'companion', teamId: A };
+  const input = (type: string, payload: Record<string, unknown> = {}, team_id?: string): ClientEventInput => ({ id: randomUUID(), type, payload, team_id });
+  const code = (fn: () => unknown) => {
+    try { fn(); return null; } catch (e) { return e instanceof LiveRuleError ? e.code : 'other'; }
+  };
+  const turns = (g: ReturnType<typeof game>, ...teams: string[]) => {
+    for (const t of teams) g.add('turn_started', t, validateLiveEvent(g.state(), input('turn_started', {}, t), admin, g.events).payload);
+  };
+
+  test('prima del kick-off non si segna niente e non si usano reroll', () => {
+    const g = game();
+    assert.equal(code(() => validateLiveEvent(g.state(), input('casualty', {}, H), admin, g.events)), 'kickoff_first');
+    assert.equal(code(() => validateLiveEvent(g.state(), input('reroll_used', {}, H), homePhone, g.events)), 'kickoff_first');
+    assert.equal(code(() => validateLiveEvent(g.state(), input('turn_started', {}, H), homePhone, g.events)), 'kickoff_first');
+  });
+
+  test('dopo il kick-off gioca chi riceve, poi un turno a testa (p. 50)', () => {
+    const g = game();                               // calcia A: riceve H
+    g.kickoff(5);
+    assert.equal(g.state().next_turn_team_id, H);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('turn_started', {}, A), awayPhone, g.events)), 'not_your_turn');
+    turns(g, H);
+    assert.equal(g.state().active_team_id, H);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('turn_started', {}, H), homePhone, g.events)), 'not_your_turn', 'niente due turni di fila');
+    turns(g, A, H, A);
+    assert.equal(g.state().teams[H].turn, 2);
+    assert.equal(g.state().teams[A].turn, 2);
+  });
+
+  test('i Team Re-roll li usa solo la squadra di turno (p. 33); durante il kick-off entrambe', () => {
+    const g = game();
+    g.kickoff(5);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('reroll_used', {}, A), awayPhone, g.events)), null, 'Charge! prima del primo turno');
+    turns(g, H);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('reroll_used', {}, A), awayPhone, g.events)), 'not_active_team');
+    assert.equal(code(() => validateLiveEvent(g.state(), input('reroll_used', {}, H), homePhone, g.events)), null);
+  });
+
+  test('touchdown: serve un turno in corso; tra un drive e l\'altro niente statistiche', () => {
+    const g = game();
+    g.kickoff(5);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('touchdown', {}, H), admin, g.events)), 'no_turn_yet');
+    assert.equal(code(() => validateLiveEvent(g.state(), input('casualty', {}, A), admin, g.events)), null, 'Casualty possibili già nel kick-off');
+    turns(g, H);
+    g.add('touchdown', H, {});
+    assert.equal(code(() => validateLiveEvent(g.state(), input('casualty', {}, A), admin, g.events)), 'between_drives');
+    assert.equal(code(() => validateLiveEvent(g.state(), input('bribe_used', {}, A), admin, g.events)), 'no_bribes', 'il Bribe invece è ammesso anche tra i drive');
+  });
+
+  test('dopo un touchdown calcia chi ha segnato e riprende l\'altra squadra', () => {
+    const g = game();
+    g.kickoff(5);
+    turns(g, H, A, H);
+    g.add('touchdown', H, {});
+    assert.equal(g.state().kicking_team_id, H);
+    g.kickoff(5);
+    assert.equal(g.state().next_turn_team_id, A);
+    turns(g, A);
+    assert.equal(g.state().teams[A].turn, 2);
+  });
+
+  test('touchdown nel turno avversario: chi segna salta il suo prossimo turno (p. 80)', () => {
+    const g = game();
+    g.kickoff(5);
+    turns(g, H, A, H);                               // H al 2, A all'1, turno di H in corso
+    g.add('touchdown', A, {});                       // A segna nel turno di H
+    const s = g.state();
+    assert.equal(s.teams[A].turn, 2, 'il turno 2 di A se ne va a festeggiare');
+    assert.equal(s.kicking_team_id, A);
+    g.kickoff(5);
+    assert.equal(g.state().next_turn_team_id, H);
+    turns(g, H);
+    assert.equal(g.state().teams[H].turn, 3);
+  });
+
+  test('fine del tempo: niente kick-off e niente turni; cambiare tempo prima serve force', () => {
+    const g = game();
+    g.kickoff(5);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('half_started', { half: 2 }), admin, g.events)), 'half_not_over');
+    assert.equal(validateLiveEvent(g.state(), input('half_started', { half: 2, force: true }), admin, g.events).payload.forced, true);
+    for (let i = 0; i < 8; i++) turns(g, H, A);
+    assert.equal(g.state().turns_done, true);
+    assert.equal(code(() => validateLiveEvent(g.state(), input('turn_started', {}, H), admin, g.events)), 'no_turns_left');
+    g.add('touchdown', A, {});                       // segnato all'ultimo turno: non c'è un altro drive
+    assert.equal(code(() => kickoffDedupeKey(g.state())), 'half_over');
+    assert.equal(validateLiveEvent(g.state(), input('half_started', { half: 2 }), homePhone, g.events).payload.forced, undefined);
   });
 });

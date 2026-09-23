@@ -18,7 +18,9 @@ export function afterResponse(task: () => Promise<unknown>) {
 }
 
 export function liveErrorResponse(error: unknown, what: string) {
-  if (error instanceof LiveRuleError) return NextResponse.json({ error: error.message }, { status: error.status, headers: NO_STORE });
+  if (error instanceof LiveRuleError) {
+    return NextResponse.json({ error: error.message, code: error.code, params: error.params }, { status: error.status, headers: NO_STORE });
+  }
   console.error(`Live match: failed to ${what}:`, error);
   return NextResponse.json({ error: `Failed to ${what}` }, { status: 500, headers: NO_STORE });
 }
@@ -39,6 +41,12 @@ export const sinceParam = (request: Request) => Math.max(0, Number(new URL(reque
 export async function writerOf(request: Request, matchId: string): Promise<LiveActor | NextResponse> {
   const locked = await lockedMatchResponse(matchId);
   if (locked) return locked;
-  const actor = liveActor(request, matchId, await loadLive(matchId));
-  return actor ?? NextResponse.json({ error: 'Not paired with this match: scan the code again' }, { status: 401, headers: NO_STORE });
+  const live = await loadLive(matchId);
+  const actor = liveActor(request, matchId, live);
+  if (actor) return actor;
+  // Il telefono di una partita chiusa (o col referto salvato) non è "scollegato": la partita è finita
+  if (live?.status === 'ended' && request.headers.get('authorization')) {
+    return NextResponse.json({ error: 'The match has ended', code: live.played ? 'match_played' : 'match_ended' }, { status: 409, headers: NO_STORE });
+  }
+  return NextResponse.json({ error: 'Not paired with this match: scan the code again', code: 'not_your_team' }, { status: 401, headers: NO_STORE });
 }

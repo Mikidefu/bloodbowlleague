@@ -107,6 +107,10 @@ export type LiveState = {
   drive: number;                // quanti kick-off validi finora
   kicking_team_id: string | null;         // chi calcia il prossimo drive (o quello in corso)
   first_half_receiver_id: string | null;  // calcia all'inizio del secondo tempo (p. 50)
+  // Alternanza dei turni (p. 50): dopo il kick-off gioca chi riceve, poi un turno a testa
+  active_team_id: string | null;          // squadra il cui turno è in corso nel drive; null prima del primo turno del drive
+  next_turn_team_id: string | null;       // chi deve iniziare il prossimo turno (null se non si gioca: partita finita/non avviata)
+  turns_done: boolean;                    // chi dovrebbe giocare dopo ha già fatto i suoi 8 turni: il tempo è finito (o finisce col turno in corso)
   weather_roll: number | null;            // meteo cambiato da Changing Weather, null = quello del pre-partita
   knockout: boolean;
   home_team_id: string | null;

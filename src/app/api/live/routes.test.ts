@@ -13,6 +13,7 @@ const start = await import('./[matchId]/start/route');
 const events = await import('./[matchId]/events/route');
 const kickoff = await import('./[matchId]/kickoff/route');
 const leave = await import('./[matchId]/leave/route');
+const end = await import('./[matchId]/end/route');
 const join = await import('./join/route');
 
 type Handler = (request: Request, ctx: { params: Promise<{ matchId: string }> }) => Promise<Response>;
@@ -102,9 +103,26 @@ describe('/api/live', () => {
     }
   });
 
+  test('regole di gioco dal telefono: errore con codice, da tradurre', async () => {
+    const res = await call(`/api/live/${MATCH}/events`, events.POST, { token: awayToken, body: { id: randomUUID(), type: 'turn_started' } });
+    assert.equal(res.json.results[0].status, 'rejected');
+    assert.equal(res.json.results[0].code, 'not_your_turn', 'dopo il kick-off tocca a chi riceve');
+    assert.equal(res.json.results[0].params.team, H);
+  });
+
   test('il telefono lascia la squadra e il suo token smette di valere', async () => {
     assert.equal((await call(`/api/live/${MATCH}/leave`, leave.POST, { token: awayToken })).status, 200);
     const after = await call(`/api/live/${MATCH}/events`, events.POST, { token: awayToken, body: { id: randomUUID(), type: 'casualty' } });
     assert.equal(after.status, 401);
+  });
+
+  test('partita chiusa: il telefono riceve "partita chiusa" (409), non "scollegato"', async () => {
+    const found = (await call('/api/live/join?code=' + code, join.GET as unknown as Handler, { method: 'GET' })).json;
+    assert.ok(found.teams);
+    const joined = await call('/api/live/join', join.POST, { body: { code, team_id: H, device_id: randomUUID() } });
+    await call(`/api/live/${MATCH}/end`, end.POST, { admin: true });
+    const res = await call(`/api/live/${MATCH}/events`, events.POST, { token: joined.json.token, body: { id: randomUUID(), type: 'casualty' } });
+    assert.equal(res.status, 409);
+    assert.equal(res.json.code, 'match_ended');
   });
 });

@@ -158,6 +158,21 @@
 }
 
 /* Squadre */
+.activeTeam {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: -3px;
+}
+
+.turnBadge {
+  padding: 0.1rem 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--bb-ink);
+  background: var(--bb-mustard);
+}
+
 .teamHead {
   display: flex;
   justify-content: space-between;

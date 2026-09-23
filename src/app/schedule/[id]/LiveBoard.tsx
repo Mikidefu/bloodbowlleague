@@ -6,8 +6,10 @@ import { useMemo, useState } from 'react';
 import { Dices, Minus, Plus, Radio, RotateCcw, Smartphone, Undo2, WifiOff } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { describeEvent } from '@/lib/live/describe';
+import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffHeadline, type ManualKickoffDice } from '@/lib/live/kickoff';
 import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, type StatEvent } from '@/lib/live/types';
+import { whyNot } from '@/lib/live/rules';
 import type { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import type { MatchDetails } from '@/lib/types';
@@ -16,6 +18,7 @@ import wz from '@/components/match/Wizard.module.css';
 import styles from './LiveBoard.module.css';
 
 type Live = ReturnType<typeof useLiveMatch>;
+const ADMIN = { role: 'admin' } as const;
 
 const STAT_BUTTONS: { type: StatEvent; label: string; title: { it: string; en: string } }[] = [
   { type: 'touchdown', label: 'TD', title: { it: 'Touchdown (chiude il drive)', en: 'Touchdown (ends the drive)' } },
@@ -57,7 +60,7 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
           <div className={wz.actions}>
             <button type="button" className="btn btn-primary" onClick={() => live.start()}><Radio size={18} /> {L('Avvia la partita dal vivo', 'Start the live match')}</button>
           </div>
-          <Problems live={live} L={L} />
+          <Problems live={live} L={L} teamName={teamName} />
         </section>
     );
   }
@@ -81,7 +84,7 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
           </span>
         </header>
 
-        <Problems live={live} L={L} />
+        <Problems live={live} L={L} teamName={teamName} />
 
         {!ended && (
             <div className={styles.connect}>
@@ -111,11 +114,12 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
         )}
 
         <KickoffPanel match={match} live={live} teamName={teamName} L={L} />
+        {!ended && <PhaseLine live={live} teamName={teamName} L={L} />}
 
         <div className={wz.teams}>
           {teamIds.map(id => state.teams[id] && (
               <TeamColumn key={id} teamId={id} name={teamName(id)} color={color(id)} team={state.teams[id]} live={live} ended={ended}
-                players={players.filter(p => p.team_id === id && !p.unavailable)} playerName={playerName} L={L} />
+                players={players.filter(p => p.team_id === id && !p.unavailable)} playerName={playerName} teamName={teamName} L={L} />
           ))}
         </div>
 
@@ -150,11 +154,12 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
 
 type Tr = (it: string, en: string) => string;
 
-function Problems({ live, L }: { live: Live; L: Tr }) {
+function Problems({ live, L, teamName }: { live: Live; L: Tr; teamName: (id: string | null) => string }) {
+  const { language } = useLanguage();
   if (!live.errors.length) return null;
   return (
       <div className={wz.warn} role="alert">
-        {live.errors.slice(-3).map((e, i) => <div key={i}>{e}</div>)}
+        {live.errors.slice(-3).map((e, i) => <div key={i}>{problemText(e, language, teamName)}</div>)}
         <button type="button" className={`btn ${styles.small}`} onClick={live.dismissErrors}>{L('Ok', 'Ok')}</button>
       </div>
   );
@@ -198,7 +203,7 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
 
   return (
       <div className={styles.kickoff}>
-        {state.status === 'awaiting_kickoff' && (
+        {state.status === 'awaiting_kickoff' && !state.turns_done && (
             <div className={wz.dice}>
               <div className={wz.diceHead}>
                 <span className={wz.diceLabel}>
@@ -239,16 +244,46 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
   );
 }
 
+// Dove si è nella partita: chi gioca adesso, chi dopo, se il tempo è finito
+function PhaseLine({ live, teamName, L }: { live: Live; teamName: (id: string | null) => string; L: Tr }) {
+  const { state } = live;
+  let text: string;
+  if (state.turns_done && state.status === 'awaiting_kickoff') {
+    text = L('Il tempo è finito: non ci sono più turni. Inizia il tempo successivo o chiudi la partita.', 'The half is over: no turns left. Start the next half or close the match.');
+  } else if (state.status === 'awaiting_kickoff') {
+    const halfStart = Object.values(state.teams).every(t => t.turn === 0);
+    const halfName = state.half === EXTRA_TIME_HALF ? L('i supplementari', 'extra time') : L(`il ${state.half}° tempo`, `half ${state.half}`);
+    text = state.drive === 0
+      ? L(`La partita comincia col kick-off: calcia ${teamName(state.kicking_team_id)}. Fino ad allora non si segna niente.`, `The match starts with the kick-off: ${teamName(state.kicking_team_id)} kicks. Nothing can be recorded before that.`)
+      : halfStart
+        ? L(`Inizia ${halfName}: calcia ${teamName(state.kicking_team_id)}.`, `Starting ${halfName}: ${teamName(state.kicking_team_id)} kicks.`)
+        : L(`Drive finito: tocca al kick-off di ${teamName(state.kicking_team_id)}.`, `Drive over: ${teamName(state.kicking_team_id)} kicks off next.`);
+  } else if (!state.active_team_id) {
+    text = L(`Kick-off fatto: il primo turno è di ${teamName(state.next_turn_team_id)}.`, `Kick-off done: ${teamName(state.next_turn_team_id)} has the first turn.`);
+  } else {
+    const active = state.teams[state.active_team_id];
+    text = state.turns_done
+      ? L(`Ultimo turno del tempo: ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}). Quando finisce, si cambia tempo.`, `Last turn of the half: ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}). When it ends, the half is over.`)
+      : L(`Turno di ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}); poi tocca a ${teamName(state.next_turn_team_id)}.`, `${teamName(state.active_team_id)}'s turn (${active.turn}/${TURNS_PER_HALF}); ${teamName(state.next_turn_team_id)} is next.`);
+  }
+  return <p className={wz.note} aria-live="polite">{text}</p>;
+}
+
 type TeamProps = {
   teamId: string; name: string; color?: string; team: LiveTeamState; live: Live; ended: boolean;
-  players: MatchDetails['homePlayers']; playerName: (id: string) => string | null; L: Tr;
+  players: MatchDetails['homePlayers']; playerName: (id: string) => string | null; teamName: (id: string | null) => string; L: Tr;
 };
 
-function TeamColumn({ teamId, name, color, team, live, ended, players, playerName, L }: TeamProps) {
+function TeamColumn({ teamId, name, color, team, live, ended, players, playerName, teamName, L }: TeamProps) {
   const { language } = useLanguage();
   const [player, setPlayer] = useState('');
-  const inDrive = live.state.status === 'in_drive';
+  const { state } = live;
   const send = live.send;
+  // Stesse regole del server: il tasto si spegne e il tooltip dice perché
+  const why = (type: LiveEvent['type'], payload: Record<string, unknown> = {}): LiveProblem | null => whyNot(state, type, teamId, ADMIN, payload);
+  const tip = (p: LiveProblem | null) => (p ? problemText(p, language, teamName) : undefined);
+  const turnWhy = why('turn_started');
+  const active = state.active_team_id === teamId;
 
   const record = (type: StatEvent) => {
     send(type, teamId, player ? { player_id: player } : {});
@@ -261,23 +296,26 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
   const stats = Object.entries(team.stats).filter(([, s]) => statLine(s));
 
   return (
-      <div className={wz.team} style={{ '--team-color': color } as React.CSSProperties}>
+      <div className={`${wz.team} ${active ? styles.activeTeam : ''}`} style={{ '--team-color': color } as React.CSSProperties}>
         <div className={styles.teamHead}>
           <h4 className={wz.teamName}>{name}</h4>
+          {active && <span className={styles.turnBadge}>{L('di turno', 'on turn')}</span>}
           <span className={styles.score}>{team.score}</span>
         </div>
 
         <div className={styles.row}>
           <span>{L('Turno', 'Turn')} <strong className={styles.big}>{team.turn || '—'}</strong> / {TURNS_PER_HALF}</span>
-          <button type="button" className="btn" disabled={ended || !inDrive || team.turn >= TURNS_PER_HALF} onClick={() => send('turn_started', teamId)}>
-            {L(`Inizia il turno ${team.turn + 1}`, `Start turn ${team.turn + 1}`)}
+          <button type="button" className={state.next_turn_team_id === teamId && !turnWhy ? 'btn btn-primary' : 'btn'} disabled={ended || !!turnWhy}
+            title={tip(turnWhy)} onClick={() => send('turn_started', teamId)}>
+            {team.turn >= TURNS_PER_HALF ? L('Turni finiti', 'No turns left') : L(`Inizia il turno ${team.turn + 1}`, `Start turn ${team.turn + 1}`)}
           </button>
         </div>
 
         <div className={styles.row}>
           <span>Team Re-roll <strong className={styles.big}>{team.rerolls}</strong></span>
           <span className={styles.inline}>
-            <button type="button" className="btn" disabled={ended || team.rerolls < 1} onClick={() => send('reroll_used', teamId, { kind: 'team' })}>{L('Usa', 'Use')}</button>
+            <button type="button" className="btn" disabled={ended || !!why('reroll_used', { kind: 'team' })} title={tip(why('reroll_used', { kind: 'team' }))}
+              onClick={() => send('reroll_used', teamId, { kind: 'team' })}>{L('Usa', 'Use')}</button>
             <button type="button" className={`btn ${styles.small}`} disabled={ended} aria-label={L('Togli un reroll', 'Remove a re-roll')} onClick={() => adjust(-1)}><Minus size={14} /></button>
             <button type="button" className={`btn ${styles.small}`} disabled={ended} aria-label={L('Aggiungi un reroll', 'Add a re-roll')} onClick={() => adjust(1)}><Plus size={14} /></button>
           </span>
@@ -285,7 +323,8 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
         {team.drive_rerolls > 0 && (
             <div className={`${styles.row} ${styles.bonus}`}>
               <span>{L('Brilliant Coaching (solo questo drive)', 'Brilliant Coaching (this drive only)')} <strong className={styles.big}>{team.drive_rerolls}</strong></span>
-              <button type="button" className="btn" disabled={ended} onClick={() => send('reroll_used', teamId, { kind: 'drive' })}>{L('Usa', 'Use')}</button>
+              <button type="button" className="btn" disabled={ended || !!why('reroll_used', { kind: 'drive' })} title={tip(why('reroll_used', { kind: 'drive' }))}
+                onClick={() => send('reroll_used', teamId, { kind: 'drive' })}>{L('Usa', 'Use')}</button>
             </div>
         )}
         {team.mascot && (
@@ -293,7 +332,8 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
               <span>{L('Team Mascot: tira il D6 (4+ ok)', 'Team Mascot: roll the D6 (4+ ok)')}</span>
               <span className={styles.inline}>
                 {[1, 2, 3, 4, 5, 6].map(n => (
-                    <button key={n} type="button" className={`btn ${styles.die}`} disabled={ended} onClick={() => send('reroll_used', teamId, { kind: 'mascot', roll: n })}>{n}</button>
+                    <button key={n} type="button" className={`btn ${styles.die}`} disabled={ended || !!why('reroll_used', { kind: 'mascot', roll: n })}
+                      title={tip(why('reroll_used', { kind: 'mascot', roll: n }))} onClick={() => send('reroll_used', teamId, { kind: 'mascot', roll: n })}>{n}</button>
                 ))}
               </span>
             </div>
@@ -301,7 +341,7 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
         {(team.bribes > 0) && (
             <div className={styles.row}>
               <span>Bribe <strong className={styles.big}>{team.bribes}</strong></span>
-              <button type="button" className="btn" disabled={ended} onClick={() => send('bribe_used', teamId)}>{L('Usa', 'Use')}</button>
+              <button type="button" className="btn" disabled={ended || !!why('bribe_used')} title={tip(why('bribe_used'))} onClick={() => send('bribe_used', teamId)}>{L('Usa', 'Use')}</button>
             </div>
         )}
         {team.cheering_fans && <p className={wz.note}>{L('Cheering Fans: un assist offensivo in più al primo Block del prossimo turno.', 'Cheering Fans: an extra Offensive Assist on the first Block of the next turn.')}</p>}
@@ -314,8 +354,8 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
               </select>
               <div className={styles.inline}>
                 {STAT_BUTTONS.map(b => (
-                    <button key={b.type} type="button" className="btn" title={b.title[language]}
-                      disabled={b.type === 'touchdown' && !inDrive} onClick={() => record(b.type)}>{b.label}</button>
+                    <button key={b.type} type="button" className="btn" title={tip(why(b.type)) ?? b.title[language]}
+                      disabled={!!why(b.type)} onClick={() => record(b.type)}>{b.label}</button>
                 ))}
               </div>
             </div>
@@ -334,17 +374,16 @@ function HalfControls({ match, live, teamName, L }: { match: MatchDetails; live:
   const { state } = live;
   const [kicking, setKicking] = useState('');
   const tied = state.teams[match.home_team_id]?.score === state.teams[match.away_team_id]?.score;
+  const over = state.turns_done;
+  const turns = `${teamName(match.home_team_id)} ${state.teams[match.home_team_id]?.turn ?? 0}, ${teamName(match.away_team_id)} ${state.teams[match.away_team_id]?.turn ?? 0}`;
+  // Prima della fine dei turni si cambia tempo solo confermando (turni non segnati, concessione...): arriva come force
+  const early = (what: string) => L(`I turni del tempo non sono finiti (${turns} su ${TURNS_PER_HALF}). ${what} comunque?`, `The turns of this half are not over (${turns} of ${TURNS_PER_HALF}). ${what} anyway?`);
+
   if (state.half === 1) {
-    // Il tempo finisce quando entrambe hanno giocato 8 turni (p. 34); prima si può comunque, se i turni non sono stati segnati
-    const turns = [match.home_team_id, match.away_team_id].map(id => state.teams[id]?.turn ?? 0);
-    const over = turns.every(t => t >= TURNS_PER_HALF);
-    const ask = over
-      ? L('Iniziare il secondo tempo? I Team Re-roll tornano pieni (p. 33).', 'Start the second half? Team Re-rolls are replenished (p. 33).')
-      : L(`I turni segnati non sono finiti (${teamName(match.home_team_id)} ${turns[0]}, ${teamName(match.away_team_id)} ${turns[1]} su ${TURNS_PER_HALF}). Iniziare comunque il secondo tempo?`,
-          `The recorded turns are not over (${teamName(match.home_team_id)} ${turns[0]}, ${teamName(match.away_team_id)} ${turns[1]} of ${TURNS_PER_HALF}). Start the second half anyway?`);
+    const ask = over ? L('Iniziare il secondo tempo? I Team Re-roll tornano pieni (p. 33).', 'Start the second half? Team Re-rolls are replenished (p. 33).') : early(L('Iniziare il secondo tempo', 'Start the second half'));
     return (
         <div className={wz.actions}>
-          <button type="button" className={over ? 'btn btn-primary' : 'btn'} onClick={() => { if (confirm(ask)) live.send('half_started', null, { half: 2 }); }}>
+          <button type="button" className={over ? 'btn btn-primary' : 'btn'} onClick={() => { if (confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) }); }}>
             {L('Inizia il secondo tempo', 'Start the second half')}
           </button>
         </div>
@@ -357,12 +396,20 @@ function HalfControls({ match, live, teamName, L }: { match: MatchDetails; live:
             <option value="">{L('Chi calcia? (roll-off, p. 83)', 'Who kicks? (roll-off, p. 83)')}</option>
             {[match.home_team_id, match.away_team_id].map(id => <option key={id} value={id}>{teamName(id)}</option>)}
           </select>
-          <button type="button" className="btn" disabled={!kicking} onClick={() => live.send('half_started', null, { half: EXTRA_TIME_HALF, kicking_team_id: kicking })}>
+          <button type="button" className={over ? 'btn btn-primary' : 'btn'} disabled={!kicking} onClick={() => {
+            if (over || confirm(early(L('Iniziare i supplementari', 'Start extra time')))) {
+              live.send('half_started', null, { half: EXTRA_TIME_HALF, kicking_team_id: kicking, ...(over ? {} : { force: true }) });
+            }
+          }}>
             {L('Inizia i supplementari', 'Start extra time')}
           </button>
         </div>
     );
   }
+  if (over) {
+    return <p className={wz.note}>{state.half === EXTRA_TIME_HALF
+      ? L('Supplementari finiti: chiudi la partita col tasto qui sopra. Se è ancora parità, i rigori si segnano nel referto (p. 83).', 'Extra time is over: close the match with the button above. If it is still a draw, the penalty shoot-out goes in the report (p. 83).')
+      : L('Partita finita: chiudila col tasto qui sopra e compila il referto.', 'Match over: close it with the button above and fill in the report.')}</p>;
+  }
   return null;
 }
-

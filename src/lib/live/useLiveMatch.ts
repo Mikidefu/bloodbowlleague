@@ -8,6 +8,7 @@
 //   risponde subito al tocco, e appena il server conferma i numeri sono gli stessi.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { LiveProblem } from './errors';
 import type { ManualKickoffDice } from './kickoff';
 import { reduceLive } from './reduce';
 import type { LiveEvent, LiveEventType } from './types';
@@ -60,9 +61,11 @@ function writeQueue(key: string | null | undefined, queue: PendingEvent[]) {
 
 class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
-    super(message);
+  problem: LiveProblem;
+  constructor(status: number, problem: LiveProblem) {
+    super(problem.message);
     this.status = status;
+    this.problem = problem;
   }
 }
 
@@ -72,7 +75,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
   const [load, setLoad] = useState<LiveLoad>('loading');
   const [pending, setPending] = useState<PendingEvent[]>([]);
   const [offline, setOffline] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<LiveProblem[]>([]);
   const [me, setMe] = useState<string | null | undefined>(undefined);   // chi legge secondo il server (vedi GET)
 
   const eventsRef = useRef<LiveEvent[]>([]);
@@ -103,7 +106,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
     if (token) headers.set('authorization', `Bearer ${token}`);
     const res = await fetch(`/api/live/${matchId}${path}`, { ...init, headers, cache: 'no-store' });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new HttpError(res.status, json.error ?? `HTTP ${res.status}`);
+    if (!res.ok) throw new HttpError(res.status, { code: json.code, message: json.error ?? `HTTP ${res.status}`, params: json.params });
     return json;
   }, [matchId, token]);
 
@@ -137,7 +140,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
     if (error instanceof HttpError) {
       setOffline(false);
       if (error.status === 401 && callbacks.current.onUnauthorized) { callbacks.current.onUnauthorized(); return; }
-      setErrors(list => [...list, error.message]);
+      setErrors(list => [...list, error.problem]);
       return;
     }
     setOffline(true);   // rete assente: si riprova al prossimo giro
@@ -152,12 +155,22 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
       try {
         const since = lastSeq();
         const batch = pendingRef.current.slice(0, MAX_BATCH);
-        let snap: Snapshot & { results?: { id: string; status: string; error?: string }[] };
+        let snap: Snapshot & { results?: { id: string; status: string; error?: string; code?: string; params?: Record<string, string | number> }[] };
         if (batch.length) {
-          snap = await request(`/events?since=${since}`, { method: 'POST', body: JSON.stringify({ events: batch }) });
+          try {
+            snap = await request(`/events?since=${since}`, { method: 'POST', body: JSON.stringify({ events: batch }) });
+          } catch (error) {
+            // Lotto rifiutato per intero per un motivo che non cambierà (partita chiusa, referto salvato...):
+            // riprovare all'infinito non serve, si scarta e si dice perché. 401 (scollegato) e 5xx si riprovano.
+            if (error instanceof HttpError && error.status >= 400 && error.status < 500 && ![401, 408, 429].includes(error.status)) {
+              const dropped = new Set(batch.map(e => e.id));
+              setQueue(pendingRef.current.filter(e => !dropped.has(e.id)));
+            }
+            throw error;
+          }
           const done = new Set((snap.results ?? []).map(r => r.id));
           const rejected = (snap.results ?? []).filter(r => r.status === 'rejected');
-          if (rejected.length) setErrors(list => [...list, ...rejected.map(r => r.error ?? 'Rejected')]);
+          if (rejected.length) setErrors(list => [...list, ...rejected.map(r => ({ code: r.code, message: r.error ?? 'Rejected', params: r.params }))]);
           setQueue(pendingRef.current.filter(e => !done.has(e.id)));
         } else {
           snap = await request(`?since=${since}`);

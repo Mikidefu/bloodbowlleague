@@ -8,8 +8,10 @@ import { Bell, BellOff, Dices, LogOut, Sun, Undo2, WifiOff, X } from 'lucide-rea
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
 import { describeEvent } from '@/lib/live/describe';
+import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffHeadline } from '@/lib/live/kickoff';
 import { noticesFor, type Notice } from '@/lib/live/notify';
+import { whyNot } from '@/lib/live/rules';
 import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type StatEvent } from '@/lib/live/types';
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
@@ -133,7 +135,18 @@ function Board({ session }: { session: CompanionSession }) {
   const opp = oppId ? state.teams[oppId] : undefined;
   const color = match ? (myTeam === match.home_team_id ? match.home_color : match.away_color) : null;
   const inDrive = state.status === 'in_drive';
-  const iKick = state.status === 'awaiting_kickoff' && state.kicking_team_id === myTeam;
+  const iKick = state.status === 'awaiting_kickoff' && state.kicking_team_id === myTeam && !state.turns_done;
+  // Stesse regole del server: i tasti si spengono e sotto c'è scritto perché
+  const actor = { role: 'companion' as const, teamId: myTeam };
+  const why = (type: LiveEvent['type'], payload: Record<string, unknown> = {}): LiveProblem | null => whyNot(state, type, myTeam, actor, payload);
+  // Prima del kick-off e tra i drive lo dice già l'avviso in alto: nei pannelli non si ripete
+  const phaseWait = (p: LiveProblem | null) => p?.code === 'kickoff_first' || p?.code === 'between_drives';
+  const say = (p: LiveProblem | null) => (p && !phaseWait(p) ? problemText(p, language, id => teamName(id)) : null);
+  const turnWhy = why('turn_started');
+  const rerollWhy = why('reroll_used', { kind: 'team' });
+  const statWhy = why('casualty');
+  const myTurnNow = state.active_team_id === myTeam;
+  const myTurnNext = state.next_turn_team_id === myTeam && !turnWhy;
   const weatherRoll = state.weather_roll ?? match?.weather_roll ?? null;
   const weather = weatherRoll ? rowForTotal(getMatchTable('weather')!, weatherRoll) : null;
   const halfLabel = state.half === EXTRA_TIME_HALF ? L('Supplementari', 'Extra time') : L(`${state.half}° tempo`, `Half ${state.half}`);
@@ -152,13 +165,14 @@ function Board({ session }: { session: CompanionSession }) {
     live.send(type, myTeam, playerId ? { player_id: playerId } : {});
     setPicking(null);
   };
+  // Prima della fine degli 8 turni si cambia tempo solo confermando (turni non segnati): arriva come force
   const startHalf = () => {
     const turns = [me?.turn ?? 0, opp?.turn ?? 0];
-    const over = turns.every(t => t >= TURNS_PER_HALF);
+    const over = state.turns_done;
     const ask = over
       ? L('Iniziare il secondo tempo? I Team Re-roll tornano pieni.', 'Start the second half? Team Re-rolls are replenished.')
       : L(`I turni non sono finiti (${turns[0]} e ${turns[1]} su ${TURNS_PER_HALF}). Iniziare comunque il secondo tempo?`, `The turns are not over (${turns[0]} and ${turns[1]} of ${TURNS_PER_HALF}). Start the second half anyway?`);
-    if (confirm(ask)) live.send('half_started', null, { half: 2 });
+    if (confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) });
   };
 
   return (
@@ -187,7 +201,7 @@ function Board({ session }: { session: CompanionSession }) {
               </button>
           ))}
           {live.errors.length > 0 && (
-              <button type="button" className={`${styles.toast} ${styles.toastBad}`} onClick={live.dismissErrors}>{live.errors[live.errors.length - 1]}</button>
+              <button type="button" className={`${styles.toast} ${styles.toastBad}`} onClick={live.dismissErrors}>{problemText(live.errors[live.errors.length - 1], language, id => teamName(id))}</button>
           )}
         </div>
 
@@ -219,7 +233,12 @@ function Board({ session }: { session: CompanionSession }) {
               </button>
             </section>
         )}
-        {!ended && state.status === 'awaiting_kickoff' && !iKick && (
+        {!ended && state.status === 'awaiting_kickoff' && state.turns_done && (
+            <p className={styles.notice}>{state.half === 1
+              ? L('Primo tempo finito: si riparte col secondo tempo.', 'First half over: the second half is next.')
+              : L('Tempo finito: aspetta che l’admin chiuda la partita.', 'Half over: wait for the admin to close the match.')}</p>
+        )}
+        {!ended && state.status === 'awaiting_kickoff' && !state.turns_done && !iKick && (
             <p className={styles.notice}>{L(`In attesa del kick-off di ${teamName(state.kicking_team_id)}.`, `Waiting for ${teamName(state.kicking_team_id)}'s kick-off.`)}</p>
         )}
         {state.last_kickoff && inDrive && (
@@ -228,17 +247,24 @@ function Board({ session }: { session: CompanionSession }) {
 
         {me && !ended && (
             <>
-              <section className={styles.panel}>
+              <section className={`${styles.panel} ${myTurnNow || myTurnNext ? styles.myTurn : ''}`}>
                 <div className={styles.counter}>
-                  <span className={styles.counterLabel}>{L('Il tuo turno', 'Your turn')}</span>
+                  <span className={styles.counterLabel}>
+                    {myTurnNow ? L('È il tuo turno', 'It is your turn')
+                      : state.active_team_id && myTurnNext ? L(`Turno di ${teamName(state.active_team_id)} · poi tocca a te`, `${teamName(state.active_team_id)}'s turn · you are next`)
+                      : myTurnNext ? L('Tocca a te', 'You are up')
+                      : state.active_team_id ? L(`Turno di ${teamName(state.active_team_id)}`, `${teamName(state.active_team_id)}'s turn`)
+                      : L('Il tuo turno', 'Your turn')}
+                  </span>
                   <strong className={styles.counterNum}>{me.turn || '—'}<small>/{TURNS_PER_HALF}</small></strong>
                   {opp && <span className={styles.counterSide}>{L('avversario', 'opponent')} {opp.turn || '—'}</span>}
                 </div>
-                <button type="button" className={`btn btn-primary ${styles.big}`} disabled={!inDrive || me.turn >= TURNS_PER_HALF || cooling}
+                <button type="button" className={`btn ${myTurnNext ? 'btn-primary' : ''} ${styles.big}`} disabled={!!turnWhy || cooling}
                   onClick={tap(() => live.send('turn_started', myTeam))}>
-                  {me.turn >= TURNS_PER_HALF ? L('Tempo finito', 'Half over') : L(`Inizia il turno ${me.turn + 1}`, `Start turn ${me.turn + 1}`)}
+                  {me.turn >= TURNS_PER_HALF ? L('Turni finiti', 'No turns left') : L(`Inizia il turno ${me.turn + 1}`, `Start turn ${me.turn + 1}`)}
                 </button>
-                {state.status === 'awaiting_kickoff' && <p className={styles.help}>{L('Il turno si avanza dopo il kick-off.', 'Turns start after the kick-off.')}</p>}
+                {myTurnNext && state.active_team_id && <p className={styles.help}>{L('Quando l’avversario ha finito il suo turno, inizia il tuo.', 'When your opponent has finished their turn, start yours.')}</p>}
+                {turnWhy && !phaseWait(turnWhy) && <p className={styles.help}>{myTurnNow ? L('Quando hai finito, il prossimo turno lo inizia l’avversario.', 'When you are done, your opponent starts the next turn.') : say(turnWhy)}</p>}
               </section>
 
               <section className={styles.panel}>
@@ -246,13 +272,14 @@ function Board({ session }: { session: CompanionSession }) {
                   <span className={styles.counterLabel}>Team Re-roll</span>
                   <strong className={styles.counterNum}>{me.rerolls}</strong>
                 </div>
-                <button type="button" className={`btn ${styles.big}`} disabled={me.rerolls < 1 || cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'team' }))}>
+                <button type="button" className={`btn ${styles.big}`} disabled={!!rerollWhy || cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'team' }))}>
                   {L('Usa un Team Re-roll', 'Use a Team Re-roll')}
                 </button>
+                {rerollWhy && rerollWhy.code !== 'no_rerolls' && !phaseWait(rerollWhy) && <p className={styles.help}>{say(rerollWhy)}</p>}
                 {me.drive_rerolls > 0 && (
                     <div className={styles.bonus}>
                       <span>{L('Brilliant Coaching: reroll solo per questo drive', 'Brilliant Coaching: re-roll for this drive only')}</span>
-                      <button type="button" className="btn btn-primary" disabled={cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'drive' }))}>{L('Usa', 'Use')}</button>
+                      <button type="button" className="btn btn-primary" disabled={!!why('reroll_used', { kind: 'drive' }) || cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'drive' }))}>{L('Usa', 'Use')}</button>
                     </div>
                 )}
                 {me.mascot && (
@@ -260,7 +287,7 @@ function Board({ session }: { session: CompanionSession }) {
                       <span>{L('Team Mascot: tira il D6 e tocca il risultato (4+ ok)', 'Team Mascot: roll the D6 and tap the result (4+ ok)')}</span>
                       <div className={styles.dieButtons}>
                         {[1, 2, 3, 4, 5, 6].map(n => (
-                            <button key={n} type="button" className="btn" disabled={cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'mascot', roll: n }))}>{n}</button>
+                            <button key={n} type="button" className="btn" disabled={!!why('reroll_used', { kind: 'mascot', roll: n }) || cooling} onClick={tap(() => live.send('reroll_used', myTeam, { kind: 'mascot', roll: n }))}>{n}</button>
                         ))}
                       </div>
                     </div>
@@ -268,7 +295,7 @@ function Board({ session }: { session: CompanionSession }) {
                 {me.bribes > 0 && (
                     <div className={styles.bonus}>
                       <span>Bribe: <strong>{me.bribes}</strong></span>
-                      <button type="button" className="btn" disabled={cooling} onClick={tap(() => live.send('bribe_used', myTeam))}>{L('Usa', 'Use')}</button>
+                      <button type="button" className="btn" disabled={!!why('bribe_used') || cooling} onClick={tap(() => live.send('bribe_used', myTeam))}>{L('Usa', 'Use')}</button>
                     </div>
                 )}
                 {me.cheering_fans && <p className={styles.help}>{L('Cheering Fans: un assist offensivo in più al primo Block del prossimo turno.', 'Cheering Fans: an extra Offensive Assist on the first Block of your next turn.')}</p>}
@@ -278,12 +305,14 @@ function Board({ session }: { session: CompanionSession }) {
                 <h2 className={styles.title}>{L('Segna', 'Record')}</h2>
                 <div className={styles.statGrid}>
                   {STATS.map(s => (
-                      <button key={s.type} type="button" className="btn" disabled={s.type === 'touchdown' && !inDrive} onClick={() => setPicking(s.type)}>
+                      <button key={s.type} type="button" className="btn" disabled={!!why(s.type)} onClick={() => setPicking(s.type)}>
                         <span className={styles.statShort}>{s.short}</span>
                         <span className={styles.statLong}>{s[language]}</span>
                       </button>
                   ))}
                 </div>
+                {statWhy && !phaseWait(statWhy) && <p className={styles.help}>{say(statWhy)}</p>}
+                {!statWhy && why('touchdown') && <p className={styles.help}>{say(why('touchdown'))}</p>}
               </section>
             </>
         )}

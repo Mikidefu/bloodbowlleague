@@ -16,6 +16,7 @@ const int = (v: unknown, fallback = 0) => (Number.isInteger(v) ? (v as number) :
 export function emptyLiveState(): LiveState {
   return {
     status: 'not_started', half: 0, drive: 0, kicking_team_id: null, first_half_receiver_id: null, weather_roll: null,
+    active_team_id: null, next_turn_team_id: null, turns_done: false,
     knockout: false, home_team_id: null, away_team_id: null, teams: {}, last_kickoff: null, seq: 0, phase_seq: 0, voided: [], setup: null,
   };
 }
@@ -29,6 +30,7 @@ function endDrive(state: LiveState) {
     team.drive_rerolls = 0;
     team.cheering_fans = false;
   }
+  state.active_team_id = null;
   state.status = 'awaiting_kickoff';
 }
 
@@ -119,7 +121,9 @@ function applyEvent(state: LiveState, event: LiveEvent) {
     }
     case 'kickoff_rolled': applyKickoff(state, event); return;
     case 'turn_started':
-      if (team) team.turn = Math.min(TURNS_PER_HALF, Math.max(1, int(p.turn, team.turn + 1)));
+      if (!team) return;
+      team.turn = Math.min(TURNS_PER_HALF, Math.max(1, int(p.turn, team.turn + 1)));
+      state.active_team_id = event.team_id;
       return;
     case 'reroll_used':
       if (!team) return;
@@ -145,6 +149,8 @@ function applyEvent(state: LiveState, event: LiveEvent) {
       team.score += 1;
       // Il touchdown chiude il drive e chi ha segnato calcia il prossimo (p. 50)
       if (state.status === 'in_drive') {
+        // Segnato nel turno dell'avversario (p. 80): chi ha segnato salta il suo prossimo turno, il segnalino avanza
+        if (state.active_team_id && state.active_team_id !== event.team_id) team.turn = Math.min(TURNS_PER_HALF, team.turn + 1);
         endDrive(state);
         state.kicking_team_id = event.team_id;
       }
@@ -176,5 +182,18 @@ export function reduceLive(events: LiveEvent[]): LiveState {
     applyEvent(state, event);
   }
   state.voided = [...voided];
+  deriveTurnOrder(state);
   return state;
+}
+
+// Chi gioca il prossimo turno e se il tempo ha ancora turni (p. 50): dopo il kick-off tocca a chi riceve,
+// poi un turno a testa. Non si salva: si ricava dagli eventi, quindi un undo lo ricalcola da solo.
+function deriveTurnOrder(state: LiveState) {
+  const receiving = other(state, state.kicking_team_id);
+  state.next_turn_team_id =
+    state.status === 'in_drive' ? (state.active_team_id ? other(state, state.active_team_id) : receiving)
+    : state.status === 'awaiting_kickoff' ? receiving
+    : null;
+  const next = state.next_turn_team_id ? state.teams[state.next_turn_team_id] : undefined;
+  state.turns_done = !!next && next.turn >= TURNS_PER_HALF;
 }

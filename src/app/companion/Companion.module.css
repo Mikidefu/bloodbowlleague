@@ -315,6 +315,12 @@
   border-top-color: var(--bb-mustard);
 }
 
+/* Il pannello del turno si accende quando tocca a te */
+.myTurn {
+  border-top-color: var(--bb-mustard);
+  box-shadow: 0 0 0 3px var(--bb-mustard), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
 .kickLine {
   display: flex;
   align-items: center;

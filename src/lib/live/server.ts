@@ -10,7 +10,7 @@ import db from '@/lib/db';
 import { rollDie } from '@/lib/matchTables';
 import { resolveKickoff, validateManualDice, type DieRoller, type ManualKickoffDice } from './kickoff';
 import { reduceLive } from './reduce';
-import { LiveRuleError, canRollKickoff, isEventId, kickoffDedupeKey, validateLiveEvent, type ClientEventInput, type LiveActor, type ValidatedEvent } from './rules';
+import { LiveRuleError, canRollKickoff, isEventId, kickoffDedupeKey, validateLiveEvent, type ClientEventInput, type LiveActor, type LiveErrorCode, type ValidatedEvent } from './rules';
 import { chefRolls, liveStartPayload } from './setup';
 import { companionToken, newJoinCode, newNonce, normalizeJoinCode } from './token';
 import type { LiveEvent, LiveEventType, LiveState } from './types';
@@ -30,18 +30,20 @@ export type LiveRow = {
   home_device: string | null;
   away_device: string | null;
   status: 'live' | 'ended';
+  played: boolean;   // referto già salvato: il live vale come chiuso anche se nessuno l'ha chiuso
 };
 
 type NewEvent = Omit<ValidatedEvent, 'id'> & { id: string; source: LiveEvent['source'] };
 
 const str = (v: unknown) => (v === null || v === undefined ? null : String(v));
-const fail = (message: string, status = 400): never => { throw new LiveRuleError(message, status); };
+const fail = (message: string, status = 400, code: LiveErrorCode = 'invalid'): never => { throw new LiveRuleError(message, status, code); };
 
 function toLiveRow(r: Row): LiveRow {
   return {
     match_id: String(r.match_id), home_team_id: String(r.home_team_id), away_team_id: String(r.away_team_id),
     join_code: String(r.join_code), home_nonce: str(r.home_nonce), away_nonce: str(r.away_nonce),
-    home_device: str(r.home_device), away_device: str(r.away_device), status: r.status === 'ended' ? 'ended' : 'live',
+    home_device: str(r.home_device), away_device: str(r.away_device),
+    status: r.status === 'ended' || Number(r.is_played) ? 'ended' : 'live', played: !!Number(r.is_played),
   };
 }
 
@@ -55,7 +57,14 @@ function toEvent(r: Row): LiveEvent {
   };
 }
 
-const LIVE_SELECT = `SELECT l.*, m.home_team_id, m.away_team_id FROM match_live l JOIN matches m ON m.id = l.match_id`;
+const LIVE_SELECT = `SELECT l.*, m.home_team_id, m.away_team_id, m.is_played FROM match_live l JOIN matches m ON m.id = l.match_id`;
+
+// Col referto già salvato il live non accetta più niente: i numeri ufficiali sono quelli del referto
+async function assertNotPlayed(matchId: string) {
+  const { rows: [row] } = await db.execute({ sql: 'SELECT is_played FROM matches WHERE id = ?', args: [matchId] });
+  if (!row) fail('Match not found', 404, 'not_found');
+  if (Number(row.is_played)) fail('The match report has already been saved', 409, 'match_played');
+}
 
 export async function loadLive(matchId: string): Promise<LiveRow | null> {
   const { rows: [row] } = await db.execute({ sql: `${LIVE_SELECT} WHERE l.match_id = ?`, args: [matchId] });
@@ -113,7 +122,7 @@ export async function liveSnapshot(matchId: string, since = 0, admin = false): P
 export async function startLive(matchId: string, roll: DieRoller = rollDie) {
   const { rows: [match] } = await db.execute({ sql: 'SELECT * FROM matches WHERE id = ?', args: [matchId] });
   if (!match) fail('Match not found', 404);
-  if (Number(match.is_played)) fail('This match has already been played', 409);
+  if (Number(match.is_played)) fail('This match has already been played', 409, 'match_played');
   if (!Number(match.pregame_done) || !match.kicking_team_id) fail('Complete the pre-game first: the live match needs the kicking team and the inducements', 409);
 
   const existing = await loadLive(matchId);
@@ -255,13 +264,14 @@ export async function unpairTeam(matchId: string, teamId: unknown) {
 // Scrittura degli eventi
 // ------------------------------------------------------------------
 
-export type EventResult = { id: string; status: 'ok' | 'duplicate' | 'rejected'; error?: string };
+export type EventResult = { id: string; status: 'ok' | 'duplicate' | 'rejected'; error?: string; code?: LiveErrorCode; params?: Record<string, string | number> };
 
 // Uno o più eventi (la coda offline del telefono li manda a lotti). Ognuno è validato sullo stato che
 // include i precedenti del lotto; uno rifiutato non blocca gli altri. Poi un solo batch atomico.
 export async function recordEvents(matchId: string, actor: LiveActor, inputs: ClientEventInput[], roll: DieRoller = rollDie): Promise<EventResult[]> {
   if (!Array.isArray(inputs) || !inputs.length) fail('No events');
   if (inputs.length > MAX_EVENTS_PER_REQUEST) fail(`At most ${MAX_EVENTS_PER_REQUEST} events per request`);
+  await assertNotPlayed(matchId);
   const [events, players] = await Promise.all([
     loadEvents(matchId),
     db.execute({ sql: 'SELECT p.id, p.team_id FROM players p JOIN matches m ON p.team_id IN (m.home_team_id, m.away_team_id) WHERE m.id = ?', args: [matchId] }),
@@ -295,7 +305,7 @@ export async function recordEvents(matchId: string, actor: LiveActor, inputs: Cl
       results.push({ id: next.id, status: 'ok' });
     } catch (error) {
       if (!(error instanceof LiveRuleError)) throw error;
-      results.push({ id: id ?? String(input?.id ?? ''), status: 'rejected', error: error.message });
+      results.push({ id: id ?? String(input?.id ?? ''), status: 'rejected', error: error.message, code: error.code, params: error.params });
     }
   }
 
@@ -315,11 +325,12 @@ export async function recordEvents(matchId: string, actor: LiveActor, inputs: Cl
 // Il kick-off lo tira il server (o registra i dadi tirati al tavolo) e ne scrive subito anche gli effetti
 export async function rollKickoff(matchId: string, actor: LiveActor, id: unknown, manual?: ManualKickoffDice, roll: DieRoller = rollDie) {
   if (!isEventId(id)) fail('Event id must be a UUID');
+  await assertNotPlayed(matchId);
   const events = await loadEvents(matchId);
   if (events.some(e => e.id === id)) return { status: 'duplicate' as const };
   const state = reduceLive(events);
-  if (state.status === 'not_started') fail('The live match has not started', 409);
-  if (!canRollKickoff(state, actor)) fail('The kicking team rolls the kick-off (p. 48)', 403);
+  if (state.status === 'not_started') fail('The live match has not started', 409, 'not_started');
+  if (!canRollKickoff(state, actor)) fail('The kicking team rolls the kick-off (p. 48)', 403, 'kicking_team_only');
   const dedupe = kickoffDedupeKey(state);
   const kicking = state.kicking_team_id!;
   const receiving = kicking === state.home_team_id ? state.away_team_id! : state.home_team_id!;

@@ -103,8 +103,8 @@ describe('partita dal vivo sul database', () => {
 
   test('secondo tempo: reroll ricaricati e nuovi tiri dello Chef, un solo inizio tempo', async () => {
     const [a, b] = await Promise.all([
-      server.recordEvents(MATCH, admin, [{ id: randomUUID(), type: 'half_started', payload: { half: 2 } }], seq6(1, 1, 1)),
-      server.recordEvents(MATCH, { role: 'companion', teamId: H }, [{ id: randomUUID(), type: 'half_started', payload: { half: 2 } }], seq6(1, 1, 1)),
+      server.recordEvents(MATCH, admin, [{ id: randomUUID(), type: 'half_started', payload: { half: 2, force: true } }], seq6(1, 1, 1)),
+      server.recordEvents(MATCH, { role: 'companion', teamId: H }, [{ id: randomUUID(), type: 'half_started', payload: { half: 2, force: true } }], seq6(1, 1, 1)),
     ]);
     assert.equal((await eventsOf('half_started')).length, 1);
     // L'altra richiesta è un doppione (stesso stato letto) o rifiutata (ha letto il tempo già iniziato)
@@ -127,6 +127,15 @@ describe('partita dal vivo sul database', () => {
     assert.equal(snap.live.status, 'live');
     assert.equal(snap.state.status, 'awaiting_kickoff');
     assert.equal(snap.state.teams[H].score, 1);
+  });
+
+  test('referto salvato: il live vale come chiuso e non accetta più niente', async () => {
+    await db.execute({ sql: 'UPDATE matches SET is_played = 1 WHERE id = ?', args: [MATCH] });
+    assert.equal((await server.loadLive(MATCH))!.status, 'ended');
+    await rejected(server.recordEvents(MATCH, admin, [{ id: randomUUID(), type: 'casualty', team_id: H }]), 409);
+    await rejected(server.rollKickoff(MATCH, admin, randomUUID()), 409);
+    await rejected(server.startLive(MATCH), 409);
+    await db.execute({ sql: 'UPDATE matches SET is_played = 0 WHERE id = ?', args: [MATCH] });
   });
 
   test('eliminare la partita elimina anche il live (ON DELETE CASCADE)', async () => {
