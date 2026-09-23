@@ -16,6 +16,7 @@ import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type StatEvent } from 
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import type { MatchDetails } from '@/lib/types';
+import LiveScoreboard from '@/components/live/LiveScoreboard';
 import LangSwitch from '../LangSwitch';
 import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
@@ -177,31 +178,29 @@ function Board({ session }: { session: CompanionSession }) {
 
   return (
       <div className={styles.app} style={{ '--team-color': color ?? undefined } as React.CSSProperties}>
-        <header className={styles.scorebar}>
-          <div className={styles.scoreRow}>
-            <span className={`${styles.scoreTeam} ${myTeam === state.home_team_id ? styles.scoreMine : ''}`}>{teamName(state.home_team_id)}</span>
-            <strong className={styles.scoreNum}>{state.teams[state.home_team_id ?? '']?.score ?? 0} – {state.teams[state.away_team_id ?? '']?.score ?? 0}</strong>
-            <span className={`${styles.scoreTeam} ${myTeam === state.away_team_id ? styles.scoreMine : ''}`}>{teamName(state.away_team_id)}</span>
-          </div>
-          <div className={styles.metaRow}>
-            <span>{halfLabel}</span>
-            <span>Drive {state.drive || '—'}</span>
-            {weather && <span>{weather.name}</span>}
-            <span className={styles.sync}>
-              {live.offline ? <><WifiOff size={14} /> {L('offline', 'offline')}</> : live.pending ? L(`invio ${live.pending}`, `sending ${live.pending}`) : '●'}
-            </span>
-          </div>
-        </header>
+        <div className={styles.scoreSticky}>
+          <LiveScoreboard compact
+            home={{ name: teamName(state.home_team_id), logo: match?.home_logo ?? null, color: match?.home_color ?? null,
+              score: state.teams[state.home_team_id ?? '']?.score ?? 0, active: !ended && state.active_team_id === state.home_team_id, mine: myTeam === state.home_team_id }}
+            away={{ name: teamName(state.away_team_id), logo: match?.away_logo ?? null, color: match?.away_color ?? null,
+              score: state.teams[state.away_team_id ?? '']?.score ?? 0, active: !ended && state.active_team_id === state.away_team_id, mine: myTeam === state.away_team_id }}
+            meta={[halfLabel, `Drive ${state.drive || '—'}`, weather?.name ?? '']}
+            status={ended ? 'ended' : 'live'}
+            statusLabel={ended ? L('Chiusa', 'Closed') : 'Live'}
+            activeLabel={L('di turno', 'on turn')}
+            sync={live.offline ? <><WifiOff size={13} aria-hidden="true" /> {L('offline', 'offline')}</> : live.pending ? L(`invio ${live.pending}`, `sending ${live.pending}`) : null}
+          />
+        </div>
 
         <div className={styles.toasts} aria-live="polite">
           {notices.map(n => (
-              <button key={n.id} type="button" className={`${styles.toast} ${n.tone === 'good' ? styles.toastGood : n.tone === 'bad' ? styles.toastBad : ''}`}
+              <button key={n.id} type="button" className={`${n.tone === 'good' ? 'plate' : n.tone === 'bad' ? 'panel-blood' : 'panel-slate'} ${styles.toast} ${n.tone === 'good' ? styles.toastGood : ''}`}
                 onClick={() => setNotices(list => list.filter(x => x.id !== n.id))}>
                 {n.text}
               </button>
           ))}
           {live.errors.length > 0 && (
-              <button type="button" className={`${styles.toast} ${styles.toastBad}`} onClick={live.dismissErrors}>{problemText(live.errors[live.errors.length - 1], language, id => teamName(id))}</button>
+              <button type="button" className={`panel-blood ${styles.toast}`} onClick={live.dismissErrors}>{problemText(live.errors[live.errors.length - 1], language, id => teamName(id))}</button>
           )}
         </div>
 
@@ -214,8 +213,8 @@ function Board({ session }: { session: CompanionSession }) {
         )}
 
         {!ended && iKick && (
-            <section className={`${styles.panel} ${styles.kick}`}>
-              <h2 className={styles.title}>{L(`Tocca a te: kick-off del drive ${state.drive + 1}`, `Your turn: drive ${state.drive + 1} kick-off`)}</h2>
+            <section className={`panel-blood ${styles.kick}`}>
+              <h2 className={styles.kickTitle}>{L(`Tocca a te: kick-off del drive ${state.drive + 1}`, `Your turn: drive ${state.drive + 1} kick-off`)}</h2>
               <p className={styles.help}>{L('Dopo la deviazione del calcio, con la palla in aria (p. 48).', 'After the kick deviates, with the ball in the air (p. 48).')}</p>
               {manual && (
                   <div className={styles.diceRow}>
@@ -225,7 +224,7 @@ function Board({ session }: { session: CompanionSession }) {
                     ))}
                   </div>
               )}
-              <button type="button" className={`btn btn-primary ${styles.big}`} onClick={rollKickoff} disabled={manual && !dice.every(d => /^[1-6]$/.test(d))}>
+              <button type="button" className={`btn btn-gold ${styles.big}`} onClick={rollKickoff} disabled={manual && !dice.every(d => /^[1-6]$/.test(d))}>
                 <Dices size={24} /> {manual ? L('Registra i dadi', 'Record the dice') : L('Tira il kick-off', 'Roll the kick-off')}
               </button>
               <button type="button" className={`btn ${styles.wide}`} onClick={() => setManual(m => !m)}>
@@ -242,20 +241,23 @@ function Board({ session }: { session: CompanionSession }) {
             <p className={styles.notice}>{L(`In attesa del kick-off di ${teamName(state.kicking_team_id)}.`, `Waiting for ${teamName(state.kicking_team_id)}'s kick-off.`)}</p>
         )}
         {state.last_kickoff && inDrive && (
-            <p className={styles.kickLine}><Dices size={16} aria-hidden="true" /> {state.last_kickoff.name}: {kickoffHeadline(state.last_kickoff, teamName, language)}</p>
+            <p className={styles.kickLine}><Dices size={16} aria-hidden="true" /> {kickoffHeadline(state.last_kickoff, teamName, language)}</p>
         )}
 
         {me && !ended && (
             <>
               <section className={`${styles.panel} ${myTurnNow || myTurnNext ? styles.myTurn : ''}`}>
+                <p className={styles.turnState}>
+                  {(myTurnNow || myTurnNext) && <span className={`tag ${styles.turnTag}`}>{myTurnNow ? L('In gioco', 'Playing') : L('Tocca a te', 'You are up')}</span>}
+                  {myTurnNow ? L('È il tuo turno', 'It is your turn')
+                    : state.active_team_id && myTurnNext ? L(`Turno di ${teamName(state.active_team_id)}, poi tu`, `${teamName(state.active_team_id)}'s turn, then you`)
+                    : myTurnNext ? L('Inizia il tuo turno', 'Start your turn')
+                    : state.active_team_id ? L(`Turno di ${teamName(state.active_team_id)}`, `${teamName(state.active_team_id)}'s turn`)
+                    : inDrive && state.next_turn_team_id ? L(`Primo turno a ${teamName(state.next_turn_team_id)}`, `${teamName(state.next_turn_team_id)} plays first`)
+                    : L('In attesa del kick-off', 'Waiting for the kick-off')}
+                </p>
                 <div className={styles.counter}>
-                  <span className={styles.counterLabel}>
-                    {myTurnNow ? L('È il tuo turno', 'It is your turn')
-                      : state.active_team_id && myTurnNext ? L(`Turno di ${teamName(state.active_team_id)} · poi tocca a te`, `${teamName(state.active_team_id)}'s turn · you are next`)
-                      : myTurnNext ? L('Tocca a te', 'You are up')
-                      : state.active_team_id ? L(`Turno di ${teamName(state.active_team_id)}`, `${teamName(state.active_team_id)}'s turn`)
-                      : L('Il tuo turno', 'Your turn')}
-                  </span>
+                  <span className={styles.counterLabel}>{L('Il tuo segnalino turno', 'Your turn marker')}</span>
                   <strong className={styles.counterNum}>{me.turn || '—'}<small>/{TURNS_PER_HALF}</small></strong>
                   {opp && <span className={styles.counterSide}>{L('avversario', 'opponent')} {opp.turn || '—'}</span>}
                 </div>

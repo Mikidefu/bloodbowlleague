@@ -1,0 +1,318 @@
+/* Il versus della pagina partita (MatchDetails.module.css, .scoreboard) in formato tabellone dal vivo:
+   notte da stadio, metà nei colori squadra, taglio d'ottone in diagonale, numeri gialli con l'ombra rossa. */
+
+.board {
+  --home-color: var(--bb-slate-700);
+  --away-color: var(--bb-slate-700);
+  --cut: 18px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  padding: 1.4rem 1.6rem 1rem;
+  color: var(--bb-parchment);
+  background: #0c0e12;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  box-shadow: var(--shadow-deep);
+}
+
+.tintHome,
+.tintAway,
+.split {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.tintHome {
+  background:
+    var(--tex-grunge),
+    radial-gradient(ellipse 45% 80% at 18% 40%, rgba(255, 236, 200, 0.14), transparent 70%),
+    linear-gradient(100deg,
+      color-mix(in srgb, var(--home-color) 78%, #1c2027) 0%,
+      color-mix(in srgb, var(--home-color) 40%, #101318) 40%,
+      #0c0e12 62%);
+  background-size: 700px, cover, cover;
+  clip-path: polygon(0 0, 53% 0, 47% 100%, 0 100%);
+}
+
+.tintAway {
+  background:
+    var(--tex-grunge),
+    radial-gradient(ellipse 45% 80% at 82% 40%, rgba(255, 236, 200, 0.14), transparent 70%),
+    linear-gradient(260deg,
+      color-mix(in srgb, var(--away-color) 78%, #1c2027) 0%,
+      color-mix(in srgb, var(--away-color) 40%, #101318) 40%,
+      #0c0e12 62%);
+  background-size: 700px, cover, cover;
+  clip-path: polygon(53% 0, 100% 0, 100% 100%, 47% 100%);
+}
+
+/* Taglio d'ottone lungo la diagonale, come nel versus della pagina partita */
+.split {
+  z-index: -1;
+  background: linear-gradient(180deg, #f7e2ab, #b8893f 50%, #eab22a);
+  clip-path: polygon(52.6% 0, 53.4% 0, 47.4% 100%, 46.6% 100%);
+  filter: drop-shadow(0 0 10px rgba(234, 178, 42, 0.55));
+  opacity: 0.85;
+}
+
+/* Barra scura in fondo, sotto la riga tecnica */
+.board::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: auto 0 0;
+  height: 2.8rem;
+  background:
+    repeating-linear-gradient(-45deg, #eab22a 0 8px, transparent 8px 16px) left bottom / 100% 3px no-repeat,
+    linear-gradient(180deg, transparent, rgba(12, 14, 18, 0.85) 45%);
+  pointer-events: none;
+}
+
+.faceoff {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.away {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* Stemma con anello squadra e doppia cornice d'ottone (versione piccola di .logoRing) */
+.crest {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  color: var(--bb-slate-700);
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e4d6bb 70%, #cbb58e);
+  box-shadow:
+    0 0 0 3px var(--team-color, var(--bb-slate-500)),
+    0 0 0 5px #d9b268,
+    0 0 0 6px #6b4e22,
+    0 10px 18px -8px rgba(0, 0, 0, 0.85);
+  --crest-pop: 1.45;
+}
+
+.nameWrap {
+  display: grid;
+  justify-items: start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.away .nameWrap {
+  justify-items: end;
+}
+
+.name {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.15rem, 2.4vw, 1.7rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: #fff4e0;
+  text-shadow: 2px 3px 0 rgba(0, 0, 0, 0.55);
+  overflow-wrap: anywhere;
+}
+
+.mine .name {
+  color: var(--bb-mustard);
+}
+
+.turnTag.turnTag {
+  padding: 0.05rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(2.8rem, 6vw, 4.2rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  padding-right: 0.08em;
+  color: var(--bb-mustard);
+  text-shadow: 3px 4px 0 rgba(122, 26, 28, 0.95), 0 0 24px rgba(0, 0, 0, 0.8);
+}
+
+/* Riga tecnica: micro-etichette senape come la testata del versus */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.status.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #fff4e0;
+  box-shadow: 0 0 6px 1px rgba(255, 244, 224, 0.7);
+  animation: onAir 1.6s var(--ease-out) infinite;
+}
+
+@keyframes onAir {
+  50% { opacity: 0.25; box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot { animation: none; }
+}
+
+.metaItem + .metaItem::before {
+  content: '//';
+  margin-right: 1rem;
+  color: rgba(243, 216, 151, 0.45);
+}
+
+.end {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+  letter-spacing: 0.08em;
+  color: rgba(243, 216, 151, 0.8);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Telefono: basso e fisso in cima, il punteggio resta sempre visibile */
+/* ------------------------------------------------------------------ */
+.compact {
+  --cut: 12px;
+  gap: 0.55rem;
+  padding: calc(0.7rem + env(safe-area-inset-top)) 0.9rem 0.65rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+}
+
+.compact .faceoff {
+  gap: 0.5rem;
+}
+
+.compact .side {
+  gap: 0.5rem;
+}
+
+.compact .crest {
+  width: 34px;
+  height: 34px;
+  box-shadow:
+    0 0 0 2px var(--team-color, var(--bb-slate-500)),
+    0 0 0 4px #d9b268,
+    0 6px 12px -6px rgba(0, 0, 0, 0.85);
+}
+
+.compact .crest :global(svg) {
+  width: 16px;
+  height: 16px;
+}
+
+/* Sul telefono i nomi vanno a capo solo tra le parole (mai "REIKLAN-D"), al massimo su due righe */
+.compact .name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: normal;
+  font-size: clamp(0.74rem, 3.5vw, 0.9rem);
+  line-height: 1;
+}
+
+.compact .turnTag.turnTag {
+  font-size: 0.66rem;
+  padding: 0 0.4rem;
+}
+
+.compact .score {
+  font-size: 2.3rem;
+  text-shadow: 2px 3px 0 rgba(122, 26, 28, 0.95);
+}
+
+.compact .meta {
+  gap: 0.25rem 0.6rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+}
+
+.compact .metaItem + .metaItem::before {
+  margin-right: 0.6rem;
+}
+
+.compact .status.status {
+  font-size: 0.68rem;
+  padding: 0 0.45rem;
+}
+
+.compact::after {
+  height: 1.9rem;
+}
+
+/* Tabellone largo su uno schermo stretto (admin dal telefono): stemma sopra il nome, a capo solo tra le parole */
+@media (max-width: 560px) {
+  .board:not(.compact) {
+    padding: 1.1rem 0.9rem 0.9rem;
+  }
+  .board:not(.compact) .faceoff {
+    gap: 0.5rem;
+  }
+  .board:not(.compact) .side {
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: center;
+  }
+  .board:not(.compact) .nameWrap {
+    justify-items: center;
+  }
+  .board:not(.compact) .crest {
+    width: 44px;
+    height: 44px;
+  }
+  .board:not(.compact) .name {
+    overflow-wrap: normal;
+    font-size: clamp(0.85rem, 4vw, 1.1rem);
+  }
+  .board:not(.compact) .score {
+    font-size: 2.8rem;
+  }
+  .meta {
+    gap: 0.3rem 0.7rem;
+  }
+  .metaItem + .metaItem::before {
+    display: none;
+  }
+}

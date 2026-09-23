@@ -39,7 +39,7 @@ export function noticesFor(events: LiveEvent[], myTeamId: string, ctx: DescribeC
           : L('Inizia il secondo tempo: i Team Re-roll sono di nuovo pieni', 'Second half: your Team Re-rolls are full again'));
         break;
       case 'touchdown':
-        add(e, mine ? L(`Touchdown segnato dal web: ${describeEvent(e, ctx)}`, `Touchdown recorded on the web: ${describeEvent(e, ctx)}`) : L(`Touchdown di ${ctx.teamName(e.team_id)}`, `Touchdown by ${ctx.teamName(e.team_id)}`), mine ? 'good' : 'neutral');
+        add(e, mine ? L(`Dal web: ${describeEvent(e, ctx)}`, `From the web: ${describeEvent(e, ctx)}`) : L(`Touchdown di ${ctx.teamName(e.team_id)}`, `Touchdown by ${ctx.teamName(e.team_id)}`), mine ? 'good' : 'neutral');
         break;
       case 'match_ended':
         add(e, L('L’admin ha chiuso la partita', 'The admin closed the match'));

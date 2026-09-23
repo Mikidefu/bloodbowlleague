@@ -47,6 +47,11 @@ describe('partita dal vivo sul database', () => {
     const joined = await server.joinLive(code.toLowerCase(), H, phone1);
     homeToken = joined.token;
     await rejected(server.joinLive(code, H, phone2), 409);
+    // Il telefono che ha preso la squadra la vede come sua (può rientrare), gli altri come presa
+    const seenByOwner = await server.lookupJoinCode(code, phone1);
+    const seenByOther = await server.lookupJoinCode(code, phone2);
+    assert.deepEqual(seenByOwner.teams.map(t => [t.paired, t.mine]), [[false, true], [false, false]]);
+    assert.deepEqual(seenByOther.teams.map(t => [t.paired, t.mine]), [[true, false], [false, false]]);
     const again = await server.joinLive(code, H, phone1);
     assert.deepEqual(liveActor(bearer(again.token), MATCH, await server.loadLive(MATCH)), { role: 'companion', teamId: H });
     await rejected(server.joinLive('ZZZZZZ', A, phone2), 404);

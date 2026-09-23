@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { Dices, Minus, Plus, Radio, RotateCcw, Smartphone, Undo2, WifiOff } from 'lucide-react';
+import LiveScoreboard from '@/components/live/LiveScoreboard';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
@@ -70,51 +71,32 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
   const weather = weatherRoll ? rowForTotal(getMatchTable('weather')!, weatherRoll) : null;
   const halfLabel = state.half === EXTRA_TIME_HALF ? L('Supplementari', 'Extra time') : L(`${state.half}° tempo`, `Half ${state.half}`);
   const undoable = (e: LiveEvent) => !['match_started', 'undo'].includes(e.type) && !state.voided.includes(e.id) && !String(e.payload.cause ?? '');
+  const side = (id: string, name: string, logo: string | null, teamColor: string | null) =>
+    ({ name, logo, color: teamColor, score: state.teams[id]?.score ?? 0, active: !ended && state.active_team_id === id });
+  const allPaired = teamIds.every(id => live.live!.paired[id]);
+  const sync = live.offline
+    ? <><WifiOff size={14} aria-hidden="true" /> {L('Senza rete: riprovo', 'Offline: retrying')}</>
+    : live.pending ? L(`Invio in corso (${live.pending})`, `Sending (${live.pending})`) : L('Sincronizzato', 'In sync');
+  const connect = !ended && <ConnectPanel live={live} teamIds={teamIds} teamName={teamName} L={L} />;
 
   return (
       <section className={`card ${wz.card} ${styles.board}`}>
-        <header className={styles.bar}>
-          <span className={ended ? styles.pillEnded : styles.pillLive}>{ended ? L('Chiusa', 'Closed') : 'LIVE'}</span>
-          <span className={styles.barItem}>{halfLabel}</span>
-          <span className={styles.barItem}>Drive {state.drive || '—'}</span>
-          {weather && <span className={styles.barItem}>{weather.name}</span>}
-          {ended && <button type="button" className={`btn ${styles.small}`} onClick={() => live.start()}>{L('Riapri', 'Reopen')}</button>}
-          <span className={styles.barSync}>
-            {live.offline ? <><WifiOff size={16} /> {L('Senza rete: riprovo', 'Offline: retrying')}</> : live.pending ? L(`Invio in corso (${live.pending})`, `Sending (${live.pending})`) : L('Sincronizzato', 'In sync')}
-          </span>
-        </header>
+        <LiveScoreboard
+          home={side(match.home_team_id, match.home_name, match.home_logo, match.home_color)}
+          away={side(match.away_team_id, match.away_name, match.away_logo, match.away_color)}
+          meta={[halfLabel, `Drive ${state.drive || '—'}`, weather?.name ?? '']}
+          status={ended ? 'ended' : 'live'}
+          statusLabel={ended ? L('Chiusa', 'Closed') : 'Live'}
+          activeLabel={L('di turno', 'on turn')}
+          sync={sync}
+          action={ended && <button type="button" className={`btn btn-gold ${styles.small}`} onClick={() => live.start()}>{L('Riapri', 'Reopen')}</button>}
+        />
 
         <Problems live={live} L={L} teamName={teamName} />
-
-        {!ended && (
-            <div className={styles.connect}>
-              {live.live.join_code && (
-                  <QrCode value={`${window.location.origin}/companion?code=${live.live.join_code}`} size={148}
-                    label={L(`QR per collegare i telefoni, codice ${live.live.join_code}`, `QR to connect the phones, code ${live.live.join_code}`)} />
-              )}
-              <div className={styles.connectText}>
-                <span className={styles.connectLabel}><Smartphone size={16} aria-hidden="true" /> {L('Codice per i telefoni', 'Code for the phones')}</span>
-                <strong className={styles.code}>{live.live.join_code ?? '······'}</strong>
-                <span className={styles.connectHint}>{L('Inquadra il QR col telefono, oppure apri /companion e scrivi il codice. Ogni allenatore sceglie la sua squadra.', 'Scan the QR with the phone, or open /companion and type the code. Each coach picks their own team.')}</span>
-              </div>
-              <ul className={styles.paired}>
-                {teamIds.map(id => (
-                    <li key={id}>
-                      <span className={live.live!.paired[id] ? styles.dotOn : styles.dotOff} aria-hidden="true" />
-                      <span>{teamName(id)}: {live.live!.paired[id] ? L('telefono collegato', 'phone connected') : L('in attesa', 'waiting')}</span>
-                      {live.live!.paired[id] && (
-                          <button type="button" className={`btn ${styles.small}`} onClick={() => {
-                            if (confirm(L(`Scollegare il telefono di ${teamName(id)}? Potrà ricollegarsi col codice.`, `Disconnect ${teamName(id)}'s phone? It can reconnect with the code.`))) live.unpair(id);
-                          }}>{L('Scollega', 'Disconnect')}</button>
-                      )}
-                    </li>
-                ))}
-              </ul>
-            </div>
-        )}
+        {!ended && <PhaseLine live={live} teamName={teamName} L={L} />}
+        {!allPaired && connect}
 
         <KickoffPanel match={match} live={live} teamName={teamName} L={L} />
-        {!ended && <PhaseLine live={live} teamName={teamName} L={L} />}
 
         <div className={wz.teams}>
           {teamIds.map(id => state.teams[id] && (
@@ -125,17 +107,20 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
 
         {!ended && <HalfControls match={match} live={live} teamName={teamName} L={L} />}
 
-        <details className={styles.timeline} open>
-          <summary>{L('Cronologia', 'Timeline')} ({events.length})</summary>
-          <ol reversed>
+        <details className={styles.fold} open>
+          <summary className={styles.foldHead}>{L('Cronologia', 'Timeline')} <span className="page-tab">{events.length}</span></summary>
+          <ol className={styles.timeline}>
             {[...events].reverse().map(e => (
                 <li key={e.id} className={state.voided.includes(e.id) ? styles.voided : undefined}>
-                  <span className={styles.source}>{e.source === 'companion' ? <Smartphone size={14} aria-label={L('telefono', 'phone')} /> : e.source === 'server' ? <Dices size={14} aria-label="server" /> : 'WEB'}</span>
+                  <span className={styles.seq}>{e.seq}</span>
+                  <span className={`${styles.source} ${e.source === 'companion' ? styles.sourcePhone : e.source === 'server' ? styles.sourceDice : ''}`}>
+                    {e.source === 'companion' ? <><Smartphone size={13} aria-hidden="true" /> {L('Tel.', 'Phone')}</> : e.source === 'server' ? <><Dices size={13} aria-hidden="true" /> {L('Dadi', 'Dice')}</> : 'Web'}
+                  </span>
                   <span className={styles.what}>{describe(e)}</span>
                   {undoable(e) && !ended && (
                       <button type="button" className={`btn ${styles.small}`} title={L('Annulla', 'Undo')}
                         onClick={() => { if (confirm(L(`Annullare "${describe(e)}"?`, `Undo "${describe(e)}"?`))) live.send('undo', null, { event_id: e.id }); }}>
-                        <Undo2 size={15} /> {L('Annulla', 'Undo')}
+                        <Undo2 size={15} aria-hidden="true" /> {L('Annulla', 'Undo')}
                       </button>
                   )}
                 </li>
@@ -143,12 +128,58 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
           </ol>
         </details>
 
+        {allPaired && connect}
+
         <div className={styles.danger}>
           <button type="button" className={`btn ${styles.small}`} onClick={() => {
             if (confirm(L('Azzerare la partita dal vivo? Si perdono cronologia e collegamenti dei telefoni. Il referto non cambia.', 'Reset the live match? The timeline and phone connections are lost. The match report does not change.'))) live.reset();
-          }}><RotateCcw size={15} /> {L('Azzera il live', 'Reset the live match')}</button>
+          }}><RotateCcw size={15} aria-hidden="true" /> {L('Azzera il live', 'Reset the live match')}</button>
         </div>
       </section>
+  );
+}
+
+// Collegamento dei telefoni: QR, codice sulla placca d'ottone, stato delle due squadre.
+// Finché manca un telefono sta in alto; con tutti e due collegati scende in fondo, chiuso.
+function ConnectPanel({ live, teamIds, teamName, L }: { live: Live; teamIds: string[]; teamName: (id: string | null) => string; L: Tr }) {
+  const info = live.live!;
+  const allPaired = teamIds.every(id => info.paired[id]);
+  const body = (
+      <div className={styles.connect}>
+        {info.join_code && (
+            <span className={styles.qr}>
+              <QrCode value={`${window.location.origin}/companion?code=${info.join_code}`} size={132}
+                label={L(`QR per collegare i telefoni, codice ${info.join_code}`, `QR to connect the phones, code ${info.join_code}`)} />
+            </span>
+        )}
+        <div className={styles.connectText}>
+          <span className={styles.micro}><Smartphone size={14} aria-hidden="true" /> {L('Codice per i telefoni', 'Code for the phones')}</span>
+          <strong className={`plate ${styles.code}`}>{info.join_code ?? '······'}</strong>
+          <span className={styles.connectHint}>{L('Inquadra il QR col telefono, oppure apri /companion e scrivi il codice. Ogni allenatore sceglie la sua squadra.', 'Scan the QR with the phone, or open /companion and type the code. Each coach picks their own team.')}</span>
+        </div>
+        <ul className={styles.paired}>
+          {teamIds.map(id => (
+              <li key={id}>
+                <span className={styles.pairedName}>{teamName(id)}</span>
+                <span className={`tag ${info.paired[id] ? 'tag-navy' : ''} ${styles.pairTag} ${info.paired[id] ? '' : styles.pairWaiting}`}>
+                  {info.paired[id] ? L('Collegato', 'Connected') : L('In attesa', 'Waiting')}
+                </span>
+                {info.paired[id] && (
+                    <button type="button" className={`btn ${styles.small}`} onClick={() => {
+                      if (confirm(L(`Scollegare il telefono di ${teamName(id)}? Potrà ricollegarsi col codice.`, `Disconnect ${teamName(id)}'s phone? It can reconnect with the code.`))) live.unpair(id);
+                    }}>{L('Scollega', 'Disconnect')}</button>
+                )}
+              </li>
+          ))}
+        </ul>
+      </div>
+  );
+  if (!allPaired) return body;
+  return (
+      <details className={styles.fold}>
+        <summary className={styles.foldHead}>{L('Telefoni collegati', 'Connected phones')} <span className="page-tab">2/2</span></summary>
+        {body}
+      </details>
   );
 }
 
@@ -234,7 +265,13 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
         )}
         {k && state.status !== 'awaiting_kickoff' && (
             <div className={wz.outcome}>
-              <span className={wz.outcomeName}>{k.name} <small className={styles.kickDice}>({k.dice.join(' + ')} = {k.total})</small></span>
+              <span className={styles.kickHead}>
+                <span className={styles.dice} aria-label={`${k.dice.join(' + ')} = ${k.total}`}>
+                  {k.dice.map((d, i) => <span key={i} className={styles.dieFace}>{d}</span>)}
+                </span>
+                <span className={wz.outcomeName}>{k.name}</span>
+                <span className={`tag tag-red ${styles.kickTag}`}>Kick-off · Drive {k.drive}</span>
+              </span>
               <p>{kickoffHeadline(k, id => teamName(id), language)}</p>
               {k.outcomes && <p className={styles.kickRolls}>{k.outcomes.map(o => `${teamName(o.team_id)}: ${o.rerolled ? `${o.rerolled} → ` : ''}${o.roll}${o.total !== o.roll ? ` → ${o.total}` : ''}`).join(' · ')}</p>}
               <p className={styles.kickRolls}>{rowForTotal(getMatchTable('kickoff')!, k.total)?.text[language]}</p>
@@ -266,7 +303,12 @@ function PhaseLine({ live, teamName, L }: { live: Live; teamName: (id: string | 
       ? L(`Ultimo turno del tempo: ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}). Quando finisce, si cambia tempo.`, `Last turn of the half: ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}). When it ends, the half is over.`)
       : L(`Turno di ${teamName(state.active_team_id)} (${active.turn}/${TURNS_PER_HALF}); poi tocca a ${teamName(state.next_turn_team_id)}.`, `${teamName(state.active_team_id)}'s turn (${active.turn}/${TURNS_PER_HALF}); ${teamName(state.next_turn_team_id)} is next.`);
   }
-  return <p className={wz.note} aria-live="polite">{text}</p>;
+  return (
+      <p className={styles.phase} aria-live="polite">
+        <span className={styles.phaseLabel}>{L('Ora', 'Now')}</span>
+        <span>{text}</span>
+      </p>
+  );
 }
 
 type TeamProps = {
@@ -299,12 +341,11 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
       <div className={`${wz.team} ${active ? styles.activeTeam : ''}`} style={{ '--team-color': color } as React.CSSProperties}>
         <div className={styles.teamHead}>
           <h4 className={wz.teamName}>{name}</h4>
-          {active && <span className={styles.turnBadge}>{L('di turno', 'on turn')}</span>}
-          <span className={styles.score}>{team.score}</span>
+          {active && <span className={`tag ${styles.turnBadge}`}>{L('di turno', 'on turn')}</span>}
         </div>
 
         <div className={styles.row}>
-          <span>{L('Turno', 'Turn')} <strong className={styles.big}>{team.turn || '—'}</strong> / {TURNS_PER_HALF}</span>
+          <span className={styles.stat}><span className={styles.statLabel}>{L('Turno', 'Turn')}</span><strong className={styles.big}>{team.turn || '—'}<small>/{TURNS_PER_HALF}</small></strong></span>
           <button type="button" className={state.next_turn_team_id === teamId && !turnWhy ? 'btn btn-primary' : 'btn'} disabled={ended || !!turnWhy}
             title={tip(turnWhy)} onClick={() => send('turn_started', teamId)}>
             {team.turn >= TURNS_PER_HALF ? L('Turni finiti', 'No turns left') : L(`Inizia il turno ${team.turn + 1}`, `Start turn ${team.turn + 1}`)}
@@ -312,7 +353,7 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
         </div>
 
         <div className={styles.row}>
-          <span>Team Re-roll <strong className={styles.big}>{team.rerolls}</strong></span>
+          <span className={styles.stat}><span className={styles.statLabel}>Team Re-roll</span><strong className={styles.big}>{team.rerolls}</strong></span>
           <span className={styles.inline}>
             <button type="button" className="btn" disabled={ended || !!why('reroll_used', { kind: 'team' })} title={tip(why('reroll_used', { kind: 'team' }))}
               onClick={() => send('reroll_used', teamId, { kind: 'team' })}>{L('Usa', 'Use')}</button>
@@ -340,7 +381,7 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
         )}
         {(team.bribes > 0) && (
             <div className={styles.row}>
-              <span>Bribe <strong className={styles.big}>{team.bribes}</strong></span>
+              <span className={styles.stat}><span className={styles.statLabel}>Bribe</span><strong className={styles.big}>{team.bribes}</strong></span>
               <button type="button" className="btn" disabled={ended || !!why('bribe_used')} title={tip(why('bribe_used'))} onClick={() => send('bribe_used', teamId)}>{L('Usa', 'Use')}</button>
             </div>
         )}

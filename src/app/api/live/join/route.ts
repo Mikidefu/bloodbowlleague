@@ -6,8 +6,8 @@ import { joinLive, lookupJoinCode } from '@/lib/live/server';
 // Il telefono inserisce il codice (o apre il QR) e vede le due squadre, con quelle già prese.
 export async function GET(request: Request) {
   try {
-    const code = new URL(request.url).searchParams.get('code');
-    return NextResponse.json(await lookupJoinCode(code), { headers: NO_STORE });
+    const params = new URL(request.url).searchParams;
+    return NextResponse.json(await lookupJoinCode(params.get('code'), params.get('device')), { headers: NO_STORE });
   } catch (error) {
     return liveErrorResponse(error, 'find the match');
   }

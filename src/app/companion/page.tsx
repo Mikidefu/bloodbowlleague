@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, LogOut, Smartphone } from 'lucide-react';
+import { ArrowRight, LogOut, Shield, Smartphone } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { clearSession, deviceId, readSession, saveSession, type CompanionSession } from '@/lib/live/companionSession';
 import Emblem from '@/components/brand/Emblem';
@@ -11,7 +11,7 @@ import InstallHint from './InstallHint';
 import LangSwitch from './LangSwitch';
 import styles from './Companion.module.css';
 
-type Lookup = { match_id: string; round: number; teams: { id: string; name: string; color: string | null; paired: boolean }[] };
+type Lookup = { match_id: string; round: number; teams: { id: string; name: string; color: string | null; logo: string | null; paired: boolean; mine: boolean }[] };
 
 // Gli errori si salvano come tipo e si traducono al render: cambiando lingua si traducono subito
 type JoinError = { kind: 'not_found' | 'offline' | 'taken' } | { kind: 'server'; message: string };
@@ -34,7 +34,7 @@ export default function CompanionJoin() {
     setError(null);
     setFound(null);
     try {
-      const res = await fetch(`/api/live/join?code=${encodeURIComponent(value)}`, { cache: 'no-store' });
+      const res = await fetch(`/api/live/join?code=${encodeURIComponent(value)}&device=${encodeURIComponent(deviceId())}`, { cache: 'no-store' });
       const json = await res.json().catch(() => ({}));
       if (res.ok) setFound(json);
       else setError(res.status === 404 ? { kind: 'not_found' } : { kind: 'server', message: json.error ?? `HTTP ${res.status}` });
@@ -91,7 +91,7 @@ export default function CompanionJoin() {
         <header className={styles.brand}>
           <Emblem size={48} />
           <div className={styles.brandText}>
-            <strong>Companion</strong>
+            <strong className="title-spike">Companion</strong>
             <span>Blood Bowl League</span>
           </div>
           <LangSwitch />
@@ -129,8 +129,11 @@ export default function CompanionJoin() {
                       {found.teams.map(t => (
                           <button key={t.id} type="button" className={styles.teamCard} disabled={busy || t.paired} onClick={() => join(t.id)}
                             style={{ '--team-color': t.color ?? undefined } as React.CSSProperties}>
+                            <span className={`team-crest ${styles.teamCrest}`}>
+                              {t.logo ? <img src={t.logo} alt="" /> : <Shield size={20} aria-hidden="true" />}
+                            </span>
                             <span className={styles.teamCardName}>{t.name}</span>
-                            <span className={styles.teamCardState}>{t.paired ? L('già collegata a un altro telefono', 'already paired with another phone') : L('tocca per scegliere', 'tap to choose')}</span>
+                            <span className={styles.teamCardState}>{t.mine ? L('il tuo telefono: tocca per rientrare', 'your phone: tap to rejoin') : t.paired ? L('già collegata a un altro telefono', 'already paired with another phone') : L('tocca per scegliere', 'tap to choose')}</span>
                           </button>
                       ))}
                     </div>

@@ -197,12 +197,13 @@ export async function resetLive(matchId: string) {
 
 const side = (live: LiveRow, teamId: string) => (teamId === live.home_team_id ? 'home' : teamId === live.away_team_id ? 'away' : null);
 
-// Cosa vede il telefono dopo aver inserito il codice: le due squadre e quali sono già prese
-export async function lookupJoinCode(code: unknown) {
+// Cosa vede il telefono dopo aver inserito il codice: le due squadre e quali sono già prese.
+// Una squadra presa da questo stesso telefono (device id) non è "presa": ci si può rientrare (mine).
+export async function lookupJoinCode(code: unknown, deviceId?: unknown) {
   const joinCode = normalizeJoinCode(code);
   if (joinCode.length !== 6) fail('The code has 6 characters');
   const { rows: [row] } = await db.execute({
-    sql: `SELECT l.match_id, l.home_nonce, l.away_nonce, m.round, m.home_team_id, m.away_team_id,
+    sql: `SELECT l.match_id, l.home_nonce, l.away_nonce, l.home_device, l.away_device, m.round, m.home_team_id, m.away_team_id,
                  th.name AS home_name, th.primary_color AS home_color, th.logo_url AS home_logo,
                  ta.name AS away_name, ta.primary_color AS away_color, ta.logo_url AS away_logo
           FROM match_live l
@@ -213,10 +214,13 @@ export async function lookupJoinCode(code: unknown) {
     args: [joinCode],
   });
   if (!row) fail('No live match with this code', 404);
-  const team = (side: 'home' | 'away') => ({
-    id: String(row[`${side}_team_id`]), name: String(row[`${side}_name`]),
-    color: str(row[`${side}_color`]), logo: str(row[`${side}_logo`]), paired: !!row[`${side}_nonce`],
-  });
+  const team = (side: 'home' | 'away') => {
+    const mine = !!row[`${side}_nonce`] && isEventId(deviceId) && row[`${side}_device`] === deviceId;
+    return {
+      id: String(row[`${side}_team_id`]), name: String(row[`${side}_name`]),
+      color: str(row[`${side}_color`]), logo: str(row[`${side}_logo`]), paired: !!row[`${side}_nonce`] && !mine, mine,
+    };
+  };
   return { match_id: String(row.match_id), round: Number(row.round), teams: [team('home'), team('away')] };
 }
 
