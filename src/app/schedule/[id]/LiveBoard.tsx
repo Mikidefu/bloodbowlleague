@@ -11,6 +11,7 @@ import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, ty
 import type { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import type { MatchDetails } from '@/lib/types';
+import QrCode from '@/components/live/QrCode';
 import wz from '@/components/match/Wizard.module.css';
 import styles from './LiveBoard.module.css';
 
@@ -84,10 +85,14 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
 
         {!ended && (
             <div className={styles.connect}>
-              <div>
+              {live.live.join_code && (
+                  <QrCode value={`${window.location.origin}/companion?code=${live.live.join_code}`} size={148}
+                    label={L(`QR per collegare i telefoni, codice ${live.live.join_code}`, `QR to connect the phones, code ${live.live.join_code}`)} />
+              )}
+              <div className={styles.connectText}>
                 <span className={styles.connectLabel}><Smartphone size={16} aria-hidden="true" /> {L('Codice per i telefoni', 'Code for the phones')}</span>
                 <strong className={styles.code}>{live.live.join_code ?? '······'}</strong>
-                <span className={styles.connectHint}>{L('Sul telefono apri la pagina Companion del sito e inserisci il codice.', 'On the phone open the site\'s Companion page and enter the code.')}</span>
+                <span className={styles.connectHint}>{L('Inquadra il QR col telefono, oppure apri /companion e scrivi il codice. Ogni allenatore sceglie la sua squadra.', 'Scan the QR with the phone, or open /companion and type the code. Each coach picks their own team.')}</span>
               </div>
               <ul className={styles.paired}>
                 {teamIds.map(id => (

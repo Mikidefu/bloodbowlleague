@@ -87,6 +87,14 @@ describe('/api/live', () => {
     assert.equal(forged.status, 401);
   });
 
+  test('col token di squadra vale il telefono anche se c\'è il cookie admin', async () => {
+    const both = await call(`/api/live/${MATCH}/events`, events.POST, { token: awayToken, admin: true, body: { id: randomUUID(), type: 'casualty', team_id: H } });
+    assert.equal(both.json.results[0].status, 'rejected', 'il telefono degli ospiti non scrive per la casa, cookie admin o no');
+    const read = await call(`/api/live/${MATCH}`, live.GET, { method: 'GET', token: awayToken, admin: true });
+    assert.equal(read.json.me, A);
+    assert.equal(read.json.live.join_code, undefined);
+  });
+
   test('avvio, chiusura e scollegamento restano chiusi ai telefoni', async () => {
     for (const path of ['start', 'end', 'unpair']) {
       const res = await call(`/api/live/${MATCH}/${path}`, start.POST, { token: awayToken, body: {} });

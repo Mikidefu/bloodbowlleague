@@ -183,6 +183,13 @@ function SiteFooter() {
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  // La companion app (PWA sul telefono) è a tutto schermo: niente navigazione né footer del sito
+  const pathname = usePathname();
+  if (pathname?.startsWith('/companion')) {
+    return (
+        <LanguageProvider>{children}</LanguageProvider>
+    );
+  }
   return (
       <LanguageProvider>
         <AuthProvider>

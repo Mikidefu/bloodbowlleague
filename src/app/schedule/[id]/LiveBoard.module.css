@@ -74,6 +74,17 @@
   border: 2px dashed var(--bb-tan-dark);
 }
 
+.connectText {
+  display: grid;
+  flex: 1;
+  min-width: 12rem;
+  align-content: center;
+}
+
+.connect svg {
+  flex: none;
+}
+
 .connectLabel {
   display: flex;
   align-items: center;

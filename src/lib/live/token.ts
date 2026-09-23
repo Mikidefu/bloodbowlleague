@@ -34,10 +34,12 @@ function cookieValue(request: Request, name: string) {
 
 export const isAdminRequest = (request: Request) => verifySessionToken(cookieValue(request, ADMIN_COOKIE));
 
-// L'attore della richiesta, o null se non può scrivere su questa partita
+// L'attore della richiesta, o null se non può scrivere su questa partita.
+// Una richiesta col token di squadra è sempre del companion, anche se il telefono ha il cookie admin
+// (l'admin che gioca con la sua squadra): così vale lo stesso per tutti e uno scollegamento si vede.
 export function liveActor(request: Request, matchId: string, live: LiveRow | null): LiveActor | null {
-  if (isAdminRequest(request)) return { role: 'admin' };
   const auth = request.headers.get('authorization') ?? '';
+  if (!auth) return isAdminRequest(request) ? { role: 'admin' } : null;
   const claims = auth.startsWith('Bearer ') ? verifyData<CompanionClaims>(auth.slice(7)) : null;
   if (!claims || !live || claims.m !== matchId || live.status !== 'live') return null;
   const nonce = claims.t === live.home_team_id ? live.home_nonce : claims.t === live.away_team_id ? live.away_nonce : null;

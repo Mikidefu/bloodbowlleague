@@ -184,6 +184,29 @@ export async function resetLive(matchId: string) {
 
 const side = (live: LiveRow, teamId: string) => (teamId === live.home_team_id ? 'home' : teamId === live.away_team_id ? 'away' : null);
 
+// Cosa vede il telefono dopo aver inserito il codice: le due squadre e quali sono già prese
+export async function lookupJoinCode(code: unknown) {
+  const joinCode = normalizeJoinCode(code);
+  if (joinCode.length !== 6) fail('The code has 6 characters');
+  const { rows: [row] } = await db.execute({
+    sql: `SELECT l.match_id, l.home_nonce, l.away_nonce, m.round, m.home_team_id, m.away_team_id,
+                 th.name AS home_name, th.primary_color AS home_color, th.logo_url AS home_logo,
+                 ta.name AS away_name, ta.primary_color AS away_color, ta.logo_url AS away_logo
+          FROM match_live l
+          JOIN matches m ON m.id = l.match_id
+          JOIN teams th ON th.id = m.home_team_id
+          JOIN teams ta ON ta.id = m.away_team_id
+          WHERE l.join_code = ? AND l.status = 'live'`,
+    args: [joinCode],
+  });
+  if (!row) fail('No live match with this code', 404);
+  const team = (side: 'home' | 'away') => ({
+    id: String(row[`${side}_team_id`]), name: String(row[`${side}_name`]),
+    color: str(row[`${side}_color`]), logo: str(row[`${side}_logo`]), paired: !!row[`${side}_nonce`],
+  });
+  return { match_id: String(row.match_id), round: Number(row.round), teams: [team('home'), team('away')] };
+}
+
 // Il telefono entra col codice e sceglie la squadra: la prima che la prende la tiene,
 // finché non la lascia lei o l'admin non la scollega. Lo stesso telefono può rientrare (stesso device id).
 export async function joinLive(code: unknown, teamId: unknown, deviceId: unknown) {

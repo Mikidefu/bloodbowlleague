@@ -25,7 +25,7 @@ type Options = {
   onUnauthorized?: () => void;                   // token scaduto o telefono scollegato
 };
 
-type Snapshot = { live: LiveInfo | null; seq: number; events: LiveEvent[] };
+type Snapshot = { live: LiveInfo | null; seq: number; events: LiveEvent[]; me?: string | null };
 
 const MAX_BATCH = 50;
 const HIDDEN_POLL_MS = 15000;
@@ -73,6 +73,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
   const [pending, setPending] = useState<PendingEvent[]>([]);
   const [offline, setOffline] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [me, setMe] = useState<string | null | undefined>(undefined);   // chi legge secondo il server (vedi GET)
 
   const eventsRef = useRef<LiveEvent[]>([]);
   const pendingRef = useRef<PendingEvent[]>([]);
@@ -108,6 +109,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
 
   // Unisce gli eventi nuovi; false se manca un pezzo (bisogna ricaricare da zero)
   const apply = useCallback((snap: Snapshot, since: number) => {
+    if (snap.me !== undefined) setMe(snap.me);
     if (!snap.live) {   // non ancora avviata (o azzerata)
       eventsRef.current = [];
       setEvents([]);
@@ -187,12 +189,12 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
     const wake = () => { if (document.visibilityState === 'visible') restart(); };
     restart();
     document.addEventListener('visibilitychange', wake);
-    window.addEventListener('online', wake);
+    window.addEventListener('online', restart);   // torna la rete: la coda parte subito, anche in background
     return () => {
       stopped = true;
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', wake);
-      window.removeEventListener('online', wake);
+      window.removeEventListener('online', restart);
     };
   }, [sync, pollMs]);
 
@@ -235,7 +237,7 @@ export function useLiveMatch({ matchId, token, queueKey, pollMs = 2000, onNewEve
   }, [events, pending, token]);
 
   return {
-    live, events, state, load, offline, errors,
+    live, events, state, load, offline, errors, me,
     pending: pending.length,
     dismissErrors: () => setErrors([]),
     refresh: sync,
