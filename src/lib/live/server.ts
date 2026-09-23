@@ -159,20 +159,24 @@ export async function startLive(matchId: string, roll: DieRoller = rollDie) {
   }
 }
 
-export async function endLive(matchId: string) {
+// Restituisce l'id dell'evento di chiusura (per le notifiche), null se era già chiusa
+export async function endLive(matchId: string): Promise<string | null> {
   const live = await loadLive(matchId);
   if (!live) fail('The live match has not started', 409);
-  if (live!.status === 'ended') return;
+  if (live!.status === 'ended') return null;
   const state = reduceLive(await loadEvents(matchId));
+  const id = crypto.randomUUID();
   await db.batch([
-    insertEvent(matchId, { id: crypto.randomUUID(), type: 'match_ended', team_id: null, payload: {}, source: 'admin', dedupe_key: `end:${state.phase_seq}` }),
+    insertEvent(matchId, { id, type: 'match_ended', team_id: null, payload: {}, source: 'admin', dedupe_key: `end:${state.phase_seq}` }),
     { sql: `UPDATE match_live SET status = 'ended', ended_at = CURRENT_TIMESTAMP WHERE match_id = ?`, args: [matchId] },
   ], 'write');
+  return id;
 }
 
 // Azzera il live (es. pre-partita rifatto: la fotografia di inizio partita non vale più). Il referto non si tocca.
 export async function resetLive(matchId: string) {
   await db.batch([
+    { sql: 'DELETE FROM push_subscriptions WHERE match_id = ?', args: [matchId] },
     { sql: 'DELETE FROM match_events WHERE match_id = ?', args: [matchId] },
     { sql: 'DELETE FROM match_live WHERE match_id = ?', args: [matchId] },
   ], 'write');
@@ -240,7 +244,11 @@ export async function unpairTeam(matchId: string, teamId: unknown) {
   if (!live) fail('The live match has not started', 409);
   const s = typeof teamId === 'string' ? side(live!, teamId) : null;
   if (!s) fail('Unknown team');
-  await db.execute({ sql: `UPDATE match_live SET ${s}_nonce = NULL, ${s}_device = NULL WHERE match_id = ?`, args: [matchId] });
+  // Il telefono scollegato non riceve più nemmeno le notifiche di questa squadra
+  await db.batch([
+    { sql: `UPDATE match_live SET ${s}_nonce = NULL, ${s}_device = NULL WHERE match_id = ?`, args: [matchId] },
+    { sql: 'DELETE FROM push_subscriptions WHERE match_id = ? AND team_id = ?', args: [matchId, teamId as string] },
+  ], 'write');
 }
 
 // ------------------------------------------------------------------

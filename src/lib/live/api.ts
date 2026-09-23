@@ -1,12 +1,21 @@
 // Parti comuni delle route /api/live: errori, stagione bloccata, chi sta scrivendo.
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { lockedMatchResponse } from '@/lib/matchApi';
 import { LiveRuleError, type LiveActor } from './rules';
 import { loadLive } from './server';
 import { liveActor } from './token';
 
 export const NO_STORE = { 'Cache-Control': 'no-store' };
+
+// Lavoro da fare dopo la risposta (notifiche push). Fuori da una richiesta Next (nei test) si fa subito.
+export function afterResponse(task: () => Promise<unknown>) {
+  try {
+    after(task);
+  } catch {
+    void task();
+  }
+}
 
 export function liveErrorResponse(error: unknown, what: string) {
   if (error instanceof LiveRuleError) return NextResponse.json({ error: error.message }, { status: error.status, headers: NO_STORE });

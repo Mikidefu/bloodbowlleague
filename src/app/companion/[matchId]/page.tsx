@@ -4,7 +4,7 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dices, LogOut, Sun, Undo2, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, Dices, LogOut, Sun, Undo2, WifiOff, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
 import { describeEvent } from '@/lib/live/describe';
@@ -15,6 +15,7 @@ import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import type { MatchDetails } from '@/lib/types';
 import LangSwitch from '../LangSwitch';
+import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
 import styles from '../Companion.module.css';
 
@@ -58,6 +59,7 @@ function Board({ session }: { session: CompanionSession }) {
   // Il Board si monta solo nel browser (dopo aver letto la sessione), quindi localStorage qui c'è
   const [wake, setWake] = useState(() => { try { return localStorage.getItem(WAKE_KEY) === '1'; } catch { return false; } });
   const wakeLock = useWakeLock(wake);
+  const push = usePush({ matchId: session.match_id, token: session.token, language });
   const ctxRef = useRef<Parameters<typeof noticesFor>[2] | null>(null);
   const myTeam = session.team_id;
 
@@ -302,6 +304,23 @@ function Board({ session }: { session: CompanionSession }) {
                     </li>
                 ))}
               </ul>
+            </section>
+        )}
+
+        {!ended && push.state !== 'unavailable' && push.state !== 'checking' && (
+            <section className={styles.panel}>
+              <h2 className={styles.title}><Bell size={20} aria-hidden="true" /> {L('Avvisi con l’app chiusa', 'Alerts with the app closed')}</h2>
+              {push.state === 'on' && <p className={styles.help}>{L('Attivi: kick-off, reroll vinti e novità della partita arrivano anche con il telefono in tasca.', 'On: kick-offs, re-rolls won and match news arrive even with the phone in your pocket.')}</p>}
+              {(push.state === 'off' || push.state === 'busy') && <p className={styles.help}>{L('Ricevi il kick-off e il reroll vinto anche con lo schermo spento o l’app chiusa.', 'Get the kick-off and the re-roll you won even with the screen off or the app closed.')}</p>}
+              {push.state === 'needs-install' && <p className={styles.help}>{L('Su iPhone gli avvisi arrivano solo con la companion sulla schermata Home: in Safari tocca Condividi, poi “Aggiungi alla schermata Home”, e aprila da lì.', 'On iPhone alerts only work with the companion on the Home Screen: in Safari tap Share, then “Add to Home Screen”, and open it from there.')}</p>}
+              {push.state === 'unsupported' && <p className={styles.help}>{L('Questo browser non supporta le notifiche push.', 'This browser does not support push notifications.')}</p>}
+              {push.state === 'denied' && <p className={styles.help}>{L('Le notifiche per questo sito sono bloccate: riattivale nelle impostazioni del browser o del telefono.', 'Notifications for this site are blocked: turn them back on in the browser or phone settings.')}</p>}
+              {push.state === 'error' && <p className={styles.error}>{L('Non sono riuscito ad attivarle. Riprova tra poco.', 'I could not turn them on. Try again shortly.')}</p>}
+              {push.state === 'on' ? (
+                  <button type="button" className={`btn ${styles.wide}`} onClick={push.disable}><BellOff size={18} /> {L('Disattiva gli avvisi', 'Turn alerts off')}</button>
+              ) : (push.state === 'off' || push.state === 'busy' || push.state === 'error') && (
+                  <button type="button" className={`btn btn-primary ${styles.wide}`} disabled={push.state === 'busy'} onClick={push.enable}><Bell size={18} /> {L('Attiva gli avvisi', 'Turn alerts on')}</button>
+              )}
             </section>
         )}
 

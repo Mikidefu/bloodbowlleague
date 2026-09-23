@@ -6,8 +6,9 @@ import { ADMIN_COOKIE, verifySessionToken } from '@/lib/auth';
 const READ_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 const PUBLIC_WRITE_ROUTES = ['/api/auth/login', '/api/auth/logout', '/api/live/join'];
 // Partita dal vivo: scrivono anche i telefoni abbinati, e ognuna di queste route verifica da sé
-// admin o token di squadra (writerOf in src/lib/live/api.ts). Avvio, chiusura e scollegamento restano solo admin.
-const LIVE_WRITE_ROUTE = /^\/api\/live\/[^/]+\/(events|kickoff|leave)$/;
+// admin o token di squadra (writerOf in src/lib/live/api.ts), push compreso (abbonamento alle notifiche).
+// Avvio, chiusura e scollegamento restano solo admin.
+const LIVE_WRITE_ROUTE = /^\/api\/live\/[^/]+\/(events|kickoff|leave|push)$/;
 
 export function proxy(request: NextRequest) {
   if (READ_METHODS.includes(request.method)) return NextResponse.next();

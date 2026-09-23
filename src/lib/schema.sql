@@ -253,3 +253,17 @@ CREATE TABLE IF NOT EXISTS match_events (
     UNIQUE (match_id, dedupe_key),
     FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
 );
+
+-- Notifiche push della companion (app chiusa): un abbonamento per telefono, legato alla squadra che segue
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,              -- indirizzo del servizio push del browser (unico per telefono)
+    match_id TEXT NOT NULL,
+    team_id TEXT NOT NULL,
+    p256dh TEXT NOT NULL,                   -- chiavi per cifrare il messaggio (Web Push, RFC 8291)
+    auth TEXT NOT NULL,
+    language TEXT NOT NULL DEFAULT 'it',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_match ON push_subscriptions(match_id);

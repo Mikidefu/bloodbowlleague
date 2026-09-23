@@ -1,10 +1,11 @@
-// Migrazione della partita dal vivo (companion app): tabelle match_live e match_events.
+// Migrazione della partita dal vivo (companion app): tabelle match_live, match_events e push_subscriptions.
 //
 // Uso (dalla cartella blood-bowl-app):
 //   node --env-file=.env.local scripts/migrate-live-match.mjs          -> anteprima, nessuna modifica
 //   node --env-file=.env.local scripts/migrate-live-match.mjs --apply  -> applica
 //
-// Solo additiva e idempotente: due tabelle nuove, nessun dato esistente toccato.
+// Solo additiva e idempotente: tabelle nuove, nessun dato esistente toccato. Si può rilanciare:
+// aggiunge solo quelle che mancano (push_subscriptions è arrivata con le notifiche push).
 // Va eseguita PRIMA del deploy: le route /api/live le usano. Le definizioni sono le stesse di src/lib/schema.sql.
 
 import { createClient } from '@libsql/client';
@@ -39,7 +40,22 @@ const TABLES = {
     UNIQUE (match_id, dedupe_key),
     FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
   )`,
+  push_subscriptions: `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    match_id TEXT NOT NULL,
+    team_id TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    language TEXT NOT NULL DEFAULT 'it',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+  )`,
 };
+
+// Indici delle tabelle nuove (IF NOT EXISTS: sicuri da rilanciare)
+const INDEXES = [
+  'CREATE INDEX IF NOT EXISTS idx_push_subscriptions_match ON push_subscriptions(match_id)',
+];
 
 const tableNames = async () =>
   new Set((await db.execute(`SELECT name FROM sqlite_master WHERE type = 'table'`)).rows.map(r => String(r.name)));
@@ -53,7 +69,7 @@ if (!APPLY) {
 } else if (!missing.length) {
   console.log('Niente da applicare.');
 } else {
-  await db.batch(missing.map(t => TABLES[t]), 'write');
+  await db.batch([...missing.map(t => TABLES[t]), ...INDEXES], 'write');
   const after = await tableNames();
   console.log(`Migrazione completata: ${Object.keys(TABLES).every(t => after.has(t)) ? 'tabelle presenti' : 'ATTENZIONE, tabelle mancanti'}`);
 }
