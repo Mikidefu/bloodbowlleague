@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { deleteMatchStatements } from '@/lib/matchRules';
+import { MATCH_TYPES } from '@/lib/matchTypes';
 import { getActiveSeason, seasonReadOnly } from '@/lib/seasons';
 
 // Elimina una giornata della stagione attiva (i numeri di giornata si ripetono in ogni stagione)
@@ -14,10 +15,10 @@ export async function DELETE(
         const season = await getActiveSeason();
         if (!season) return seasonReadOnly(null);
 
-        // 1. Troviamo tutti i match di questa giornata
+        // 1. Troviamo tutti i match di questa giornata (le Non classificate non appartengono a nessuna giornata)
         const { rows: matches } = await db.execute({
-            sql: 'SELECT id FROM matches WHERE round = ? AND season_id = ?',
-            args: [round, season.id]
+            sql: "SELECT id FROM matches WHERE round = ? AND season_id = ? AND COALESCE(match_type, '') <> ?",
+            args: [round, season.id, MATCH_TYPES.unranked]
         });
 
         if (matches.length === 0) {

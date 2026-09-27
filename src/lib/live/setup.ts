@@ -1,6 +1,6 @@
 // Fotografia di inizio partita: dai dati di squadra e dal pre-partita salvato ai valori che servono in campo.
 
-import { isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
+import { isKnockout } from '@/lib/matchTypes';
 import { parsePrayers } from '@/lib/prayers';
 import type { DieRoller } from './kickoff';
 import type { LiveStartPayload, LiveTeamSetup } from './types';
@@ -38,7 +38,7 @@ export function liveStartPayload(match: Row, teams: Map<string, Row>, reports: M
     away_team_id: away,
     kicking_team_id: String(match.kicking_team_id),
     // Supplementari e rigori solo dove serve un vincitore: playoff, semifinali, finali (p. 83)
-    knockout: match.match_type !== MATCH_TYPES.friendly && !isLeagueMatch(match.match_type),
+    knockout: isKnockout(match.match_type),
     teams: Object.fromEntries([home, away].map(id => [id, teamSetup(teams.get(id) ?? {}, reports.get(id))])),
   };
 }

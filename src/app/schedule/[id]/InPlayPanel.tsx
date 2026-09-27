@@ -9,6 +9,7 @@ import PrayerList, { matchPrayerPlayer } from '@/components/match/PrayerList';
 import { WizardStepCard } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
+import { isUnranked } from '@/lib/matchTypes';
 import LiveBoard from './LiveBoard';
 import { reportOf, savedInducements, savedPrayers } from './pregameModel';
 
@@ -24,6 +25,7 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
   const live = useLiveMatch({ matchId: match.id });
   const prayerPlayer = matchPrayerPlayer(match);
   const isLive = live.live?.status === 'live';
+  const unranked = isUnranked(match.match_type);
 
   // Finita la partita dal vivo, i telefoni non devono più scrivere: si chiude prima di passare al referto
   const toReport = async () => {
@@ -52,9 +54,11 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
                 'The pre-game is done. Every drive starts like this: the kicking team sets up first, then the receiving team; the ball is kicked, it deviates and you roll the **Kick-off Event**.'),
               L('Con la **partita dal vivo** tieni il conto di turni e reroll, e i telefoni degli allenatori vedono il kick-off appena lo tiri. Più sotto ci sono tutte le tabelle: Kick-off, infortuni, **Casualty**, **Argue the Call** e **Prayers to Nuffle**. Quando la partita è finita, passa al referto.',
                 'With the **live match** you keep track of turns and re-rolls, and the coaches’ phones see the kick-off as soon as you roll it. Further down are all the tables: Kick-off, injuries, **Casualty**, **Argue the Call** and **Prayers to Nuffle**. When the match is over, move on to the report.'),
+              ...(unranked ? [L('È una **Non classificata**: in campo valgono le regole di campionato, ma alla fine il referto è solo simulato e della partita resterà il risultato.',
+                'This is an **Unranked** match: the league rules apply on the pitch, but at the end the report is only simulated and just the result is kept.')] : []),
             ]}
             onNext={toReport}
-            nextLabel={L('La partita è finita: compila il referto', 'The match is over: fill in the report')}
+            nextLabel={unranked ? L('La partita è finita: referto simulato', 'The match is over: simulated report') : L('La partita è finita: compila il referto', 'The match is over: fill in the report')}
         >
           <dl className={wz.facts}>
             <div><dt>{L('Meteo', 'Weather')}</dt><dd>{weather ? `${weather.name} (${match.weather_roll})` : '—'}</dd></div>

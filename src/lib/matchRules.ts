@@ -7,11 +7,11 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { recalcSppStatement } from '@/lib/spp';
-import { isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
+import { isFriendly, isKnockout, isUnranked } from '@/lib/matchTypes';
 import { isStatKey, reduceCharacteristic, restoreCharacteristic, type Characteristics, type StatKey } from '@/lib/characteristics';
 import {
   CONCEDE_QUIT_MAX_ROLL, CONCEDE_QUIT_MIN_ADVANCEMENTS, HATRED_FORBIDDEN_KEYWORDS, LIMITS, MATCH_OUTCOMES,
-  MISTAKE_THRESHOLD, PETTY_CASH_TREASURY_TOP_UP, casualtyInfo, concededScore, dedicatedFansChange, expensiveMistake, fanFactor,
+  MISTAKE_THRESHOLD, PETTY_CASH_TREASURY_TOP_UP, PLAYED_OUTCOMES, casualtyInfo, concededScore, dedicatedFansChange, expensiveMistake, fanFactor,
   getInducement, inducementChoiceCost, isDieValue, mistakeExtraRoll, pettyCash, sppEarned,
   treasuryAfterMistake, winnings,
   type CasualtyResult, type InducementChoice, type InjuryStat, type MatchOutcome, type MatchResult, type MistakeResult, type SppStats,
@@ -21,9 +21,10 @@ import { postgamePhase } from '@/lib/postgame';
 import { canHireStar, getStarHire, playsForText, teamFavoured } from '@/lib/starPlayers';
 import { getPosition, getRoster, hasRule, journeymanPositions, skillBaseName, type Roster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
-import { categoryLetters } from '@/lib/advancement';
+import { MAX_ADVANCEMENTS, advancementCost, categoryLetters } from '@/lib/advancement';
 import { getPrayer, parsePrayers, prayerProblem, prayerStatFields, primarySkillOptions, PRAYER_STATS, type PrayerResult } from '@/lib/prayers';
-import type { MatchInjury, Player, PlayerStatus } from '@/lib/types';
+import { resetLiveStatements } from '@/lib/live/server';
+import type { MatchInjury, Player, PlayerStatus, ResultSimulation, SimulatedPlayer, SimulatedTeam } from '@/lib/types';
 
 type Row = Record<string, unknown>;
 type Arg = string | number | null;
@@ -43,10 +44,6 @@ const parseJson = <T>(v: unknown, fallback: T): T => {
   try { return v ? (JSON.parse(String(v)) as T) : fallback; } catch { return fallback; }
 };
 const isCount = (v: unknown) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 99;
-
-export const isFriendly = (matchType: unknown) => matchType === MATCH_TYPES.friendly;
-// Le partite di playoff si decidono con supplementari e rigori (p. 83)
-export const isKnockout = (matchType: unknown) => !isFriendly(matchType) && !isLeagueMatch(matchType);
 
 // ------------------------------------------------------------------
 // Caricamento
@@ -206,6 +203,9 @@ export async function applyPregame(matchId: string, input: PregameInput) {
   const ctx = await loadMatch(matchId);
   if (flag(ctx.match.is_played)) throw new RuleError('The match has already been played: its pre-game can no longer change.', 409);
   if (isFriendly(ctx.match.match_type)) throw new RuleError('Friendly games have no pre-game sequence.', 409);
+  // Non classificata: stesso pre-partita, ma la Treasury non si tocca e la partita non aspetta (né blocca)
+  // il post-partita di lega delle due squadre
+  const unranked = isUnranked(ctx.match.match_type);
 
   const statements: Statement[] = [];
   const skillIds = await skillIdsByName();
@@ -219,19 +219,24 @@ export async function applyPregame(matchId: string, input: PregameInput) {
     const roster = getRoster(str(team.roster));
     const t = input?.teams?.[teamId];
     if (!t) throw new RuleError(`Missing pre-game data for ${team.name}`);
-    // Prepare for Next Fixture (p. 95): il post-partita precedente dev'essere concluso
-    const { phase } = await postgamePhase(teamId);
-    if (phase === 'open') throw new RuleError(`${team.name}: finish the post-game sequence of the previous match first (Expensive Mistakes, p. 95)`, 409);
-    const due = pendingAdvancements(ctx.players, teamId, team.name);
-    if (due) throw new RuleError(due, 409);
+    if (!unranked) {
+      // Prepare for Next Fixture (p. 95): il post-partita precedente dev'essere concluso
+      const { phase } = await postgamePhase(teamId);
+      if (phase === 'open') throw new RuleError(`${team.name}: finish the post-game sequence of the previous match first (Expensive Mistakes, p. 95)`, 409);
+      const due = pendingAdvancements(ctx.players, teamId, team.name);
+      if (due) throw new RuleError(due, 409);
+    }
     if (!isDieValue(t.fair_weather, 1, 3)) throw new RuleError(`${team.name}: Fair-weather Fans must be a D3 roll (1-3)`);
 
-    // Annulla un eventuale pre-partita precedente: Treasury spesa e Journeymen creati per questa partita
+    // Annulla un eventuale pre-partita precedente: Treasury spesa (una Non classificata non la scala mai)
+    // e Journeymen creati per questa partita
     const previous = ctx.reports.get(teamId);
-    const treasury = num(team.treasury) + num(previous?.treasury_spent);
+    const treasury = num(team.treasury) + (unranked ? 0 : num(previous?.treasury_spent));
     const oldJourneymen = ctx.players.filter(p => p.team_id === teamId && p.journeyman && p.journeyman_match_id === matchId);
     for (const j of oldJourneymen) statements.push({ sql: 'DELETE FROM players WHERE id = ?', args: [j.id] });
-    const players = ctx.players.filter(p => p.team_id === teamId && !oldJourneymen.includes(p));
+    // I Journeymen non ingaggiati non fanno parte della squadra (p. 94): nemmeno quelli di un'altra partita
+    // ancora aperta, come una Non classificata, che altrimenti gonfierebbero CTV e limiti di posizione
+    const players = ctx.players.filter(p => p.team_id === teamId && !p.journeyman);
 
     const choices = Array.isArray(t.inducements) ? t.inducements.filter(c => c && c.qty > 0) : [];
 
@@ -323,7 +328,8 @@ export async function applyPregame(matchId: string, input: PregameInput) {
 
   for (const [teamId, p] of plan) {
     const s = spent.get(teamId)!;
-    statements.push({ sql: 'UPDATE teams SET treasury = ? WHERE id = ?', args: [p.treasury - s.treasury, teamId] });
+    // Nella Non classificata gli incentivi si pagano "sulla carta": il limite della Treasury vale, ma non scende
+    if (!unranked) statements.push({ sql: 'UPDATE teams SET treasury = ? WHERE id = ?', args: [p.treasury - s.treasury, teamId] });
     statements.push(upsertReport(matchId, teamId, {
       fair_weather: p.fairWeather, fan_factor: p.fanFactor, ctv: p.ctv, petty_cash: s.petty, treasury_spent: s.treasury,
       inducements: JSON.stringify(p.choices), journeymen: p.journeymen,
@@ -431,18 +437,85 @@ const prayersOf = (ctx: MatchContext) => new Map(ctx.teamIds.map(id => [id, pars
 
 const outcomeOf = (value: unknown): MatchOutcome => (MATCH_OUTCOMES.includes(value as MatchOutcome) ? value as MatchOutcome : 'played');
 
-export async function applyResult(matchId: string, input: ResultInput) {
+// Punteggio e Casualty del referto: vuoto = 0
+const countOr0 = (v: unknown, label: string) => {
+  if (v === undefined || v === null) return 0;
+  if (!isCount(v)) throw new RuleError(`${label} must be a whole number`);
+  return v as number;
+};
+
+// Referto di una partita: salva il risultato e applica il post-partita (pp. 95-103).
+// Per una Non classificata restituisce il referto simulato (cosa sarebbe successo), altrimenti null.
+export async function applyResult(matchId: string, input: ResultInput): Promise<ResultSimulation | null> {
   const ctx = await loadMatch(matchId);
-  const { match, teamIds } = ctx;
+  const { match } = ctx;
+  if (isUnranked(match.match_type)) return closeUnranked(ctx, input);
   const friendly = isFriendly(match.match_type);
   const legacy = flag(match.is_played) && !flag(match.rules_applied);
-  if (friendly || legacy) return applySimpleResult(ctx, input, friendly);
+  if (friendly || legacy) {
+    await applySimpleResult(ctx, input, friendly);
+    return null;
+  }
+  const { statements } = await planResult(ctx, input);
+  await db.batch(statements, 'write');
+  return null;
+}
+
+// Referto simulato di una Non classificata prima di chiuderla: stessi controlli e stessi conti del campionato,
+// senza scrivere niente
+export async function simulateResult(matchId: string, input: ResultInput): Promise<ResultSimulation> {
+  const ctx = await loadMatch(matchId);
+  if (!isUnranked(ctx.match.match_type)) throw new RuleError('Only unranked matches have a simulated report', 409);
+  if (flag(ctx.match.is_played)) throw new RuleError('This unranked match is already closed: only its result is left', 409);
+  return (await planResult(ctx, input)).simulation;
+}
+
+// Non classificata: il referto si compila e si controlla come in campionato, così si vede cosa sarebbe successo,
+// ma alla fine resta solo il risultato. SPP, infortuni, Treasury e Dedicated Fans non cambiano, i Journeymen
+// se ne vanno, e pre-partita e registro del live si cancellano.
+async function closeUnranked(ctx: MatchContext, input: ResultInput): Promise<ResultSimulation | null> {
+  const matchId = String(ctx.match.id);
+  if (flag(ctx.match.is_played)) {
+    // Già chiusa: si può correggere solo il punteggio
+    await db.execute({
+      sql: 'UPDATE matches SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, match_date = ? WHERE id = ?',
+      args: [countOr0(input.home_score, 'Score'), countOr0(input.away_score, 'Score'),
+             countOr0(input.home_casualties, 'Casualties'), countOr0(input.away_casualties, 'Casualties'), input.match_date || null, matchId],
+    });
+    return null;
+  }
+  const { simulation: s } = await planResult(ctx, input);
+  await db.batch([
+    {
+      sql: `UPDATE matches SET home_score = ?, away_score = ?, home_casualties = ?, away_casualties = ?, outcome = ?, conceded_team_id = ?,
+                               penalty_winner_id = NULL, is_played = 1, rules_applied = 0, played_at = COALESCE(played_at, CURRENT_TIMESTAMP), match_date = ?
+            WHERE id = ?`,
+      args: [s.home_score, s.away_score, s.home_casualties, s.away_casualties, s.outcome, s.conceded_team_id, input.match_date || null, matchId],
+    },
+    { sql: 'DELETE FROM player_stats WHERE match_id = ?', args: [matchId] },
+    { sql: 'DELETE FROM player_injuries WHERE match_id = ?', args: [matchId] },
+    { sql: 'DELETE FROM match_team_reports WHERE match_id = ?', args: [matchId] },
+    { sql: 'DELETE FROM players WHERE journeyman = 1 AND journeyman_match_id = ?', args: [matchId] },
+    ...resetLiveStatements(matchId),
+  ], 'write');
+  return s;
+}
+
+// Il referto calcolato e controllato ma non ancora scritto: gli statement per il database e il riassunto di cosa
+// cambierebbe. Il campionato scrive gli statement; la Non classificata mostra soltanto il riassunto.
+async function planResult(ctx: MatchContext, input: ResultInput): Promise<{ statements: Statement[]; simulation: ResultSimulation }> {
+  const { match, teamIds } = ctx;
+  const matchId = String(match.id);
 
   for (const [, report] of ctx.reports) {
     if (report.mistake_result) throw new RuleError('Expensive Mistakes have already been rolled for this match: undo them before changing the result.', 409);
   }
 
   const outcome = outcomeOf(input.outcome);
+  // Una Non classificata non ha una scadenza da rispettare: o si gioca, o si elimina
+  if (isUnranked(match.match_type) && !PLAYED_OUTCOMES.includes(outcome)) {
+    throw new RuleError('An unranked match is either played or conceded: if it was not played, delete it.');
+  }
   const [homeId, awayId] = teamIds;
   const conceder = outcome === 'played' || outcome === 'forfeit_both' ? null : str(input.conceded_team_id);
   if (outcome !== 'played' && outcome !== 'forfeit_both' && !teamIds.includes(conceder ?? '')) throw new RuleError('Choose the team that conceded');
@@ -451,15 +524,16 @@ export async function applyResult(matchId: string, input: ResultInput) {
 
   revertResultInMemory(ctx);
   const byId = new Map(ctx.players.map(p => [p.id, p]));
+  // SPP già guadagnati qui da una versione precedente del referto: vanno ricalcolati, e tolti per avere quelli di partenza
+  const { rows: previous } = await db.execute({
+    sql: 'SELECT player_id, SUM(spp_earned) AS spp FROM player_stats WHERE match_id = ? GROUP BY player_id',
+    args: [matchId],
+  });
+  const previousSpp = new Map(previous.map(r => [String(r.player_id), num(r.spp)]));
 
   // --- Punteggio ---
-  const intOr0 = (v: unknown, label: string) => {
-    if (v === undefined || v === null) return 0;
-    if (!isCount(v)) throw new RuleError(`${label} must be a whole number`);
-    return v as number;
-  };
-  const score: Record<string, number> = { [homeId]: intOr0(input.home_score, 'Score'), [awayId]: intOr0(input.away_score, 'Score') };
-  const casualties: Record<string, number> = { [homeId]: intOr0(input.home_casualties, 'Casualties'), [awayId]: intOr0(input.away_casualties, 'Casualties') };
+  const score: Record<string, number> = { [homeId]: countOr0(input.home_score, 'Score'), [awayId]: countOr0(input.away_score, 'Score') };
+  const casualties: Record<string, number> = { [homeId]: countOr0(input.home_casualties, 'Casualties'), [awayId]: countOr0(input.away_casualties, 'Casualties') };
   if (!played) {
     // Partita non giocata entro il limite: nessun TD né Casualty (p. 102)
     for (const id of teamIds) { score[id] = 0; casualties[id] = 0; }
@@ -506,6 +580,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
   const injuries: Statement[] = [];
   const recalc = new Set<string>();
   const prayers = prayersOf(ctx);
+  const simPlayers: SimulatedPlayer[] = [];
 
   for (const s of stats) {
     const p = byId.get(String(s?.player_id));
@@ -539,6 +614,14 @@ export async function applyResult(matchId: string, input: ResultInput) {
     const spp = lostSpp ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes'), prayers: prayers.get(teamId) });
     statements.push(insertStats(matchId, p.id, values, spp));
     recalc.add(p.id);
+    const sppBefore = p.spp - (previousSpp.get(p.id) ?? 0);
+    const sim: SimulatedPlayer = {
+      player_id: p.id, team_id: teamId, name: p.name, journeyman: p.journeyman, spp: sppBefore, spp_earned: spp, mvp: values.mvp > 0,
+      // Con gli SPP di dopo la partita potrebbe prendere almeno un avanzamento (p. 96); un Journeyman prima va ingaggiato
+      can_advance: !p.journeyman && p.advancements < MAX_ADVANCEMENTS && sppBefore + spp >= advancementCost('randomPrimary', p.advancements),
+      injury: null,
+    };
+    simPlayers.push(sim);
 
     if (injury) {
       if (!played) throw new RuleError('Injuries can only be recorded for matches that were played');
@@ -565,6 +648,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
         sql: 'INSERT INTO player_injuries (id, match_id, player_id, result, stat, stat_applied, hatred) VALUES (?, ?, ?, ?, ?, ?, ?)',
         args: [crypto.randomUUID(), matchId, p.id, injury.result, stat, applied ? 1 : 0, hatred],
       });
+      sim.injury = { result: injury.result, stat, applied, hatred };
     }
   }
 
@@ -577,6 +661,7 @@ export async function applyResult(matchId: string, input: ResultInput) {
 
   // --- Winnings, Dedicated Fans, giocatori che se ne vanno ---
   const fanAttendance = teamIds.reduce((sum, id) => sum + num(ctx.reports.get(id)?.fan_factor), 0);
+  const simTeams: SimulatedTeam[] = [];
   for (const teamId of teamIds) {
     const team = ctx.teams.get(teamId)!;
     const t = input.teams?.[teamId] ?? {};
@@ -611,6 +696,10 @@ export async function applyResult(matchId: string, input: ResultInput) {
       }
     }
 
+    simTeams.push({
+      team_id: teamId, result: result[teamId], score: score[teamId], winnings: gold, treasury: num(team.treasury),
+      dedicated_fans: df, df_change: dfChange, quit,
+    });
     team.treasury = num(team.treasury) + gold;
     team.fan_factor = df + dfChange;
     statements.push({ sql: 'UPDATE teams SET treasury = ?, fan_factor = ? WHERE id = ?', args: [num(team.treasury), num(team.fan_factor), teamId] });
@@ -630,11 +719,15 @@ export async function applyResult(matchId: string, input: ResultInput) {
     args: [score[homeId], score[awayId], casualties[homeId], casualties[awayId], outcome, conceder, penaltyWinner, input.match_date || null, matchId],
   });
   // SPP: anche chi aveva statistiche nella versione precedente del referto
-  const { rows: previous } = await db.execute({ sql: 'SELECT DISTINCT player_id FROM player_stats WHERE match_id = ?', args: [matchId] });
-  for (const r of previous) recalc.add(String(r.player_id));
+  for (const id of previousSpp.keys()) recalc.add(id);
   for (const id of recalc) statements.push(recalcSppStatement(id));
 
-  await db.batch(statements, 'write');
+  const simulation: ResultSimulation = {
+    outcome, conceded_team_id: conceder,
+    home_score: score[homeId], away_score: score[awayId], home_casualties: casualties[homeId], away_casualties: casualties[awayId],
+    teams: simTeams, players: simPlayers,
+  };
+  return { statements, simulation };
 }
 
 // Amichevoli (p. 103: niente SPP, niente Winnings, Casualty = Badly Hurt, gli MNG restano) e partite legacy
@@ -751,20 +844,24 @@ function mistakesRevertStatements(matchId: string, teamId: string, team: Row, re
 export async function deleteMatchStatements(matchId: string): Promise<Statement[]> {
   const ctx = await loadMatch(matchId);
   const statements: Statement[] = [];
-  for (const [teamId, report] of ctx.reports) {
-    if (report.mistake_result) statements.push(...mistakesRevertStatements(matchId, teamId, ctx.teams.get(teamId)!, report));
-  }
-  const byId = new Map(ctx.players.map(p => [p.id, p]));
-  for (const id of ctx.reports.size ? [...ctx.reports.values()].flatMap(r => parseJson<string[]>(r.released_player_ids, [])) : []) {
-    const p = byId.get(id); if (p) p.left_team = false;
-  }
-  if (flag(ctx.match.rules_applied)) {
-    revertResultInMemory(ctx);
-    for (const p of ctx.players) statements.push(playerUpdate(p));
-  }
-  for (const [teamId, report] of ctx.reports) {
-    const team = ctx.teams.get(teamId)!;
-    statements.push({ sql: 'UPDATE teams SET treasury = ?, fan_factor = ? WHERE id = ?', args: [num(team.treasury) + num(report.treasury_spent), num(team.fan_factor), teamId] });
+  // Una Non classificata non ha mai cambiato squadre e giocatori (nemmeno la Treasury degli incentivi):
+  // basta togliere la partita e i suoi Journeymen
+  if (!isUnranked(ctx.match.match_type)) {
+    for (const [teamId, report] of ctx.reports) {
+      if (report.mistake_result) statements.push(...mistakesRevertStatements(matchId, teamId, ctx.teams.get(teamId)!, report));
+    }
+    const byId = new Map(ctx.players.map(p => [p.id, p]));
+    for (const id of ctx.reports.size ? [...ctx.reports.values()].flatMap(r => parseJson<string[]>(r.released_player_ids, [])) : []) {
+      const p = byId.get(id); if (p) p.left_team = false;
+    }
+    if (flag(ctx.match.rules_applied)) {
+      revertResultInMemory(ctx);
+      for (const p of ctx.players) statements.push(playerUpdate(p));
+    }
+    for (const [teamId, report] of ctx.reports) {
+      const team = ctx.teams.get(teamId)!;
+      statements.push({ sql: 'UPDATE teams SET treasury = ?, fan_factor = ? WHERE id = ?', args: [num(team.treasury) + num(report.treasury_spent), num(team.fan_factor), teamId] });
+    }
   }
   const { rows: statPlayers } = await db.execute({ sql: 'SELECT DISTINCT player_id FROM player_stats WHERE match_id = ?', args: [matchId] });
   statements.push({ sql: 'DELETE FROM player_stats WHERE match_id = ?', args: [matchId] });

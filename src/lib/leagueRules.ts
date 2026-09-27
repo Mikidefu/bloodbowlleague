@@ -174,6 +174,8 @@ export type MatchOutcome =
   | 'forfeit_commitments';  // non giocata: una squadra concede per impegni personali (p. 102)
 
 export const MATCH_OUTCOMES: MatchOutcome[] = ['played', 'conceded', 'conceded_no_penalty', 'forfeit_both', 'forfeit_commitments'];
+// Esiti di una partita scesa in campo: gli unici di una Non classificata, che non ha una scadenza da rispettare
+export const PLAYED_OUTCOMES: MatchOutcome[] = ['played', 'conceded', 'conceded_no_penalty'];
 
 // Chi concede e ha giocatori con 3+ avanzamenti tira un D6 per ognuno: con 1-3 lascia la squadra
 export const CONCEDE_QUIT_MIN_ADVANCEMENTS = 3;

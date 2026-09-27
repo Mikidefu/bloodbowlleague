@@ -4,7 +4,7 @@
 // bandiere, caratteristiche e stato, quindi il tipo Player è già quello definitivo.
 
 import type { AgilityValue, ArmourValue, MovementValue, PassingValue, StatKey, StrengthValue } from '@/lib/characteristics';
-import type { CasualtyResult } from '@/lib/leagueRules';
+import type { CasualtyResult, MatchOutcome, MatchResult } from '@/lib/leagueRules';
 
 export type SqlBoolean = boolean | 0 | 1;
 
@@ -207,6 +207,42 @@ export type MatchDetails = Match & {
   teams: MatchTeam[];
   reports: MatchTeamReport[];
   injuries: MatchInjury[];
+};
+
+// Referto simulato di una Non classificata (POST /api/schedule/[id]/simulate, e PUT quando la si chiude):
+// cosa sarebbe successo se fosse stata una partita di lega. Non viene salvato da nessuna parte.
+export type SimulatedTeam = {
+  team_id: string;
+  result: MatchResult;
+  score: number;
+  winnings: number;
+  treasury: number;          // Treasury di adesso (resta così)
+  dedicated_fans: number;    // Dedicated Fans di adesso
+  df_change: number;         // quanti ne avrebbe guadagnati (+) o persi (-)
+  quit: string[];            // giocatori che se ne sarebbero andati dopo la concessione (p. 101)
+};
+
+export type SimulatedPlayer = {
+  player_id: string;
+  team_id: string;
+  name: string;
+  journeyman: boolean;
+  spp: number;               // SPP di adesso
+  spp_earned: number;        // SPP che avrebbe guadagnato
+  mvp: boolean;
+  can_advance: boolean;      // dopo la partita avrebbe avuto gli SPP per un avanzamento (p. 96)
+  injury: { result: CasualtyResult; stat: StatKey | null; applied: boolean; hatred: string | null } | null;
+};
+
+export type ResultSimulation = {
+  outcome: MatchOutcome;
+  conceded_team_id: string | null;
+  home_score: number;
+  away_score: number;
+  home_casualties: number;
+  away_casualties: number;
+  teams: SimulatedTeam[];
+  players: SimulatedPlayer[];
 };
 
 // Riga delle classifiche giocatori in GET /api/stats

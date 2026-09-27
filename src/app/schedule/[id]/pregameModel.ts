@@ -6,6 +6,7 @@ import {
 } from '@/lib/leagueRules';
 import { getPosition, getRoster, hasRule, isLineman, journeymanPositions } from '@/lib/rosters';
 import { categoryLetters } from '@/lib/advancement';
+import { isUnranked } from '@/lib/matchTypes';
 import type { ArmourValue, MovementValue } from '@/lib/characteristics';
 import { parsePrayers, primarySkillOptions } from '@/lib/prayers';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
@@ -53,8 +54,8 @@ export function teamPreview(match: MatchDetails, team: MatchTeam, draft: TeamPre
   const cost = draft.inducements.reduce((sum, c) => sum + (inducementChoiceCost(c, ctx) ?? 0), 0);
   const invalid = draft.inducements.filter(c => inducementChoiceCost(c, ctx) === null);
   const ff = draft.fair_weather ? fanFactor(team.dedicated_fans, draft.fair_weather) : null;
-  // La Treasury prima di un eventuale pre-partita già salvato (che l'ha già scalata)
-  const treasury = team.treasury + (reportOf(match, team.id)?.treasury_spent ?? 0);
+  // La Treasury prima di un eventuale pre-partita già salvato (che l'ha già scalata; una Non classificata non la scala mai)
+  const treasury = team.treasury + (isUnranked(match.match_type) ? 0 : reportOf(match, team.id)?.treasury_spent ?? 0);
   return { roster, ctx, available, unavailable, baseJourneymen, journeymen, options, jPosition, ctv, cost, invalid, ff, treasury };
 }
 

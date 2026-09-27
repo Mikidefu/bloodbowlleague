@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
-import { MATCH_TYPES } from '@/lib/matchTypes';
+import { MATCH_TYPES, isUnranked } from '@/lib/matchTypes';
 import { getActiveSeason, resolveSeason, seasonNotFound, seasonReadOnly } from '@/lib/seasons';
 
 // Partite di una stagione (?season=<id>, default: stagione attiva)
@@ -34,14 +34,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { home_team_id, away_team_id, round, match_type, match_date } = body;
+        const { home_team_id, away_team_id, match_type, match_date } = body;
+        // Le Non classificate stanno fuori dalle giornate del calendario: niente numero di giornata (0)
+        const round = isUnranked(match_type) ? 0 : body.round;
 
-        if (!home_team_id || !away_team_id || !round || !match_type) {
+        if (!home_team_id || !away_team_id || (!round && !isUnranked(match_type)) || !match_type) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
         // Semifinali e finali si creano solo dai pulsanti dei playoff, così restano coerenti con la classifica
-        const allowedTypes: string[] = [MATCH_TYPES.league, MATCH_TYPES.playoff, MATCH_TYPES.friendly];
+        const allowedTypes: string[] = [MATCH_TYPES.league, MATCH_TYPES.playoff, MATCH_TYPES.friendly, MATCH_TYPES.unranked];
         if (!allowedTypes.includes(match_type)) {
             return NextResponse.json({ error: `Invalid match type: ${match_type}` }, { status: 400 });
         }

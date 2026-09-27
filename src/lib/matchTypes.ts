@@ -5,6 +5,9 @@ export const MATCH_TYPES = {
   league: 'League',
   playoff: 'Playoff',
   friendly: 'Friendly',
+  // Non classificata: si gioca come una partita di lega, ma alla fine resta solo il risultato
+  // (niente classifica, SPP, infortuni, Treasury né fan). Vedi closeUnranked in src/lib/matchRules.ts.
+  unranked: 'Unranked',
   semifinal1: 'Semifinal 1 (1st vs 4th)',
   semifinal2: 'Semifinal 2 (2nd vs 3rd)',
   thirdPlace: '3rd Place Match',
@@ -22,5 +25,12 @@ export const sqlIn = (values: readonly string[]) => `(${values.map(v => `'${v.re
 export const isLeagueMatch = (type: unknown) => LEAGUE_MATCH_TYPES.includes(String(type));
 export const isSemifinal = (type: unknown) => SEMIFINAL_TYPES.includes(String(type));
 export const isFinal = (type: unknown) => FINAL_TYPES.includes(String(type));
+export const isFriendly = (type: unknown) => type === MATCH_TYPES.friendly;
+export const isUnranked = (type: unknown) => type === MATCH_TYPES.unranked;
+// Le partite di playoff si decidono con supplementari e rigori (p. 83); campionato, amichevoli e
+// Non classificate possono finire in parità
+export const isKnockout = (type: unknown) => !isFriendly(type) && !isLeagueMatch(type) && !isUnranked(type);
 
-export const displayMatchType = (type: unknown) => (isLeagueMatch(type) ? MATCH_TYPES.league : String(type ?? ''));
+export const displayMatchType = (type: unknown, language: 'it' | 'en' = 'en') =>
+  isUnranked(type) ? (language === 'it' ? 'Non classificata' : 'Unranked')
+  : isLeagueMatch(type) ? MATCH_TYPES.league : String(type ?? '');

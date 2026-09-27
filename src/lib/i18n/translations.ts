@@ -207,6 +207,11 @@ export const translations = {
       confirmDeleteUnplayed: 'Are you sure you want to delete this scheduled match?',
       confirmDeletePlayed: 'WARNING: This match has already been played. Deleting it will permanently remove all stats and SPP earned by the players. Are you sure?',
       deleteMatch: 'Delete Match',
+      unranked: 'UNRANKED',
+      unrankedOption: 'Unranked Match',
+      unrankedHint: 'Played like a league match, with pre-game, live match and report, but it changes nothing: standings, SPP, injuries, Treasury and fans stay as they are. Only the result is kept.',
+      unrankedTitle: 'Unranked matches',
+      unrankedMicro: 'Outside the standings // only the result is kept',
     },
     match: {
       saveResults: 'SAVE RESULTS & STATS',
@@ -428,6 +433,7 @@ export const translations = {
       landingTitle: 'Thrown by a team-mate and landed safely (1 SPP)',
       legacyNote: 'Match recorded before the league rules: Treasury, fans and injuries are not changed when editing it.',
       friendlyNote: 'Friendly: no SPP, no Winnings, every Casualty counts as Badly Hurt (p. 103).',
+      unrankedNote: 'Unranked: played with the league rules, but only the result is kept. Standings, SPP, injuries, Treasury and fans do not change.',
       postgameDone: 'Post-game',
       openTeam: 'Advancements, hiring and Expensive Mistakes on the team page',
     }
@@ -640,6 +646,11 @@ export const translations = {
       confirmDeleteUnplayed: 'Sei sicuro di voler eliminare questa partita non ancora giocata?',
       confirmDeletePlayed: 'ATTENZIONE: Questa partita è già stata giocata. Eliminarla rimuoverà permanentemente tutte le statistiche e gli SPP guadagnati dai giocatori in essa. Sei sicuro?',
       deleteMatch: 'Elimina Partita',
+      unranked: 'NON CLASSIFICATA',
+      unrankedOption: 'Partita non classificata',
+      unrankedHint: 'Si gioca come una partita di lega, con pre-partita, partita dal vivo e referto, ma non cambia niente: classifica, SPP, infortuni, Treasury e fan restano come sono. Resta solo il risultato.',
+      unrankedTitle: 'Non classificate',
+      unrankedMicro: 'Fuori classifica // resta solo il risultato',
     },
     match: {
       saveResults: 'SALVA RISULTATI E STATISTICHE',
@@ -861,6 +872,7 @@ export const translations = {
       landingTitle: 'Lanciato da un compagno e atterrato bene (1 SPP)',
       legacyNote: 'Partita registrata prima delle regole di lega: modificandola non cambiano Treasury, fan e infortuni.',
       friendlyNote: 'Amichevole: niente SPP né incassi, ogni Casualty vale come Badly Hurt (p. 103).',
+      unrankedNote: 'Non classificata: si gioca con le regole di lega, ma resta solo il risultato. Classifica, SPP, infortuni, Treasury e fan non cambiano.',
       postgameDone: 'Post-partita',
       openTeam: 'Avanzamenti, ingaggi ed Expensive Mistakes nella pagina della squadra',
     }

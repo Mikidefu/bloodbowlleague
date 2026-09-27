@@ -72,6 +72,8 @@ function Board({ session }: { session: CompanionSession }) {
   const ctxRef = useRef<Parameters<typeof noticesFor>[2] | null>(null);
   const myTeam = session.team_id;
 
+  const [closed, setClosed] = useState(false);   // referto salvato: il live è finito (di una Non classificata non resta)
+
   useEffect(() => {
     fetch(`/api/schedule/${session.match_id}`).then(r => r.json()).then(setMatch).catch(() => { /* il tabellone funziona anche senza nomi */ });
   }, [session.match_id]);
@@ -103,6 +105,17 @@ function Board({ session }: { session: CompanionSession }) {
     if (live.live?.status === 'live' && live.me === null) leave('unpaired');
   }, [live.live?.status, live.me, leave]);
 
+  // Il live sparisce se l'admin lo azzera, ma anche quando chiude una Non classificata (ne resta solo il risultato):
+  // se la partita risulta giocata, è semplicemente finita
+  useEffect(() => {
+    if (live.load !== 'not_started') return;
+    let cancelled = false;
+    fetch(`/api/schedule/${session.match_id}`).then(r => r.json())
+        .then(m => { if (!cancelled) setClosed(!!m?.is_played); })
+        .catch(() => { /* resta il messaggio dell'azzeramento */ });
+    return () => { cancelled = true; };
+  }, [live.load, session.match_id]);
+
   const teamName = useCallback((id: string | null) =>
     !match ? '—' : id === match.home_team_id ? match.home_name : id === match.away_team_id ? match.away_name : '—', [match]);
   const players = useMemo(() => (match ? [...match.homePlayers, ...match.awayPlayers] : []), [match]);
@@ -130,7 +143,11 @@ function Board({ session }: { session: CompanionSession }) {
   if (live.load === 'not_started' || !live.live) {
     return (
         <div className={styles.app}>
-          <p className={styles.notice}>{L('La partita dal vivo è stata azzerata dall’admin.', 'The live match was reset by the admin.')}</p>
+          <p className={styles.notice}>
+            {closed
+                ? L('La partita è finita: il referto è stato chiuso.', 'The match is over: the report has been closed.')
+                : L('La partita dal vivo è stata azzerata dall’admin.', 'The live match was reset by the admin.')}
+          </p>
           <button type="button" className={`btn btn-primary ${styles.wide}`} onClick={() => leave(null)}>{L('Torna all’ingresso', 'Back to the start')}</button>
         </div>
     );

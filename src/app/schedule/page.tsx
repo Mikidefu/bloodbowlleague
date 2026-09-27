@@ -5,7 +5,7 @@ import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, Chev
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
-import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal } from '@/lib/matchTypes';
+import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal, isUnranked } from '@/lib/matchTypes';
 import type { Match, Team } from '@/lib/types';
 import PageHeader from '@/components/brand/PageHeader';
 import Shards from '@/components/brand/Shards';
@@ -239,8 +239,12 @@ export default function SchedulePage() {
   const filteredMatches = matches.filter(m =>
       selectedTeamFilter ? (m.home_team_id === selectedTeamFilter || m.away_team_id === selectedTeamFilter) : true
   );
+  // Le Non classificate non appartengono a nessuna giornata: hanno una sezione loro, prima quelle da giocare
+  const unrankedMatches = filteredMatches
+      .filter(m => isUnranked(m.match_type))
+      .sort((a, b) => Number(a.is_played) - Number(b.is_played));
 
-  const groupedMatches = filteredMatches.reduce((acc: Record<number, Match[]>, match) => {
+  const groupedMatches = filteredMatches.filter(m => !isUnranked(m.match_type)).reduce((acc: Record<number, Match[]>, match) => {
     const round = match.round || 0;
     if (!acc[round]) acc[round] = [];
     acc[round].push(match);
@@ -278,72 +282,90 @@ export default function SchedulePage() {
       </div>
   );
 
-  const matchGrid = currentRound !== null && (
-      <div className={styles.fixtureGrid}>
-        {groupedMatches[currentRound]?.map(match => (
-            <div key={match.id} className={`offset-frame ${styles.frame}`}>
-              <article className={`chamfer ${styles.fixture} ${match.is_played ? styles.fixturePlayed : styles.fixtureUpcoming}`}>
-                <div className={styles.fixtureMeta}>
-                  <span className={styles.metaCode}>
-                    <b>R{pad(match.round || 0)}</b> {'// '}{displayMatchType(match.match_type)}
-                  </span>
-                  <span className={`${styles.status} ${match.is_played ? styles.statusDone : styles.statusNext}`}>
-                    {match.is_played ? 'COMPLETED' : 'UPCOMING'}
-                  </span>
-                </div>
+  const renderFixture = (match: Match) => {
+    // Una Non classificata chiusa ha solo il risultato: niente referto da aprire
+    const unranked = isUnranked(match.match_type);
+    return (
+        <div key={match.id} className={`offset-frame ${styles.frame} ${unranked ? styles.frameUnranked : ''}`}>
+          <article className={`chamfer ${styles.fixture} ${match.is_played ? styles.fixturePlayed : styles.fixtureUpcoming} ${unranked ? styles.fixtureUnranked : ''}`}>
+            <div className={styles.fixtureMeta}>
+              <span className={styles.metaCode}>
+                {unranked
+                    ? <b>{t.schedule.unranked}</b>
+                    : <><b>R{pad(match.round || 0)}</b> {'// '}{displayMatchType(match.match_type)}</>}
+              </span>
+              <span className={`${styles.status} ${match.is_played ? styles.statusDone : styles.statusNext}`}>
+                {match.is_played ? 'COMPLETED' : 'UPCOMING'}
+              </span>
+            </div>
 
-                {match.match_date && (
-                    <div className={styles.fixtureDate}>
-                      <Clock size={14} aria-hidden="true" /> {formatDate(match.match_date)}
+            {match.match_date && (
+                <div className={styles.fixtureDate}>
+                  <Clock size={14} aria-hidden="true" /> {formatDate(match.match_date)}
+                </div>
+            )}
+
+            <div className={styles.fixtureBody}>
+              {renderTeam(match.home_name, match.home_logo, match.home_color, 'home')}
+
+              {/* PUNTEGGIO O VS */}
+              <div className={styles.scoreCenter}>
+                {match.is_played ? (
+                    <div className={styles.score}>
+                      <span>{match.home_score}</span>
+                      <i className={styles.scoreDash} aria-hidden="true">–</i>
+                      <span>{match.away_score}</span>
                     </div>
+                ) : (
+                    <div className={styles.vs}>VS</div>
                 )}
+              </div>
 
-                <div className={styles.fixtureBody}>
-                  {renderTeam(match.home_name, match.home_logo, match.home_color, 'home')}
+              {renderTeam(match.away_name, match.away_logo, match.away_color, 'away')}
+            </div>
 
-                  {/* PUNTEGGIO O VS */}
-                  <div className={styles.scoreCenter}>
-                    {match.is_played ? (
-                        <div className={styles.score}>
-                          <span>{match.home_score}</span>
-                          <i className={styles.scoreDash} aria-hidden="true">–</i>
-                          <span>{match.away_score}</span>
-                        </div>
-                    ) : (
-                        <div className={styles.vs}>VS</div>
-                    )}
-                  </div>
-
-                  {renderTeam(match.away_name, match.away_logo, match.away_color, 'away')}
-                </div>
-
-                <div className={styles.fixtureActions}>
-                  {canEdit && (
-                      <button
-                          type="button"
-                          onClick={() => deleteMatch(match.id)}
-                          className={`chamfer ${styles.iconBtn}`}
-                          aria-label={t.schedule.deleteMatch}
-                          title={t.schedule.deleteMatch}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                  )}
+            <div className={styles.fixtureActions}>
+              {canEdit && (
                   <button
                       type="button"
-                      onClick={() => router.push(`/schedule/${match.id}`)}
-                      className={`${styles.fixtureMain} ${!match.is_played && canEdit ? `chamfer ${styles.playBtn}` : styles.reportLink}`}
+                      onClick={() => deleteMatch(match.id)}
+                      className={`chamfer ${styles.iconBtn}`}
+                      aria-label={t.schedule.deleteMatch}
+                      title={t.schedule.deleteMatch}
                   >
-                    {!match.is_played && canEdit && <Play size={16} aria-hidden="true" />}
-                    {match.is_played
-                        ? (isMobile ? 'REPORT' : 'MATCH REPORT')
-                        : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
-                    {!(!match.is_played && canEdit) && <ArrowRight size={16} aria-hidden="true" />}
+                    <Trash2 size={18} />
                   </button>
-                </div>
-              </article>
+              )}
+              <button
+                  type="button"
+                  onClick={() => router.push(`/schedule/${match.id}`)}
+                  className={`${styles.fixtureMain} ${!match.is_played && canEdit ? `chamfer ${styles.playBtn}` : styles.reportLink}`}
+              >
+                {!match.is_played && canEdit && <Play size={16} aria-hidden="true" />}
+                {match.is_played
+                    ? (unranked ? 'RESULT' : isMobile ? 'REPORT' : 'MATCH REPORT')
+                    : canEdit ? (isMobile ? 'PLAY' : 'PLAY MATCH') : 'DETAILS'}
+                {!(!match.is_played && canEdit) && <ArrowRight size={16} aria-hidden="true" />}
+              </button>
             </div>
-        ))}
+          </article>
+        </div>
+    );
+  };
+
+  const matchGrid = currentRound !== null && (
+      <div className={styles.fixtureGrid}>
+        {groupedMatches[currentRound]?.map(renderFixture)}
+      </div>
+  );
+
+  // Le Non classificate, sotto le giornate (o da sole se il calendario è ancora vuoto)
+  const unrankedSection = unrankedMatches.length > 0 && (
+      <div className={styles.unrankedSection}>
+        <SectionTitle on={isPlayoffRound ? 'dark' : 'light'} micro={t.schedule.unrankedMicro} title={t.schedule.unrankedTitle} />
+        <div className={styles.fixtureGrid}>
+          {unrankedMatches.map(renderFixture)}
+        </div>
       </div>
   );
 
@@ -440,10 +462,13 @@ export default function SchedulePage() {
 
                 <form onSubmit={handleAddMatch} className={styles.form}>
                   <div className={styles.formRow}>
-                    <div className={styles.field}>
-                      <label htmlFor="add-round" className={styles.fieldLabel}>ROUND</label>
-                      <input id="add-round" type="number" min="1" required value={form.round} onChange={e => setForm({...form, round: parseInt(e.target.value) || 1})} className={styles.fieldInput} />
-                    </div>
+                    {/* Una Non classificata non appartiene a nessuna giornata */}
+                    {!isUnranked(form.match_type) && (
+                        <div className={styles.field}>
+                          <label htmlFor="add-round" className={styles.fieldLabel}>ROUND</label>
+                          <input id="add-round" type="number" min="1" required value={form.round} onChange={e => setForm({...form, round: parseInt(e.target.value) || 1})} className={styles.fieldInput} />
+                        </div>
+                    )}
                     <div className={`${styles.field} ${styles.fieldWide}`}>
                       <label htmlFor="add-date" className={styles.fieldLabel}>DATE & TIME</label>
                       <input id="add-date" type="datetime-local" value={form.match_date} onChange={e => setForm({...form, match_date: e.target.value})} className={styles.fieldInput} />
@@ -468,10 +493,11 @@ export default function SchedulePage() {
                     </select>
                   </div>
 
-                  {form.home_team_id && form.away_team_id && (
+                  {/* Andata e ritorno contano solo per il campionato: una Non classificata si può giocare sempre */}
+                  {form.home_team_id && form.away_team_id && !isUnranked(form.match_type) && (
                       <div className={styles.rivalryNote}>
                         {bothLegsPlayed ? (
-                            <div className={styles.noteDanger}>H/A legs played! Friendly forced.</div>
+                            <div className={styles.noteDanger}>H/A legs played! Friendly or unranked only.</div>
                         ) : needsSwap ? (
                             <div className={styles.noteSwap}>
                               <span className={styles.noteWarning}>Fixture already played!</span>
@@ -490,13 +516,15 @@ export default function SchedulePage() {
                         value={form.match_type}
                         onChange={e => setForm({...form, match_type: e.target.value})}
                         className={styles.fieldInput}
-                        disabled={bothLegsPlayed}
                     >
-                      <option value={MATCH_TYPES.league}>League Match</option>
-                      <option value={MATCH_TYPES.playoff}>Playoff / Tournament</option>
+                      <option value={MATCH_TYPES.league} disabled={bothLegsPlayed}>League Match</option>
+                      <option value={MATCH_TYPES.playoff} disabled={bothLegsPlayed}>Playoff / Tournament</option>
                       <option value={MATCH_TYPES.friendly}>Friendly Match</option>
+                      <option value={MATCH_TYPES.unranked}>{t.schedule.unrankedOption}</option>
                     </select>
                   </div>
+
+                  {isUnranked(form.match_type) && <p className={styles.rivalryNote}>{t.schedule.unrankedHint}</p>}
 
                   <div className={styles.modalActions}>
                     <button type="button" className={`btn ${styles.cancelBtn}`} onClick={() => setShowAddMatch(false)}>CANCEL</button>
@@ -517,6 +545,7 @@ export default function SchedulePage() {
                 <span className={styles.emptyCode}>{`${seasonCode} // 00 FIXTURES`}</span>
                 <p className={styles.emptyText}>NO MATCHES FOUND</p>
               </div>
+              {unrankedSection && <div className={styles.inner}>{unrankedSection}</div>}
             </section>
         ) : (
             <section className={`bleed ${styles.band} ${isPlayoffRound ? styles.bandPlayoff : ''}`}>
@@ -595,6 +624,7 @@ export default function SchedulePage() {
                 )}
 
                 {matchGrid}
+                {unrankedSection}
               </div>
             </section>
         )}

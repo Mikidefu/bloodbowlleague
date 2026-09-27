@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { computeStandings } from '@/lib/standings';
+import { MATCH_TYPES } from '@/lib/matchTypes';
 import { resolveSeason, seasonNotFound } from '@/lib/seasons';
 
 // Classifica e statistiche di una stagione (?season=<id>, default: stagione attiva)
@@ -34,15 +35,15 @@ export async function GET(request: Request) {
       leaders('casualties', 'total_cas'),
       leaders('mvp', 'total_mvp'),
       leaders('spp_earned', 'total_spp'),
-      // 6. Totali della stagione (tutte le partite giocate, di qualsiasi tipo)
+      // 6. Totali della stagione (partite giocate di qualsiasi tipo, tranne le Non classificate che non contano)
       db.execute({
         sql: `
           SELECT COUNT(*) AS matches_played,
                  COALESCE(SUM(home_casualties + away_casualties), 0) AS casualties
           FROM matches
-          WHERE is_played = 1 AND season_id = ?
+          WHERE is_played = 1 AND season_id = ? AND COALESCE(match_type, '') <> ?
         `,
-        args: [season.id]
+        args: [season.id, MATCH_TYPES.unranked]
       })
     ]);
 

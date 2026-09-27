@@ -6,6 +6,7 @@ import { PETTY_CASH_TREASURY_TOP_UP, rollDie, type InducementChoice } from '@/li
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { PRAYER_DIE, getPrayer, targetCount, type PrayerResult } from '@/lib/prayers';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
+import { isUnranked } from '@/lib/matchTypes';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
 import { Facts, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
@@ -80,6 +81,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const teams = [match.home_team_id, match.away_team_id].map(id => match.teams.find(tm => tm.id === id)).filter(Boolean) as MatchTeam[];
   const teamIds = teams.map(tm => tm.id);
+  // Non classificata: stesso pre-partita, ma la Treasury non scende e i Journeymen valgono solo per questa partita
+  const unranked = isUnranked(match.match_type);
 
   const [draft, setDraft] = useState<Draft>(() => loadDraft(match.id) ?? initialDraft(match, teamIds));
   const [saving, setSaving] = useState(false);
@@ -227,6 +230,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   'The pre-game sequence gets both teams ready before kick-off. The app walks you through it one step at a time: fans, weather, **Journeymen**, inducements and who kicks.'),
                 L('Per ogni tiro puoi usare i dadi veri e scrivere quello che è uscito, oppure premere **Tira**. Se devi ripetere un tiro premi **Ritira**. Niente viene salvato finché non confermi l\'ultimo passo.',
                   'For every roll you can use real dice and type what came up, or press **Roll**. If a roll has to be repeated, press **Re-roll**. Nothing is saved until you confirm the last step.'),
+                ...(unranked ? [L('È una **Non classificata**: il pre-partita è quello di campionato, ma gli incentivi si pagano sulla carta (la **Treasury** non scende) e i **Journeymen** valgono solo per questa partita. Il post-partita di lega delle due squadre non conta e non viene toccato.',
+                  'This is an **Unranked** match: the pre-game is the league one, but inducements are paid on paper (the **Treasury** does not go down) and **Journeymen** are only for this match. The league post-game of both teams does not matter and is left untouched.')] : []),
               ]}
               onNext={() => go(1)}
               nextLabel={L('Iniziamo', 'Let\'s start')}
@@ -317,8 +322,11 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               explain={[
                 L('Ogni squadra deve poter schierare **11 giocatori**. Se tra i disponibili ne ha meno, prende gratis dei **Journeymen** fino ad arrivare a 11: sono Lineman della posizione 0-16 del roster, con in più **Loner (4+)**.',
                   'Each team must be able to field **11 players**. If fewer are available, it takes free **Journeymen** up to 11: Linemen from the roster\'s 0-16 position, with **Loner (4+)** on top.'),
-                L('I **Journeymen** contano nel **CTV**, quindi pesano sugli incentivi. Dopo la partita potrai decidere se ingaggiarli.',
-                  '**Journeymen** count towards **CTV**, so they affect inducements. After the match you can decide whether to hire them.'),
+                unranked
+                    ? L('I **Journeymen** contano nel **CTV**, quindi pesano sugli incentivi. In una **Non classificata** se ne vanno a fine partita: non si possono ingaggiare.',
+                        '**Journeymen** count towards **CTV**, so they affect inducements. In an **Unranked** match they leave at the end: they cannot be hired.')
+                    : L('I **Journeymen** contano nel **CTV**, quindi pesano sugli incentivi. Dopo la partita potrai decidere se ingaggiarli.',
+                        '**Journeymen** count towards **CTV**, so they affect inducements. After the match you can decide whether to hire them.'),
               ]}
               onBack={() => go(2)}
               onNext={() => go(4)}
@@ -372,6 +380,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   'The other gets **Petty Cash**: the **CTV** difference plus whatever the first one spent. It may add at most **50,000** from its own **Treasury**. With equal CTV neither buys inducements.'),
                 L('Gli **Star Player** si scelgono dal catalogo, e compaiono solo quelli che giocano per la squadra. Se non vuoi incentivi, conferma e basta.',
                   '**Star Players** come from the catalogue, and only those who play for the team are listed. If you want no inducements, just confirm.'),
+                ...(unranked ? [L('**Non classificata**: la **Treasury** vale come limite, ma quello che spendi non viene tolto.',
+                  '**Unranked**: the **Treasury** is the limit, but what you spend is not taken out of it.')] : []),
               ]}
               onBack={() => go(3)}
               onNext={() => go(5)}
@@ -397,7 +407,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                         [L('Turno', 'Order'), budget.equal ? '—' : isHigher ? L('Spende per prima', 'Spends first') : 'Petty Cash'],
                       ])}
                       {!budget.equal && (
-                          <InducementPicker team={team} preview={p} inducements={draft.inducements[team.id] ?? []}
+                          <InducementPicker team={team} preview={p} inducements={draft.inducements[team.id] ?? []} onPaper={unranked}
                                             budget={isHigher ? { total: p.treasury, petty: 0, fromTreasury: p.treasury } : { total: budget.petty + budget.maxTopUp, petty: budget.petty, fromTreasury: budget.maxTopUp }}
                                             onChange={next => patch({ inducements: { ...draft.inducements, [team.id]: next } })} />
                       )}
@@ -554,8 +564,11 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
           <WizardStepCard
               title={L('Riepilogo e conferma', 'Summary and confirm')}
               explain={[
-                L('Controlla tutto. Con la conferma il sito salva il pre-partita: aggiunge i **Journeymen**, scala la **Treasury** per gli incentivi e registra meteo e squadra che calcia.',
-                  'Check everything. Confirming saves the pre-game: the app adds the **Journeymen**, takes the inducements out of the **Treasury** and records weather and kicking team.'),
+                unranked
+                    ? L('Controlla tutto. Con la conferma il sito salva il pre-partita di questa **Non classificata**: aggiunge i **Journeymen** per questa partita e registra incentivi, meteo e squadra che calcia. La **Treasury** non cambia.',
+                        'Check everything. Confirming saves the pre-game of this **Unranked** match: the app adds the **Journeymen** for this match and records inducements, weather and kicking team. The **Treasury** does not change.')
+                    : L('Controlla tutto. Con la conferma il sito salva il pre-partita: aggiunge i **Journeymen**, scala la **Treasury** per gli incentivi e registra meteo e squadra che calcia.',
+                        'Check everything. Confirming saves the pre-game: the app adds the **Journeymen**, takes the inducements out of the **Treasury** and records weather and kicking team.'),
                 L('Finché la partita non è giocata potrai rifarlo da capo.', 'Until the match is played you can redo it from scratch.'),
               ]}
               onBack={() => go(6)}
@@ -580,7 +593,9 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                         ['Journeymen', p.journeymen],
                         ['CTV', `${gp(p.ctv)} gp`],
                         [L('Incentivi', 'Inducements'), p.cost ? `${gp(p.cost)} gp` : L('nessuno', 'none')],
-                        ['Treasury', fromTreasury ? `${gp(p.treasury)} → ${gp(p.treasury - fromTreasury)} gp` : `${gp(p.treasury)} gp`, fromTreasury ? 'bad' : undefined],
+                        unranked
+                            ? ['Treasury', fromTreasury ? L(`${gp(p.treasury)} gp (${gp(fromTreasury)} sulla carta)`, `${gp(p.treasury)} gp (${gp(fromTreasury)} on paper)`) : `${gp(p.treasury)} gp`]
+                            : ['Treasury', fromTreasury ? `${gp(p.treasury)} → ${gp(p.treasury - fromTreasury)} gp` : `${gp(p.treasury)} gp`, fromTreasury ? 'bad' : undefined],
                       ])}
                       <PrayerList prayers={prayerResults(team.id)} player={ref => everyone.find(c => c.ref === ref) ?? null} />
                     </>

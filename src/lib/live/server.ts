@@ -182,13 +182,17 @@ export async function endLive(matchId: string): Promise<string | null> {
   return id;
 }
 
+// Statement che cancellano il live di una partita: abbonamenti push, registro eventi e abbinamenti.
+// Li usa anche la chiusura di una Non classificata, di cui resta solo il risultato.
+export const resetLiveStatements = (matchId: string) => [
+  { sql: 'DELETE FROM push_subscriptions WHERE match_id = ?', args: [matchId] as Arg[] },
+  { sql: 'DELETE FROM match_events WHERE match_id = ?', args: [matchId] as Arg[] },
+  { sql: 'DELETE FROM match_live WHERE match_id = ?', args: [matchId] as Arg[] },
+];
+
 // Azzera il live (es. pre-partita rifatto: la fotografia di inizio partita non vale più). Il referto non si tocca.
 export async function resetLive(matchId: string) {
-  await db.batch([
-    { sql: 'DELETE FROM push_subscriptions WHERE match_id = ?', args: [matchId] },
-    { sql: 'DELETE FROM match_events WHERE match_id = ?', args: [matchId] },
-    { sql: 'DELETE FROM match_live WHERE match_id = ?', args: [matchId] },
-  ], 'write');
+  await db.batch(resetLiveStatements(matchId), 'write');
 }
 
 // ------------------------------------------------------------------

@@ -10,6 +10,7 @@ import { favouredOptions, getRoster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
 import { toPlayer } from '@/lib/players';
 import { postgamePhase } from '@/lib/postgame';
+import { MATCH_TYPES } from '@/lib/matchTypes';
 
 export async function GET(
     request: Request,
@@ -18,10 +19,19 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // 1. Recuperiamo la squadra e i giocatori in parallelo
+    // 1. Recuperiamo la squadra e i giocatori in parallelo.
+    //    I Journeymen di una Non classificata in corso non compaiono: esistono solo per quella partita
+    //    e non toccano rosa, TV e CTV.
     const [teamRes, playersRes] = await Promise.all([
       db.execute({ sql: 'SELECT * FROM teams WHERE id = ?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM players WHERE team_id = ? ORDER BY created_at ASC', args: [id] })
+      db.execute({
+        sql: `SELECT * FROM players p
+              WHERE p.team_id = ?
+                AND NOT (COALESCE(p.journeyman, 0) = 1
+                         AND EXISTS (SELECT 1 FROM matches jm WHERE jm.id = p.journeyman_match_id AND jm.match_type = ?))
+              ORDER BY p.created_at ASC`,
+        args: [id, MATCH_TYPES.unranked],
+      })
     ]);
 
     const team = teamRes.rows[0];
@@ -146,9 +156,10 @@ export async function PUT(
       ['Favoured of', current.favoured_of, favouredOf],
     ].filter(([, before, after]) => before && before !== after).map(([label]) => label);
     if (changed.length) {
+      // Una Non classificata non conta: la squadra resta "mai scesa in campo"
       const { rows: [played] } = await db.execute({
-        sql: 'SELECT 1 FROM matches WHERE is_played = 1 AND (home_team_id = ? OR away_team_id = ?) LIMIT 1',
-        args: [id, id],
+        sql: "SELECT 1 FROM matches WHERE is_played = 1 AND (home_team_id = ? OR away_team_id = ?) AND COALESCE(match_type, '') <> ? LIMIT 1",
+        args: [id, id, MATCH_TYPES.unranked],
       });
       if (played) {
         return NextResponse.json({ error: `${changed.join(', ')} cannot be changed once the team has played (pp. 152, 154)` }, { status: 409 });

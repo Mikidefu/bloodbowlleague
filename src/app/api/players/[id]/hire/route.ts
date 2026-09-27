@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { LIMITS } from '@/lib/leagueRules';
 import { toPlayer } from '@/lib/players';
+import { isUnranked } from '@/lib/matchTypes';
 
 // Ingaggio di un Journeyman dopo la partita (p. 99, step 5): costa Hiring Fee + aumenti di valore (= valore attuale),
 // perde Loner e tiene gli SPP. Da quel momento è un giocatore come gli altri.
@@ -19,7 +20,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Only a Journeyman still with the team can be hired' }, { status: 400 });
     }
 
-    const { rows: [match] } = await db.execute({ sql: 'SELECT rules_applied FROM matches WHERE id = ?', args: [player.journeyman_match_id] });
+    const { rows: [match] } = await db.execute({ sql: 'SELECT rules_applied, match_type FROM matches WHERE id = ?', args: [player.journeyman_match_id] });
+    if (isUnranked(match?.match_type)) return NextResponse.json({ error: 'Journeymen of an unranked match leave when it ends: they cannot be hired' }, { status: 409 });
     if (!match?.rules_applied) return NextResponse.json({ error: 'Journeymen are hired after the match, in the Post-game Sequence (p. 99)' }, { status: 409 });
 
     const teamId = player.team_id;

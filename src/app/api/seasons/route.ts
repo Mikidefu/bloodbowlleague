@@ -4,6 +4,7 @@ import db from '@/lib/db';
 import { CoachInputError, resolveCoachInput } from '@/lib/coaches';
 import { closeSeasonStatement, deleteSeasonStatements, getActiveSeason, toSeasonStatus } from '@/lib/seasons';
 import { computePlayoffFinishes } from '@/lib/standings';
+import { MATCH_TYPES, sqlIn } from '@/lib/matchTypes';
 
 // Campione di una stagione (se la finale è stata giocata), con il suo allenatore
 async function findChampion(seasonId: string) {
@@ -21,14 +22,17 @@ async function findChampion(seasonId: string) {
   return c ?? null;
 }
 
+// Le Non classificate non fanno parte del calendario della stagione: restano fuori dai conteggi
+const COUNTED = `COALESCE(m.match_type, '') NOT IN ${sqlIn([MATCH_TYPES.unranked])}`;
+
 // Elenco stagioni con stato, partecipanti, avanzamento del calendario e campione
 export async function GET() {
   try {
     const { rows } = await db.execute(`
       SELECT s.*,
              (SELECT COUNT(*) FROM season_teams st WHERE st.season_id = s.id) AS teams_count,
-             (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.id) AS matches_total,
-             (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.id AND m.is_played = 1) AS matches_played
+             (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.id AND ${COUNTED}) AS matches_total,
+             (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.id AND m.is_played = 1 AND ${COUNTED}) AS matches_played
       FROM seasons s
       ORDER BY s.number DESC
     `);
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
 
     if (active) {
       const { rows: [pending] } = await db.execute({
-        sql: 'SELECT COUNT(*) AS c FROM matches WHERE season_id = ? AND is_played = 0',
+        sql: `SELECT COUNT(*) AS c FROM matches m WHERE m.season_id = ? AND m.is_played = 0 AND ${COUNTED}`,
         args: [active.id],
       });
       const pendingMatches = Number(pending.c);

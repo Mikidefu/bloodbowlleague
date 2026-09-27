@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Save, ChevronDown, ChevronRight, ShieldAlert, Clock, Dices, Undo2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
-import { displayMatchType, isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
+import { displayMatchType, isKnockout, isUnranked, MATCH_TYPES } from '@/lib/matchTypes';
 import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
 import TapeStrip from '@/components/brand/TapeStrip';
@@ -17,12 +17,13 @@ import ReportWizard from './ReportWizard';
 import PostgameWizard from './PostgameWizard';
 import MatchPlayerStats from './MatchPlayerStats';
 import LivePrefillNote from './LivePrefillNote';
+import { UnrankedClosed } from './UnrankedSummary';
 import { livePrefill, type LivePrefill } from '@/lib/live/prefill';
 import { toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import { savedPrayers } from './pregameModel';
 import { PRAYER_STATS, prayerSpp, prayerStatFields } from '@/lib/prayers';
 import MatchTables from '@/components/match/MatchTables';
-import { isTrue, type MatchDetails } from '@/lib/types';
+import { isTrue, type MatchDetails, type ResultSimulation } from '@/lib/types';
 import {
   CASUALTY_RESULTS, CONCEDE_QUIT_MIN_ADVANCEMENTS, LASTING_INJURIES, MATCH_OUTCOMES, casualtyInfo, concededScore, rollDie, winnings,
   type CasualtyResult, type InjuryStat, type MatchOutcome,
@@ -69,6 +70,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   // Numeri della partita dal vivo per il referto (applied: già copiati nei campi)
   const [livePre, setLivePre] = useState<{ prefill: LivePrefill; applied: boolean } | null>(null);
   const liveAutoApplied = useRef(false);   // si copia da solo una volta: riaprendo il referto non si perdono le correzioni
+  // Non classificata: il post-partita che ci sarebbe stato in campionato. Si vede finché si resta sulla pagina,
+  // perché della partita resta solo il risultato
+  const [simulation, setSimulation] = useState<ResultSimulation | null>(null);
+  const [simulating, setSimulating] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
 
   const STAT_COLUMNS: { field: StatField; label: string; title: string }[] = [
     { field: 'td', label: 'TD', title: 'Touchdowns (3 SPP)' },
@@ -253,57 +259,84 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // Il referto come lo ricevono PUT /api/schedule/[id] e la simulazione delle Non classificate
+  const resultBody = () => {
+    // Puliamo i dati vuoti forzandoli a 0 prima di inviarli al DB
+    const cleanPlayerStats = playerStats.filter(p => !p.unavailable).map(p => ({
+      player_id: p.player_id,
+      status: p.status,
+      td: Number(p.td) || 0,
+      cas: Number(p.cas) || 0,
+      int: Number(p.int) || 0,
+      comp: Number(p.comp) || 0,
+      ttm: Number(p.ttm) || 0,
+      landing: Number(p.landing) || 0,
+      catches: Number(p.catches) || 0,
+      crowd_cas: Number(p.crowd_cas) || 0,
+      foul_cas: Number(p.foul_cas) || 0,
+      mvp: Number(p.mvp) || 0,
+      injury: p.injury ? { result: p.injury, stat: p.injury === 'LI' ? p.injuryStat || null : null, hatred: p.hatred.trim() || null } : null,
+    }));
+    return {
+      outcome,
+      conceded_team_id: concededTeam || null,
+      penalty_winner_id: penaltyWinner || null,
+      home_score: Number(homeScore) || 0,
+      away_score: Number(awayScore) || 0,
+      home_casualties: Number(homeCas) || 0,
+      away_casualties: Number(awayCas) || 0,
+      match_date: matchDate, // SALVA LA DATA MODIFICATA
+      teams: Object.fromEntries(Object.entries(teamResults).map(([teamId, r]) => [teamId, {
+        stalling: r.stalling,
+        df_roll: r.df_roll ? Number(r.df_roll) : null,
+        commitments_roll: r.commitments_roll ? Number(r.commitments_roll) : null,
+        quit_rolls: Object.fromEntries(Object.entries(r.quit_rolls).filter(([, v]) => v).map(([k, v]) => [k, Number(v)])),
+      }])),
+      playerStats: cleanPlayerStats
+    };
+  };
+
+  // Referto simulato di una Non classificata: il server fa i conti del campionato senza salvare niente
+  const simulate = async () => {
+    setSimulating(true);
+    setSimulation(null);
+    setSimulationError(null);
+    try {
+      const res = await fetch(`/api/schedule/${id}/simulate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resultBody())
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setSimulation(data.simulation);
+      else setSimulationError(data.error || 'Error');
+    } catch {
+      setSimulationError(language === 'it' ? 'Connessione non riuscita: riprova.' : 'Connection failed: try again.');
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   const handleSave = async (): Promise<boolean> => {
     if (!match) return false;
     setSaving(true);
     try {
-      // Puliamo i dati vuoti forzandoli a 0 prima di inviarli al DB
-      const cleanPlayerStats = playerStats.filter(p => !p.unavailable).map(p => ({
-        player_id: p.player_id,
-        status: p.status,
-        td: Number(p.td) || 0,
-        cas: Number(p.cas) || 0,
-        int: Number(p.int) || 0,
-        comp: Number(p.comp) || 0,
-        ttm: Number(p.ttm) || 0,
-        landing: Number(p.landing) || 0,
-        catches: Number(p.catches) || 0,
-        crowd_cas: Number(p.crowd_cas) || 0,
-        foul_cas: Number(p.foul_cas) || 0,
-        mvp: Number(p.mvp) || 0,
-        injury: p.injury ? { result: p.injury, stat: p.injury === 'LI' ? p.injuryStat || null : null, hatred: p.hatred.trim() || null } : null,
-      }));
-
       const res = await fetch(`/api/schedule/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          outcome,
-          conceded_team_id: concededTeam || null,
-          penalty_winner_id: penaltyWinner || null,
-          home_score: Number(homeScore) || 0,
-          away_score: Number(awayScore) || 0,
-          home_casualties: Number(homeCas) || 0,
-          away_casualties: Number(awayCas) || 0,
-          match_date: matchDate, // SALVA LA DATA MODIFICATA
-          teams: Object.fromEntries(Object.entries(teamResults).map(([teamId, r]) => [teamId, {
-            stalling: r.stalling,
-            df_roll: r.df_roll ? Number(r.df_roll) : null,
-            commitments_roll: r.commitments_roll ? Number(r.commitments_roll) : null,
-            quit_rolls: Object.fromEntries(Object.entries(r.quit_rolls).filter(([, v]) => v).map(([k, v]) => [k, Number(v)])),
-          }])),
-          playerStats: cleanPlayerStats
-        })
+        body: JSON.stringify(resultBody())
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        // Chiudendo una Non classificata torna il referto simulato; correggendone il punteggio non torna niente
+        setSimulation(data.simulation ?? null);
         router.refresh();
         setReportOpen(false);
         setCorrecting(false);
         load();
         return true;
       }
-      const data = await res.json().catch(() => ({}));
       alert(data.error || 'Failed to save match results');
       return false;
     } catch {
@@ -327,30 +360,36 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   if (loading || !match) return <div className="loading-state">Loading Graphics...</div>;
 
   const friendly = match.match_type === MATCH_TYPES.friendly;
-  const legacy = isTrue(match.is_played) && !isTrue(match.rules_applied) && !friendly;
-  const rulesMode = !friendly && !legacy;
-  const knockout = !friendly && !isLeagueMatch(match.match_type);
+  // Non classificata: percorso di lega, ma dopo il referto (simulato) resta solo il risultato
+  const unranked = isUnranked(match.match_type);
+  const legacy = isTrue(match.is_played) && !isTrue(match.rules_applied) && !friendly && !unranked;
+  const rulesMode = !friendly && !legacy && !unranked;
+  const knockout = isKnockout(match.match_type);
   const played = outcome === 'played' || outcome === 'conceded' || outcome === 'conceded_no_penalty';
   const needsConceder = outcome !== 'played' && outcome !== 'forfeit_both';
   const mistakesDone = match.reports.some(r => r.mistake_result);
   const teamName = (teamId: string) => (teamId === match.home_team_id ? match.home_name : match.away_name);
 
-  // Per l'admin le partite di lega si fanno con il percorso guidato:
-  // Pre-partita -> In campo -> Referto -> Post-partita
-  const wizardMode = !!canEdit && rulesMode;
+  // Per l'admin le partite di lega (e le Non classificate) si fanno con il percorso guidato:
+  // Pre-partita -> In campo -> Referto -> Post-partita (per le Non classificate: Fine partita)
+  const wizardMode = !!canEdit && (rulesMode || unranked);
   const phase = !wizardMode ? null
+      : unranked && isTrue(match.is_played) ? 'done'
       : !isTrue(match.pregame_done) || (redoPregame && !isTrue(match.is_played)) ? 'pre'
       : !isTrue(match.rules_applied) ? (reportOpen ? 'report' : 'field')
       : correcting ? 'report' : 'post';
   const PHASES = [
     { key: 'pre', it: 'Pre-partita', en: 'Pre-game' },
     { key: 'field', it: 'In campo', en: 'On the pitch' },
-    { key: 'report', it: 'Referto', en: 'Match report' },
-    { key: 'post', it: 'Post-partita', en: 'Post-game' },
+    unranked ? { key: 'report', it: 'Referto simulato', en: 'Simulated report' } : { key: 'report', it: 'Referto', en: 'Match report' },
+    unranked ? { key: 'done', it: 'Fine partita', en: 'Full time' } : { key: 'post', it: 'Post-partita', en: 'Post-game' },
   ];
   const phaseIndex = PHASES.findIndex(ph => ph.key === phase);
-  // Le statistiche in sola lettura si vedono a referto salvato (non mentre lo si sta correggendo)
-  const showPlayedStats = isTrue(match.is_played) && phase !== 'report';
+  // Nel percorso guidato il punteggio viene dal referto; a Non classificata chiusa lo si corregge nel tabellone
+  const scoreLocked = wizardMode && phase !== 'done';
+  // Le statistiche in sola lettura si vedono a referto salvato (non mentre lo si sta correggendo).
+  // Una Non classificata non ne ha: resta solo il risultato.
+  const showPlayedStats = isTrue(match.is_played) && phase !== 'report' && !unranked;
   const toFlow = () => requestAnimationFrame(() => document.getElementById('match-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
   // Anteprima del risultato registrato (il server applica le stesse regole, pp. 101-102)
@@ -564,11 +603,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
 
         <div className={styles.scoreItem}>
           <label htmlFor={`${side}-td`} className={styles.scoreLabel}>TD</label>
-          <input id={`${side}-td`} type="number" min="0" readOnly={wizardMode} value={zeroAsEmpty(score)} placeholder="0" onChange={e => setScore(toNumericInput(e.target.value))} className={styles.scoreInput} />
+          <input id={`${side}-td`} type="number" min="0" readOnly={scoreLocked} value={zeroAsEmpty(score)} placeholder="0" onChange={e => setScore(toNumericInput(e.target.value))} className={styles.scoreInput} />
         </div>
         <div className={styles.casItem}>
           <label htmlFor={`${side}-cas`} className={styles.scoreLabel}>CAS</label>
-          <input id={`${side}-cas`} type="number" min="0" readOnly={wizardMode} value={zeroAsEmpty(cas)} placeholder="0" onChange={e => setCas(toNumericInput(e.target.value))} className={styles.casInput} />
+          <input id={`${side}-cas`} type="number" min="0" readOnly={scoreLocked} value={zeroAsEmpty(cas)} placeholder="0" onChange={e => setCas(toNumericInput(e.target.value))} className={styles.casInput} />
         </div>
       </div>
   );
@@ -641,16 +680,16 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
       <div className={styles.page}>
         <PageHeader
             kicker="BLOODBOWL LEAGUE"
-            title={`${displayMatchType(match.match_type)} - ROUND ${match.round}`}
+            title={unranked ? displayMatchType(match.match_type, language) : `${displayMatchType(match.match_type)} - ROUND ${match.round}`}
             subtitle={match.season_name ?? undefined}
             actions={canEdit ? (
                 <>
                   <button type="button" className="btn btn-slate" onClick={handleSaveDate} disabled={saving}>
                     <Clock size={20} /> {t.match.saveDateOnly}
                   </button>
-                  {!wizardMode && (
+                  {(!wizardMode || phase === 'done') && (
                       <button type="button" className="btn btn-gold" onClick={handleSave} disabled={saving || (rulesMode && mistakesDone)}>
-                        <Save size={20} /> {saving ? t.match.saving : t.match.saveResults}
+                        <Save size={20} /> {saving ? t.match.saving : phase === 'done' ? (language === 'it' ? 'SALVA IL RISULTATO' : 'SAVE THE RESULT') : t.match.saveResults}
                       </button>
                   )}
                 </>
@@ -691,9 +730,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                       onSave={async () => { const ok = await handleSave(); if (ok) toFlow(); return ok; }}
                       saving={saving}
                       onExit={() => { setReportOpen(false); setCorrecting(false); toFlow(); }}
+                      unranked={unranked ? { simulation, simulating, error: simulationError, simulate } : undefined}
                   />
               )}
               {phase === 'post' && <PostgameWizard match={match} onChanged={load} onCorrectReport={() => { setCorrecting(true); void loadLivePrefill(false); toFlow(); }} />}
+              {phase === 'done' && <UnrankedClosed match={match} simulation={simulation} />}
             </section>
         )}
 
@@ -716,9 +757,11 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               <div className={styles.boardTop}>
                 <span className={styles.boardMicro}>
                   <i className={styles.microSquares} aria-hidden="true" />
-                  {`R${pad(match.round || 0)} // ${displayMatchType(match.match_type)} // KICK-OFF`}
+                  {unranked ? `${t.schedule.unranked} // KICK-OFF` : `R${pad(match.round || 0)} // ${displayMatchType(match.match_type)} // KICK-OFF`}
                 </span>
-                <h2 className={styles.matchdayTitle}>MATCHDAY <span>{pad(match.round || 0)}</span></h2>
+                {unranked
+                    ? <h2 className={styles.matchdayTitle}>{t.schedule.unranked}</h2>
+                    : <h2 className={styles.matchdayTitle}>MATCHDAY <span>{pad(match.round || 0)}</span></h2>}
                 <div className={`chamfer ${styles.kickoff}`}>
                   <label htmlFor="match-kickoff" className={styles.kickoffLabel}>KICK-OFF:</label>
                   <input
@@ -766,8 +809,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
             <fieldset disabled={!canEdit} className={`${styles.fieldset} ${styles.teamReports}`}>
               {friendly && <p className={styles.rulesNote}>{t.rules.friendlyNote}</p>}
               {legacy && <p className={styles.rulesNote}>{t.rules.legacyNote}</p>}
+              {unranked && <p className={styles.rulesNote}>{t.rules.unrankedNote}</p>}
 
-              {rulesMode && !wizardMode && <PregamePanel match={match} />}
+              {(rulesMode || unranked) && !wizardMode && <PregamePanel match={match} />}
 
               {rulesMode && !wizardMode && (
                   <section className={`card ${styles.rulesCard}`}>
@@ -805,8 +849,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                   </section>
               )}
 
-              {!wizardMode && !(showPlayedStats && !canEdit) && renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
-              {!wizardMode && !(showPlayedStats && !canEdit) && renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
+              {/* Il referto di una Non classificata non si salva: niente tabelle dei giocatori */}
+              {!wizardMode && !unranked && !(showPlayedStats && !canEdit) && renderTeamStats('01', 'home', match.home_name, match.home_team_id, match.home_color)}
+              {!wizardMode && !unranked && !(showPlayedStats && !canEdit) && renderTeamStats('02', 'away', match.away_name, match.away_team_id, match.away_color)}
             </fieldset>
           </div>
         </section>

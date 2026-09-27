@@ -413,6 +413,27 @@
   background-size: 100% 4px, 200px, cover, cover;
 }
 
+/* Non classificata: bordo tratteggiato e filetto a trattini, "fuori verbale" rispetto alle giornate */
+.frameUnranked::before {
+  border-style: dashed;
+}
+
+.fixture.fixtureUnranked {
+  background:
+    repeating-linear-gradient(90deg, var(--bb-slate-300) 0 14px, transparent 14px 22px) 0 0 / 100% 4px no-repeat,
+    var(--tex-grain),
+    linear-gradient(160deg, #2d323a, #16191e);
+  background-size: 100% 4px, 200px, cover;
+}
+
+.unrankedSection {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 3.5rem;
+}
+
 .fixtureMeta {
   display: flex;
   align-items: center;

@@ -64,10 +64,12 @@ export async function GET(
           return toMatchPlayer(p, missed ? 'mng' : flag(p.temp_retired) ? 'retired' : null);
         });
 
+    // Valore squadra per questa partita: i Journeymen di un'altra partita ancora aperta (es. una Non classificata)
+    // non sono della squadra (p. 94)
     const teams = teamsRes.rows.map(t => ({
       id: t.id, name: t.name, roster: t.roster, team_league: t.team_league, favoured_of: t.favoured_of,
       dedicated_fans: Number(t.fan_factor || 0), treasury: Number(t.treasury || 0), apothecary: flag(t.apothecary),
-      ...computeTeamValue(t, playersRes.rows.filter(p => p.team_id === t.id)),
+      ...computeTeamValue(t, playersRes.rows.filter(p => p.team_id === t.id && !(flag(p.journeyman) && p.journeyman_match_id !== id))),
     }));
 
     return NextResponse.json({
@@ -102,9 +104,10 @@ export async function PUT(
       return NextResponse.json({ success: true });
     }
 
-    // Referto e sequenza post-partita (vedi lib/matchRules.ts)
-    await applyResult(id, body);
-    return NextResponse.json({ success: true });
+    // Referto e sequenza post-partita (vedi lib/matchRules.ts). Chiudendo una Non classificata torna
+    // il referto simulato: cosa sarebbe successo in campionato
+    const simulation = await applyResult(id, body);
+    return NextResponse.json({ success: true, simulation });
   } catch (err) {
     const ruleResponse = ruleErrorResponse(err);
     if (ruleResponse) return ruleResponse;

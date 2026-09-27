@@ -19,9 +19,10 @@ export type InducementBudget = {
   fromTreasury: number;   // massimo che può uscire dalla Treasury
 };
 
-// Scelta degli incentivi di una squadra (pp. 142-149): budget in alto, quantità con +/-, Mercenari e Star Player dal catalogo
-export default function InducementPicker({ team, preview, inducements, budget, onChange }: {
-  team: MatchTeam; preview: TeamPreview; inducements: InducementChoice[]; budget: InducementBudget; onChange: (next: InducementChoice[]) => void;
+// Scelta degli incentivi di una squadra (pp. 142-149): budget in alto, quantità con +/-, Mercenari e Star Player dal catalogo.
+// onPaper: Non classificata, la Treasury fa da limite ma non scende
+export default function InducementPicker({ team, preview, inducements, budget, onChange, onPaper = false }: {
+  team: MatchTeam; preview: TeamPreview; inducements: InducementChoice[]; budget: InducementBudget; onChange: (next: InducementChoice[]) => void; onPaper?: boolean;
 }) {
   const { t, language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
@@ -63,6 +64,8 @@ export default function InducementPicker({ team, preview, inducements, budget, o
                   <Term>Petty Cash</Term> <b>{gp(budget.petty)}</b> + max <b>{gp(budget.fromTreasury)}</b> {L('dalla', 'from the')} <Term>Treasury</Term>
                   {treasuryUsed > 0 && <> · {L('ne stai usando', 'using')} <b className={treasuryUsed > budget.fromTreasury ? styles.red : undefined}>{gp(treasuryUsed)}</b></>}
                 </>
+            ) : onPaper ? (
+                <>{L('Tutto dalla', 'All from the')} <Term>Treasury</Term>, {L('sulla carta: resterà', 'on paper: it stays at')} <b>{gp(budget.total)}</b> gp</>
             ) : (
                 <>{L('Tutto dalla', 'All from the')} <Term>Treasury</Term> · {L('dopo la partita resterà', 'after the match')} <b className={over ? styles.red : undefined}>{gp(Math.max(0, budget.total - p.cost))}</b> gp</>
             )}

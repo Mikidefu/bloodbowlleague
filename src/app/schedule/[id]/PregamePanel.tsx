@@ -4,6 +4,7 @@ import { INDUCEMENTS } from '@/lib/leagueRules';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { getStarHire } from '@/lib/starPlayers';
 import { getPrayer } from '@/lib/prayers';
+import { isUnranked } from '@/lib/matchTypes';
 import { prayerEffectText, matchPrayerPlayer } from '@/components/match/PrayerList';
 import type { MatchDetails } from '@/lib/types';
 import { reportOf, savedInducements, savedPrayers } from './pregameModel';
@@ -16,6 +17,7 @@ const gp = (n: number) => n.toLocaleString();
 export default function PregamePanel({ match }: { match: MatchDetails }) {
   const { t, language } = useLanguage();
   if (!match.reports.some(r => r.fan_factor !== null)) return null;
+  const unranked = isUnranked(match.match_type);
 
   const weather = match.weather_roll ? rowForTotal(getMatchTable('weather')!, match.weather_roll) : null;
   const kicking = match.teams.find(tm => tm.id === match.kicking_team_id);
@@ -43,7 +45,10 @@ export default function PregamePanel({ match }: { match: MatchDetails }) {
                   <strong className={styles.rulesTeamName}>{team!.name}</strong>
                   <span>{t.rules.fanFactor}: <strong>{report?.fan_factor ?? '—'}</strong> ({t.rules.dedicatedFans} + D3 {report?.fair_weather ?? '—'})</span>
                   <span>{t.rules.ctv}: <strong>{gp(report?.ctv ?? 0)}</strong></span>
-                  <span>{t.rules.pettyCash}: {gp(report?.petty_cash ?? 0)} · {t.rules.treasury}: -{gp(report?.treasury_spent ?? 0)}</span>
+                  <span>
+                    {t.rules.pettyCash}: {gp(report?.petty_cash ?? 0)} · {t.rules.treasury}: -{gp(report?.treasury_spent ?? 0)}
+                    {unranked && (report?.treasury_spent ?? 0) > 0 ? (language === 'it' ? ' (sulla carta: la Treasury non scende)' : ' (on paper: the Treasury does not go down)') : ''}
+                  </span>
                   {!!report?.journeymen && <span>{t.rules.journeymenNeeded}: {report.journeymen}</span>}
                   <span>{t.rules.inducements}: {inducements.length ? inducements.map(c => `${inducementName(c.key, c.star, c.name)} x${c.qty}`).join(', ') : t.rules.none}</span>
                   {prayers.map(p => (

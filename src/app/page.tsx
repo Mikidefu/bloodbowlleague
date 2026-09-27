@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import { ART } from '@/lib/art';
+import { isUnranked } from '@/lib/matchTypes';
 import { useArt } from '@/lib/useArt';
 import Emblem from '@/components/brand/Emblem';
 import Shards from '@/components/brand/Shards';
@@ -87,7 +88,8 @@ export default function Home() {
             .then(res => res.json())
             .then((data: Result[]) => {
                 if (cancelled || !Array.isArray(data)) return;
-                setResults(data.filter(m => m.is_played).reverse());
+                // Le Non classificate restano solo nel calendario
+                setResults(data.filter(m => m.is_played && !isUnranked(m.match_type)).reverse());
             })
             .catch(console.error);
         return () => { cancelled = true; };

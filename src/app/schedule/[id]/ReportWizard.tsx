@@ -4,10 +4,10 @@ import { Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import {
   CASUALTY_RESULTS, CONCEDE_QUIT_MAX_ROLL, CONCEDE_QUIT_MIN_ADVANCEMENTS, GETTING_EVEN_TARGET, LASTING_INJURIES,
-  MATCH_OUTCOMES, casualtyInfo, dedicatedFansChange, type CasualtyResult, type InjuryStat, type MatchOutcome,
+  MATCH_OUTCOMES, PLAYED_OUTCOMES, casualtyInfo, dedicatedFansChange, type CasualtyResult, type InjuryStat, type MatchOutcome,
 } from '@/lib/leagueRules';
-import { isLeagueMatch } from '@/lib/matchTypes';
-import type { MatchDetails, MatchTeam } from '@/lib/types';
+import { isKnockout } from '@/lib/matchTypes';
+import type { MatchDetails, MatchTeam, ResultSimulation } from '@/lib/types';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
 import { Facts, Term, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
 import { glossaryTip } from '@/lib/glossary';
@@ -15,6 +15,7 @@ import wz from '@/components/match/Wizard.module.css';
 import { casualtyForRoll, toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
 import { savedPrayers } from './pregameModel';
 import { PRAYER_STATS, getPrayer, prayerStatFields } from '@/lib/prayers';
+import UnrankedSummary from './UnrankedSummary';
 import styles from './MatchDetails.module.css';
 
 type Props = {
@@ -36,6 +37,8 @@ type Props = {
   onSave: () => Promise<boolean>;
   saving: boolean;
   onExit: () => void;
+  // Solo per le Non classificate: il referto simulato (cosa sarebbe successo in campionato) calcolato dal server
+  unranked?: { simulation: ResultSimulation | null; simulating: boolean; error: string | null; simulate: () => void };
 };
 
 const STEPS = ['outcome', 'stats', 'injuries', 'mvp', 'fans', 'confirm'] as const;
@@ -56,13 +59,22 @@ export default function ReportWizard(props: Props) {
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const go = (n: number) => { setError(null); setStep(n); document.getElementById('match-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const { unranked } = props;
+  const go = (n: number) => {
+    setError(null);
+    setStep(n);
+    // Arrivando al riepilogo di una Non classificata si chiede al server cosa sarebbe successo
+    if (unranked && STEPS[n] === 'confirm') unranked.simulate();
+    document.getElementById('match-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const teams = [match.home_team_id, match.away_team_id].map(id => match.teams.find(tm => tm.id === id)).filter(Boolean) as MatchTeam[];
   const [home, away] = teams;
   const played = outcome === 'played' || outcome === 'conceded' || outcome === 'conceded_no_penalty';
   const needsConceder = outcome !== 'played' && outcome !== 'forfeit_both';
-  const knockout = !isLeagueMatch(match.match_type);
+  const knockout = isKnockout(match.match_type);
+  // Una Non classificata non ha una scadenza: o si gioca o si concede (se non si gioca, si elimina)
+  const outcomes = unranked ? PLAYED_OUTCOMES : MATCH_OUTCOMES;
   const colorOf = (id: string) => (id === match.home_team_id ? match.home_color : match.away_color);
   const roster = (teamId: string) => playerStats.filter(p => p.team_id === teamId && !p.unavailable);
   const teamBox = (team: MatchTeam, children: React.ReactNode) => (
@@ -93,11 +105,13 @@ export default function ReportWizard(props: Props) {
               title={L('Com\'è andata?', 'How did it go?')}
               page="pp. 101-102"
               explain={[
+                ...(unranked ? [L('È una **Non classificata**: compila il referto come in campionato e alla fine vedrai cosa sarebbe successo (**SPP**, incassi, **Dedicated Fans**, infortuni). Poi della partita resterà solo il risultato.',
+                  'This is an **Unranked** match: fill in the report as in the league and at the end you will see what would have happened (**SPP**, winnings, **Dedicated Fans**, injuries). Then only the result of the match is kept.')] : []),
                 L('Quasi sempre la partita è stata giocata fino in fondo: scegli "**Giocata**" e vai avanti.', 'Almost always the match was played to the end: pick "**Played**" and move on.'),
                 L('Se un allenatore ha concesso durante la partita, **perde**: l\'avversario vince almeno **2-0**, chi concede perde i suoi **SPP** e i giocatori con 3 o più avanzamenti rischiano di andarsene. "**Concede Without Penalty**" vale solo quando chi concede non può più schierare giocatori.',
                   'If a coach conceded during the match, they lose: the opponent wins at least **2-0**, the conceding team loses its **SPP** and players with 3 or more advancements may leave. "**Concede Without Penalty**" only applies when the conceding team can no longer field players.'),
-                L('Una partita non giocata entro il limite è una sconfitta per tutte e due. Se invece un allenatore rinuncia per impegni personali, l\'avversario vince e tira un **D6** per l\'incasso.',
-                  'A match not played by the deadline is a loss for both. If a coach withdraws for personal commitments, the opponent wins and rolls a **D6** for the **winnings**.'),
+                ...(unranked ? [] : [L('Una partita non giocata entro il limite è una sconfitta per tutte e due. Se invece un allenatore rinuncia per impegni personali, l\'avversario vince e tira un **D6** per l\'incasso.',
+                  'A match not played by the deadline is a loss for both. If a coach withdraws for personal commitments, the opponent wins and rolls a **D6** for the **winnings**.')]),
               ]}
               onBack={props.onExit}
               onNext={() => go(1)}
@@ -105,7 +119,7 @@ export default function ReportWizard(props: Props) {
           >
             <label className={wz.field}>{t.rules.outcome}
               <select value={outcome} onChange={e => props.setOutcome(e.target.value as MatchOutcome)}>
-                {MATCH_OUTCOMES.map(o => <option key={o} value={o}>{t.rules.outcomes[o]}</option>)}
+                {outcomes.map(o => <option key={o} value={o}>{t.rules.outcomes[o]}</option>)}
               </select>
             </label>
             {needsConceder && (
@@ -318,6 +332,31 @@ export default function ReportWizard(props: Props) {
 
     case 'confirm': {
       const injured = playerStats.filter(p => p.injury);
+      if (unranked) {
+        card = (
+            <WizardStepCard
+                title={L('Cosa sarebbe successo', 'What would have happened')}
+                page="pp. 95-103"
+                explain={[
+                  L('Questo è il post-partita che avresti avuto in campionato, calcolato con le stesse regole: **SPP**, incassi, **Dedicated Fans** e infortuni.',
+                    'This is the post-game you would have had in the league, worked out with the same rules: **SPP**, winnings, **Dedicated Fans** and injuries.'),
+                  L('Chiudendo la partita ne resta solo il risultato: **SPP**, infortuni, **Treasury** e **Dedicated Fans** restano come sono, i **Journeymen** se ne vanno e la cronologia della partita dal vivo si cancella.',
+                    'Closing the match keeps only its result: **SPP**, injuries, **Treasury** and **Dedicated Fans** stay as they are, the **Journeymen** leave and the live match timeline is deleted.'),
+                ]}
+                onBack={() => go(4)}
+                onNext={async () => { setError(null); if (!(await props.onSave())) setError(L('Il salvataggio non è riuscito: controlla il messaggio e correggi.', 'Saving failed: check the message and fix it.')); }}
+                nextLabel={L('Chiudi la partita', 'Close the match')}
+                nextDisabled={unranked.simulating || !unranked.simulation}
+                busy={props.saving}
+                blocker={error ?? unranked.error}
+            >
+              <p className={wz.score}>{home.name} <strong>{props.projected.h} – {props.projected.a}</strong> {away.name} <small>{t.rules.outcomes[outcome]}</small></p>
+              {unranked.simulating && <p className={wz.note}>{L('Calcolo il post-partita…', 'Working out the post-game…')}</p>}
+              {unranked.simulation && <UnrankedSummary match={match} simulation={unranked.simulation} />}
+            </WizardStepCard>
+        );
+        break;
+      }
       card = (
           <WizardStepCard
               title={L('Riepilogo e conferma', 'Summary and confirm')}
