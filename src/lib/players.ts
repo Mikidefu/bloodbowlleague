@@ -139,11 +139,11 @@ export function toPlayer(row: PlayerRow, extras: PlayerExtras = {}): Player {
 export function toMatchPlayer(row: PlayerRow, unavailable: MatchPlayer['unavailable']): MatchPlayer {
   const {
     id, jersey_number, name, role, status, team_id, mng, dead, position_key, advancements,
-    journeyman, temp_retired, niggling_injuries, ma, st, ag, pa, av,
+    journeyman, temp_retired, niggling_injuries, ma, st, ag, pa, av, primary_skills,
   } = toPlayer(row);
   return {
     id, jersey_number, name, role, status, team_id, mng, dead, position_key, advancements,
-    journeyman, temp_retired, niggling_injuries, ma, st, ag, pa, av, unavailable,
+    journeyman, temp_retired, niggling_injuries, ma, st, ag, pa, av, primary_skills, unavailable,
   };
 }
 
@@ -177,6 +177,9 @@ export function toPlayerStats(row: PlayerRow): PlayerStatsRow {
     spp_earned: count(row.spp_earned),
     ttm: count(row.ttm),
     landings: count(row.landings),
+    catches: count(row.catches),
+    crowd_cas: count(row.crowd_cas),
+    foul_cas: count(row.foul_cas),
   };
 }
 

@@ -41,8 +41,9 @@ describe('livePrefill', () => {
     ]), players)!;
     assert.deepEqual(p.scores, { [H]: 1, [A]: 0 });
     assert.deepEqual(p.casualties, { [H]: 0, [A]: 2 });
-    assert.deepEqual(p.players.h1, { td: 1, cas: 0, int: 0, comp: 0, ttm: 0, landing: 0 });
-    assert.deepEqual(p.players.h2, { td: 0, cas: 0, int: 0, comp: 1, ttm: 0, landing: 0 });
+    const zero = { td: 0, cas: 0, int: 0, comp: 0, ttm: 0, landing: 0, catches: 0, crowd_cas: 0, foul_cas: 0 };
+    assert.deepEqual(p.players.h1, { ...zero, td: 1 });
+    assert.deepEqual(p.players.h2, { ...zero, comp: 1 });
     assert.equal(p.players.a1.cas, 2);
     assert.equal(p.events, 4);
   });
@@ -65,6 +66,19 @@ describe('livePrefill', () => {
     assert.deepEqual(p.skipped, [{ player_id: 'h3', team_id: H, stats: { cas: 1 } }]);
     assert.equal(p.players.h3, undefined);
     assert.equal(p.casualties[H], 0);
+  });
+
+  test('Prayers to Nuffle: prese e Casualty nel pubblico o da Foul arrivano al referto e contano nelle Casualty della squadra', () => {
+    const p = livePrefill(stateOf([
+      ['catch', H, { player_id: 'h2' }],
+      ['crowd_casualty', H, { player_id: 'h1' }],
+      ['foul_casualty', H, { player_id: 'h1' }],
+      ['casualty', H, { player_id: 'h1' }],
+    ]), players)!;
+    assert.equal(p.players.h2.catches, 1);
+    assert.equal(p.players.h1.crowd_cas, 1);
+    assert.equal(p.players.h1.foul_cas, 1);
+    assert.equal(p.casualties[H], 3);
   });
 
   test('gli eventi annullati non arrivano al referto', () => {

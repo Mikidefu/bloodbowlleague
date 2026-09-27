@@ -16,6 +16,7 @@ export type LiveTeamSetup = {
   cheerleaders: number;         // + Temp Agency Cheerleaders (p. 144), per Cheering Fans
   fan_factor: number;           // Fan Factor di partita (p. 44), per Pitch Invasion
   bribes: number;               // Bribes comprati come incentivo (p. 144)
+  prayers?: number[];           // D16 dei Prayers to Nuffle tirati nel pre-partita (p. 143); assente nei live avviati prima
 };
 
 // Eventi scritti da chi usa il tabellone (web o companion)
@@ -26,6 +27,7 @@ export type ClientEventType =
   | 'rerolls_adjusted'    // correzione manuale (Leader, skill, errori): payload.delta, payload.reason
   | 'touchdown'           // chiude il drive (p. 80)
   | 'casualty' | 'completion' | 'interception' | 'ttm' | 'landing'
+  | 'catch' | 'crowd_casualty' | 'foul_casualty'   // solo con il Prayer to Nuffle che le premia (p. 143)
   | 'half_started'        // payload.half: 2, oppure 3 = supplementari (con payload.kicking_team_id)
   | 'undo';               // payload.event_id
 
@@ -38,12 +40,15 @@ export type ServerEventType =
 
 export type LiveEventType = ClientEventType | ServerEventType;
 
-export const STAT_EVENTS = ['touchdown', 'casualty', 'completion', 'interception', 'ttm', 'landing'] as const;
+export const STAT_EVENTS = ['touchdown', 'casualty', 'completion', 'interception', 'ttm', 'landing', 'catch', 'crowd_casualty', 'foul_casualty'] as const;
 export type StatEvent = typeof STAT_EVENTS[number];
 // Stesse colonne di player_stats: il referto si precompila senza conversioni
-export const STAT_COLUMN: Record<StatEvent, 'touchdowns' | 'casualties' | 'completions' | 'interceptions' | 'ttm' | 'landings'> = {
+export const STAT_COLUMN: Record<StatEvent, 'touchdowns' | 'casualties' | 'completions' | 'interceptions' | 'ttm' | 'landings' | 'catches' | 'crowd_cas' | 'foul_cas'> = {
   touchdown: 'touchdowns', casualty: 'casualties', completion: 'completions', interception: 'interceptions', ttm: 'ttm', landing: 'landings',
+  catch: 'catches', crowd_casualty: 'crowd_cas', foul_casualty: 'foul_cas',
 };
+// Statistiche che esistono solo con un Prayer to Nuffle (p. 143): D16 della preghiera, sempre con il giocatore
+export const PRAYER_STAT_EVENTS: Partial<Record<StatEvent, number>> = { catch: 11, crowd_casualty: 12, foul_casualty: 13 };
 
 export const TEAM_EVENTS: readonly LiveEventType[] = ['turn_started', 'reroll_used', 'bribe_used', 'rerolls_adjusted', ...STAT_EVENTS];
 

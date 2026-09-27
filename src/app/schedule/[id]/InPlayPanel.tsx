@@ -5,11 +5,12 @@ import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { getStarHire } from '@/lib/starPlayers';
 import type { MatchDetails, MatchTeam } from '@/lib/types';
 import MatchTables from '@/components/match/MatchTables';
+import PrayerList, { matchPrayerPlayer } from '@/components/match/PrayerList';
 import { WizardStepCard } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import LiveBoard from './LiveBoard';
-import { reportOf, savedInducements } from './pregameModel';
+import { reportOf, savedInducements, savedPrayers } from './pregameModel';
 
 /** Si gioca: il riassunto del pre-partita a portata di mano, le tabelle per i tiri, e il passaggio al referto. */
 export default function InPlayPanel({ match, onReport, onRedoPregame }: { match: MatchDetails; onReport: () => void; onRedoPregame: () => void }) {
@@ -21,6 +22,7 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
   const nameOf = (key: string, star?: string, name?: string) =>
     key === 'star_player' ? getStarHire(star)?.name ?? name ?? 'Star Player' : INDUCEMENTS.find(i => i.key === key)?.name ?? key;
   const live = useLiveMatch({ matchId: match.id });
+  const prayerPlayer = matchPrayerPlayer(match);
   const isLive = live.live?.status === 'live';
 
   // Finita la partita dal vivo, i telefoni non devono più scrivere: si chiude prima di passare al referto
@@ -63,7 +65,7 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
             {teams.map(team => {
               const report = reportOf(match, team.id);
               const inducements = savedInducements(match, team.id);
-              const prayers = inducements.find(c => c.key === 'prayers')?.qty ?? 0;
+              const prayers = savedPrayers(match, team.id);
               return (
                   <div key={team.id} className={wz.team} style={{ '--team-color': (team.id === match.home_team_id ? match.home_color : match.away_color) ?? undefined } as React.CSSProperties}>
                     <h4 className={wz.teamName}>{team.name}</h4>
@@ -72,7 +74,12 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
                       <div><dt>Journeymen</dt><dd>{report?.journeymen ?? 0}</dd></div>
                       <div><dt>{L('Incentivi', 'Inducements')}</dt><dd>{inducements.length ? inducements.map(c => `${nameOf(c.key, c.star, c.name)}${c.qty > 1 ? ` x${c.qty}` : ''}`).join(', ') : L('nessuno', 'none')}</dd></div>
                     </dl>
-                    {prayers > 0 && <p className={wz.note}>{L(`Prayers to Nuffle: tira ${prayers} volte il D16 nella tabella qui sotto (ritira i doppioni).`, `Prayers to Nuffle: roll the D16 ${prayers} times on the table below (re-roll duplicates).`)}</p>}
+                    {prayers.length > 0 && <p className={wz.note}>{L('Prayers to Nuffle, fino a fine partita (p. 143):', 'Prayers to Nuffle, until the end of the game (p. 143):')}</p>}
+                    {/* Pre-partita salvato prima che il sito registrasse le preghiere: vanno tirate rifacendolo */}
+                    {prayers.length === 0 && inducements.some(c => c.key === 'prayers') && (
+                        <p className={wz.warn}>{L('Prayers to Nuffle comprati ma non registrati: rifai il pre-partita per tirarli, così il referto conta gli SPP giusti.', 'Prayers to Nuffle bought but not recorded: redo the pre-game to roll them, so the report counts the right SPP.')}</p>
+                    )}
+                    <PrayerList prayers={prayers} player={prayerPlayer} />
                   </div>
               );
             })}

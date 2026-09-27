@@ -4,10 +4,14 @@
 import { Radio, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import type { LivePrefill, ReportStatField } from '@/lib/live/prefill';
+import { PRAYER_STATS } from '@/lib/prayers';
 import type { MatchDetails } from '@/lib/types';
 import wz from '@/components/match/Wizard.module.css';
 
-const LABEL: Record<ReportStatField, string> = { td: 'TD', cas: 'CAS', int: 'INT', comp: 'CMP', ttm: 'TTM', landing: 'ATT' };
+const LABEL: Record<ReportStatField, string> = {
+  td: 'TD', cas: 'CAS', int: 'INT', comp: 'CMP', ttm: 'TTM', landing: 'ATT',
+  ...Object.fromEntries(PRAYER_STATS.map(s => [s.field, s.short.it])) as Record<(typeof PRAYER_STATS)[number]['field'], string>,
+};
 const line = (stats: Partial<Record<ReportStatField, number>>) =>
   (Object.entries(stats) as [ReportStatField, number][]).filter(([, n]) => n).map(([k, n]) => `${n} ${LABEL[k]}`).join(', ');
 

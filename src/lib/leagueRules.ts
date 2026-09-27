@@ -3,6 +3,7 @@
 
 import type { StatKey } from '@/lib/characteristics';
 import { getPosition, hasRule, type Roster, type RosterPosition } from '@/lib/rosters';
+import { prayerSpp, type PrayerResult } from '@/lib/prayers';
 import { getStarHire } from '@/lib/starPlayers';
 
 // ------------------------------------------------------------------
@@ -38,7 +39,7 @@ export const STAFF_COSTS = {
 export const LEAGUE_REROLL_MULTIPLIER = 2;
 
 // ------------------------------------------------------------------
-// Star Player Points (p. 96, Brawlin' Brutes p. 154)
+// Star Player Points (p. 96, Brawlin' Brutes p. 154, Prayers to Nuffle p. 143)
 // ------------------------------------------------------------------
 
 export type SppStats = {
@@ -49,15 +50,21 @@ export type SppStats = {
   ttm: number;      // Throw Team-mate con Superb Throw e compagno atterrato in piedi: 1 SPP al lanciatore
   landing: number;  // lanciato da un compagno e atterrato in sicurezza: 1 SPP
   mvp: number;
+  // Solo con la preghiera giusta (p. 143); senza, valgono 0
+  catches?: number;    // Dazzling Catching: passaggio preso
+  crowd_cas?: number;  // Fan Interaction: avversario spinto nel pubblico che subisce una Casualty
+  foul_cas?: number;   // Fouling Frenzy: Casualty causata con un Foul
 };
 
 export const SPP_VALUES = { completion: 1, throwTeamMate: 1, landing: 1, interception: 2, casualty: 2, touchdown: 3, mvp: 4 };
 
-export function sppEarned(stats: SppStats, options: { brawlinBrutes?: boolean } = {}) {
+export function sppEarned(stats: SppStats, options: { brawlinBrutes?: boolean; prayers?: PrayerResult[] | null } = {}) {
   const td = options.brawlinBrutes ? 2 : SPP_VALUES.touchdown;
   const cas = options.brawlinBrutes ? 3 : SPP_VALUES.casualty;
-  return stats.td * td + stats.cas * cas + stats.int * SPP_VALUES.interception + stats.comp * SPP_VALUES.completion
-       + stats.ttm * SPP_VALUES.throwTeamMate + stats.landing * SPP_VALUES.landing + stats.mvp * SPP_VALUES.mvp;
+  const prayer = prayerSpp(options.prayers);
+  return stats.td * td + stats.cas * cas + stats.int * SPP_VALUES.interception + stats.comp * prayer.completion
+       + stats.ttm * SPP_VALUES.throwTeamMate + stats.landing * SPP_VALUES.landing + stats.mvp * SPP_VALUES.mvp
+       + (stats.catches ?? 0) * prayer.catch + (stats.crowd_cas ?? 0) * prayer.crowd + (stats.foul_cas ?? 0) * prayer.foul;
 }
 
 // ------------------------------------------------------------------

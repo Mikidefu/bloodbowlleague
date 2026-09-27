@@ -1,16 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { PETTY_CASH_TREASURY_TOP_UP, type InducementChoice } from '@/lib/leagueRules';
+import { PETTY_CASH_TREASURY_TOP_UP, rollDie, type InducementChoice } from '@/lib/leagueRules';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
+import { PRAYER_DIE, getPrayer, targetCount, type PrayerResult } from '@/lib/prayers';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
 import { Facts, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
+import PrayerList, { prayerEffectText } from '@/components/match/PrayerList';
 import InducementPicker from './InducementPicker';
-import { pregameBudget, reportOf, savedInducements, teamPreview, type TeamPregameDraft } from './pregameModel';
+import {
+  prayerCandidates, prayerRef, pregameBudget, reportOf, savedInducements, savedPrayers, teamPreview,
+  type PrayerCandidate, type TeamPregameDraft,
+} from './pregameModel';
 
 const gp = (n: number) => n.toLocaleString();
+
+// Un Prayer to Nuffle mentre lo si tira: D16, eventuale D3, giocatori scelti (id o "journeyman:N"), skill
+type PrayerDraft = { roll: DiceValues; d3: DiceValues; players: string[]; skill: string };
+const emptyPrayer = (): PrayerDraft => ({ roll: emptyDice(), d3: emptyDice(), players: [], skill: '' });
 
 type Draft = {
   step: number;
@@ -21,16 +31,22 @@ type Draft = {
   riotous: Record<string, DiceValues>;
   rollOff: Record<string, DiceValues>;
   winnerChoice: 'kick' | 'receive' | '';
+  prayers: Record<string, PrayerDraft[]>;
 };
 
-const STEP_KEYS = ['intro', 'fans', 'weather', 'journeymen', 'inducements', 'kickoff', 'summary'] as const;
+const STEP_KEYS = ['intro', 'fans', 'weather', 'journeymen', 'inducements', 'prayers', 'kickoff', 'summary'] as const;
+const PRAYERS_STEP = STEP_KEYS.indexOf('prayers');
 
 // La bozza resta nel browser: ricaricando la pagina non si perdono i tiri già fatti
 const storageKey = (matchId: string) => `bbl-pregame-${matchId}`;
 function loadDraft(matchId: string): Draft | null {
   try {
     const raw = localStorage.getItem(storageKey(matchId));
-    return raw ? (JSON.parse(raw) as Draft) : null;
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Draft;
+    // Bozza salvata prima del passo dei Prayers to Nuffle: i passi da lì in poi scalano di uno
+    if (!draft.prayers) return { ...draft, prayers: {}, step: draft.step >= PRAYERS_STEP ? draft.step + 1 : draft.step };
+    return draft;
   } catch {
     return null;
   }
@@ -47,8 +63,16 @@ function initialDraft(match: MatchDetails, teamIds: string[]): Draft {
     riotous: Object.fromEntries(teamIds.map(id => [id, emptyDice(2)])),
     rollOff: Object.fromEntries(teamIds.map(id => [id, emptyDice()])),
     winnerChoice: '',
+    // Rifacendo il pre-partita si riparte dalle preghiere già tirate
+    prayers: Object.fromEntries(teamIds.map(id => [id, savedPrayers(match, id).map(p => ({
+      roll: [p.roll], d3: p.d3 ? [p.d3] : emptyDice(), players: (p.players ?? []).map(ref => prayerRef(match, ref)), skill: p.skill ?? '',
+    }))])),
   };
 }
+
+// Prayers to Nuffle comprati da una squadra
+const prayerQty = (inducements: InducementChoice[] | undefined) =>
+  (inducements ?? []).filter(c => c.key === 'prayers').reduce((sum, c) => sum + c.qty, 0);
 
 /** Sequenza pre-partita guidata (pp. 44-46, 94, 142-148): un passo alla volta, dadi veri o digitali. */
 export default function PregameWizard({ match, onSaved }: { match: MatchDetails; onSaved: () => void }) {
@@ -95,8 +119,65 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
 
   const stepTitles = [
     L('Prima di iniziare', 'Before you start'), L('Tifosi', 'Fans'), L('Meteo', 'Weather'), 'Journeymen',
-    L('Incentivi', 'Inducements'), L('Chi calcia', 'Kick-off'), L('Conferma', 'Confirm'),
+    L('Incentivi', 'Inducements'), L('Preghiere', 'Prayers'), L('Chi calcia', 'Kick-off'), L('Conferma', 'Confirm'),
   ];
+
+  // Prayers to Nuffle (pp. 142-143): tanti quanti ne ha comprati la squadra, scelte comprese
+  const prayerDrafts = (teamId: string) =>
+    Array.from({ length: prayerQty(draft.inducements[teamId]) }, (_, i) => draft.prayers?.[teamId]?.[i] ?? emptyPrayer());
+  const opponentOf = (teamId: string) => (teamId === home.id ? away : home);
+  const candidates: Record<string, PrayerCandidate[]> = Object.fromEntries(teams.map(tm => [tm.id, prayerCandidates(match, tm, preview(tm.id))]));
+  const prayerRoll = (d: PrayerDraft) => (diceDone(d.roll, PRAYER_DIE) ? d.roll[0]! : null);
+  // Il D16 già uscito alla squadra si ritira (p. 142)
+  const isDuplicate = (teamId: string, index: number) => {
+    const list = prayerDrafts(teamId);
+    const roll = prayerRoll(list[index]);
+    return roll !== null && list.slice(0, index).some(d => prayerRoll(d) === roll);
+  };
+  const prayerPool = (teamId: string, d: PrayerDraft) => {
+    const def = getPrayer(prayerRoll(d));
+    return def?.target ? candidates[def.target.side === 'own' ? teamId : opponentOf(teamId).id] : [];
+  };
+  // Quanti giocatori servono (null finché manca il D3)
+  const prayerNeeds = (teamId: string, d: PrayerDraft) => {
+    const def = getPrayer(prayerRoll(d));
+    if (!def) return null;
+    const n = targetCount(def, diceDone(d.d3, 3) ? d.d3[0] : null);
+    return n === null ? null : Math.min(n, prayerPool(teamId, d).length);
+  };
+  const prayerComplete = (teamId: string, index: number) => {
+    const d = prayerDrafts(teamId)[index];
+    const def = getPrayer(prayerRoll(d));
+    if (!def || isDuplicate(teamId, index)) return false;
+    const needed = prayerNeeds(teamId, d);
+    if (needed === null) return false;
+    const pool = prayerPool(teamId, d).map(c => c.ref);
+    const chosen = d.players.filter(ref => pool.includes(ref));
+    if (new Set(chosen).size !== needed || chosen.length !== needed) return false;
+    if (def.primarySkill) return !!d.skill && !!candidates[teamId].find(c => c.ref === chosen[0])?.skills.includes(d.skill);
+    return true;
+  };
+  const prayerResults = (teamId: string): PrayerResult[] => prayerDrafts(teamId).map(d => {
+    const def = getPrayer(prayerRoll(d));
+    return {
+      roll: prayerRoll(d) ?? 0,
+      ...(def?.target ? { players: d.players } : {}),
+      ...(def?.target?.count === 'd3' && diceDone(d.d3, 3) ? { d3: d.d3[0]! } : {}),
+      ...(def?.primarySkill && d.skill ? { skill: d.skill } : {}),
+    };
+  });
+  const patchPrayer = (teamId: string, index: number, p: Partial<PrayerDraft>) => setDraft(dr => {
+    const list = Array.from({ length: prayerQty(dr.inducements[teamId]) }, (_, i) => dr.prayers?.[teamId]?.[i] ?? emptyPrayer());
+    list[index] = { ...list[index], ...p };
+    return { ...dr, prayers: { ...dr.prayers, [teamId]: list } };
+  });
+  // Scelta a caso con il dado del sito: un giocatore diverso per ogni posto
+  const pickRandom = (pool: PrayerCandidate[], n: number) => {
+    const left = [...pool];
+    const picked: string[] = [];
+    while (picked.length < n && left.length) picked.push(left.splice(rollDie(left.length) - 1, 1)[0].ref);
+    return picked;
+  };
 
   const save = async () => {
     setSaving(true);
@@ -107,7 +188,10 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
         kicking_team_id: kickingTeam?.id ?? null,
         teams: Object.fromEntries(teams.map(team => {
           const d = teamDraft(team.id);
-          return [team.id, { fair_weather: d.fair_weather, journeyman_position: d.journeyman_position || null, inducements: d.inducements, riotous_roll: d.riotous_roll }];
+          return [team.id, {
+            fair_weather: d.fair_weather, journeyman_position: d.journeyman_position || null, inducements: d.inducements, riotous_roll: d.riotous_roll,
+            prayers: prayerResults(team.id),
+          }];
         })),
       };
       const res = await fetch(`/api/schedule/${match.id}/pregame`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -326,8 +410,106 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               })}
             </div>
             {prayers.length > 0 && (
-                <p className={wz.note}>{rich(L('**Prayers to Nuffle**: tirerai il **D16** per ogni preghiera all\'inizio della partita, dalle Tabelle di partita.', '**Prayers to Nuffle**: roll the **D16** for each prayer at the start of the match, from the Match tables.'), language)}</p>
+                <p className={wz.note}>{rich(L('**Prayers to Nuffle**: il **D16** di ogni preghiera si tira nel prossimo passo.', '**Prayers to Nuffle**: the **D16** for each prayer is rolled in the next step.'), language)}</p>
             )}
+          </WizardStepCard>
+      );
+      break;
+    }
+
+    case 'prayers': {
+      const pending = teams.some(tm => prayerDrafts(tm.id).some((_, i) => !prayerComplete(tm.id, i)));
+      card = (
+          <WizardStepCard
+              title="Prayers to Nuffle"
+              page="pp. 142-143"
+              explain={[
+                L('Per ogni **Prayer to Nuffle** comprato la squadra tira un **D16** sulla tabella. Se esce un risultato che la squadra ha già, si ritira. Puoi tirare qui oppure scrivere il dado tirato al tavolo.',
+                  'For every **Prayer to Nuffle** bought the team rolls a **D16** on the table. If the team already has that result, roll again. You can roll here or type the die rolled at the table.'),
+                L('Alcune preghiere scelgono dei giocatori, a caso o a scelta: solo chi gioca questa partita, **Journeymen** compresi, mai gli **Star Player**. Gli effetti durano fino a fine partita e il sito li tiene per la squadra: il tabellone li mostra e il referto conta gli **SPP** in più.',
+                  'Some prayers pick players, at random or by choice: only those playing this game, **Journeymen** included, never **Star Players**. Effects last until the end of the game and the app keeps them for the team: the board shows them and the report counts the extra **SPP**.'),
+              ]}
+              onBack={() => go(4)}
+              onNext={() => go(6)}
+              blocker={pending ? L('Completa i Prayers to Nuffle: dado, doppioni da ritirare e giocatori', 'Complete the Prayers to Nuffle: die, duplicates to re-roll and players') : null}
+          >
+            <div className={wz.teams}>
+              {teams.map(team => teamBox(team, prayerDrafts(team.id).length === 0 ? (
+                  <p className={wz.note}>{L('Nessuna preghiera comprata.', 'No prayers bought.')}</p>
+              ) : (
+                  <>
+                    {prayerDrafts(team.id).map((d, i) => {
+                      const roll = prayerRoll(d);
+                      const def = getPrayer(roll);
+                      const row = roll ? rowForTotal(getMatchTable('prayers')!, roll) : null;
+                      const duplicate = isDuplicate(team.id, i);
+                      const pool = prayerPool(team.id, d);
+                      const needed = prayerNeeds(team.id, d);
+                      const chosen = d.players.filter(ref => pool.some(c => c.ref === ref));
+                      const byRef = (ref: string) => pool.find(c => c.ref === ref) ?? null;
+                      const random = def?.target?.pick === 'random';
+                      const whose = def?.target?.side === 'opponent' ? opponentOf(team.id).name : team.name;
+                      return (
+                          <div key={i} className={wz.dice}>
+                            <DiceRoll label={`Prayer ${i + 1}`} sides={PRAYER_DIE} values={d.roll}
+                                      onChange={v => patchPrayer(team.id, i, { roll: v, d3: emptyDice(), players: [], skill: '' })} />
+                            {duplicate && <p className={wz.warn}>{L(`${def?.name}: la squadra l'ha già. Premi Ritira e tira di nuovo (p. 142).`, `${def?.name}: the team already has it. Press Re-roll and roll again (p. 142).`)}</p>}
+                            {def && row && !duplicate && (
+                                <>
+                                  <div className={`${wz.outcome} ${row.tone === 'good' ? wz.outcomeGood : ''}`}>
+                                    <span className={wz.outcomeName}>{def.name}</span>
+                                    <p>{row.text[language]}</p>
+                                  </div>
+                                  {def.target?.count === 'd3' && (
+                                      <DiceRoll label={L('Quanti avversari', 'How many opponents')} sides={3} values={d.d3} hint={d3Hint}
+                                                onChange={v => patchPrayer(team.id, i, { d3: v, players: [] })} />
+                                  )}
+                                  {def.target && needed !== null && (
+                                      <>
+                                        {Array.from({ length: needed }, (_, k) => (
+                                            <label key={k} className={wz.field}>
+                                              {random ? L(`Giocatore a caso di ${whose}`, `Random ${whose} player`) : L(`Giocatore di ${whose} a scelta`, `${whose} player of your choice`)}{needed > 1 ? ` ${k + 1}` : ''}
+                                              <select value={chosen[k] ?? ''} onChange={e => {
+                                                const next = [...chosen];
+                                                next[k] = e.target.value;
+                                                patchPrayer(team.id, i, { players: next.filter(Boolean), skill: '' });
+                                              }}>
+                                                <option value="">—</option>
+                                                {pool.filter(c => c.ref === chosen[k] || !chosen.includes(c.ref)).map(c => <option key={c.ref} value={c.ref}>{c.name}</option>)}
+                                              </select>
+                                            </label>
+                                        ))}
+                                        {random && (
+                                            <div className={wz.actions}>
+                                              <button type="button" className="btn btn-slate" onClick={() => patchPrayer(team.id, i, { players: pickRandom(pool, needed), skill: '' })}>
+                                                <Dices size={18} /> {L('Scegli a caso', 'Pick at random')}
+                                              </button>
+                                            </div>
+                                        )}
+                                        {random && <p className={wz.note}>{L('Al tavolo: tirate un dado per ogni giocatore e sceglietelo dall\'elenco.', 'At the table: roll a die for each player and pick them from the list.')}</p>}
+                                        {chosen.map(ref => {
+                                          const c = byRef(ref);
+                                          const effect = def.primarySkill ? '' : prayerEffectText({ roll: def.roll }, c);
+                                          return effect ? <p key={ref} className={wz.note}><b>{c?.name}</b>: {effect}</p> : null;
+                                        })}
+                                        {def.primarySkill && chosen[0] && (
+                                            <label className={wz.field}>{L('Skill Primary a scelta', 'Primary skill of your choice')}
+                                              <select value={d.skill} onChange={e => patchPrayer(team.id, i, { skill: e.target.value })}>
+                                                <option value="">—</option>
+                                                {(byRef(chosen[0])?.skills ?? []).map(sk => <option key={sk} value={sk}>{sk}</option>)}
+                                              </select>
+                                            </label>
+                                        )}
+                                      </>
+                                  )}
+                                </>
+                            )}
+                          </div>
+                      );
+                    })}
+                  </>
+              )))}
+            </div>
           </WizardStepCard>
       );
       break;
@@ -343,8 +525,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   'Last step: a **roll-off**. Each coach rolls a **D6** and the higher decides whether to kick or receive the first drive. On a tie, roll again.'),
                 L('Nel secondo tempo le parti si invertono: calcia chi aveva ricevuto.', 'In the second half it swaps: whoever received now kicks.'),
               ]}
-              onBack={() => go(4)}
-              onNext={() => go(6)}
+              onBack={() => go(5)}
+              onNext={() => go(7)}
               blocker={!rollOffDone ? L('Servono i due D6', 'Both D6 are needed') : rollOffTie ? L('Pareggio: premete Ritira e tirate di nuovo', 'A tie: press Re-roll and roll again') : !draft.winnerChoice ? L('Chi ha vinto sceglie', 'The winner chooses') : null}
           >
             <div className={wz.teams}>
@@ -376,7 +558,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   'Check everything. Confirming saves the pre-game: the app adds the **Journeymen**, takes the inducements out of the **Treasury** and records weather and kicking team.'),
                 L('Finché la partita non è giocata potrai rifarlo da capo.', 'Until the match is played you can redo it from scratch.'),
               ]}
-              onBack={() => go(5)}
+              onBack={() => go(6)}
               onNext={save}
               nextLabel={L('Conferma il pre-partita', 'Confirm the pre-game')}
               busy={saving}
@@ -390,13 +572,19 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
               {teams.map(team => {
                 const p = preview(team.id);
                 const fromTreasury = budget.equal ? 0 : team.id === budget.higher.id ? p.cost : Math.max(0, p.cost - budget.petty);
-                return teamBox(team, facts([
-                  ['Fan Factor', p.ff ?? '—', 'strong'],
-                  ['Journeymen', p.journeymen],
-                  ['CTV', `${gp(p.ctv)} gp`],
-                  [L('Incentivi', 'Inducements'), p.cost ? `${gp(p.cost)} gp` : L('nessuno', 'none')],
-                  ['Treasury', fromTreasury ? `${gp(p.treasury)} → ${gp(p.treasury - fromTreasury)} gp` : `${gp(p.treasury)} gp`, fromTreasury ? 'bad' : undefined],
-                ]));
+                const everyone = [...candidates[home.id], ...candidates[away.id]];
+                return teamBox(team, (
+                    <>
+                      {facts([
+                        ['Fan Factor', p.ff ?? '—', 'strong'],
+                        ['Journeymen', p.journeymen],
+                        ['CTV', `${gp(p.ctv)} gp`],
+                        [L('Incentivi', 'Inducements'), p.cost ? `${gp(p.cost)} gp` : L('nessuno', 'none')],
+                        ['Treasury', fromTreasury ? `${gp(p.treasury)} → ${gp(p.treasury - fromTreasury)} gp` : `${gp(p.treasury)} gp`, fromTreasury ? 'bad' : undefined],
+                      ])}
+                      <PrayerList prayers={prayerResults(team.id)} player={ref => everyone.find(c => c.ref === ref) ?? null} />
+                    </>
+                ));
               })}
             </div>
           </WizardStepCard>

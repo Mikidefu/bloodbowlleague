@@ -4,14 +4,17 @@
 
 import { STAT_COLUMN, type LiveState, type StatEvent } from './types';
 
-export type ReportStatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing';
+export type ReportStatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'catches' | 'crowd_cas' | 'foul_cas';
 type Column = (typeof STAT_COLUMN)[StatEvent];
 
 // Colonne di player_stats (e degli eventi live) -> campi del referto
 const FIELD: Record<Column, ReportStatField> = {
   touchdowns: 'td', casualties: 'cas', interceptions: 'int', completions: 'comp', ttm: 'ttm', landings: 'landing',
+  catches: 'catches', crowd_cas: 'crowd_cas', foul_cas: 'foul_cas',
 };
-export const REPORT_STAT_FIELDS: ReportStatField[] = ['td', 'cas', 'int', 'comp', 'ttm', 'landing'];
+export const REPORT_STAT_FIELDS: ReportStatField[] = ['td', 'cas', 'int', 'comp', 'ttm', 'landing', 'catches', 'crowd_cas', 'foul_cas'];
+// Casualty della squadra: quelle da Block più quelle dei Prayers to Nuffle (pubblico e Foul)
+const casualtiesOf = (f: Partial<Record<ReportStatField, number>>) => (f.cas ?? 0) + (f.crowd_cas ?? 0) + (f.foul_cas ?? 0);
 
 export type ReportPlayer = { player_id: string; team_id: string; unavailable: string | null };
 
@@ -47,15 +50,15 @@ export function livePrefill(state: LiveState | null | undefined, reportPlayers: 
       anything = true;
       prefill.events += count;
       if (eligible.get(playerId) !== teamId) { prefill.skipped.push({ player_id: playerId, team_id: teamId, stats: fields }); continue; }
-      prefill.players[playerId] = { td: 0, cas: 0, int: 0, comp: 0, ttm: 0, landing: 0, ...fields };
-      cas += fields.cas ?? 0;
+      prefill.players[playerId] = { td: 0, cas: 0, int: 0, comp: 0, ttm: 0, landing: 0, catches: 0, crowd_cas: 0, foul_cas: 0, ...fields };
+      cas += casualtiesOf(fields);
     }
     const loose = toFields(team.team_stats);
     if (Object.keys(loose).length) {
       anything = true;
       prefill.withoutPlayer[teamId] = loose;
       prefill.events += Object.values(loose).reduce((a, b) => a + (b ?? 0), 0);
-      cas += loose.cas ?? 0;
+      cas += casualtiesOf(loose);
     }
     prefill.casualties[teamId] = cas;
   }

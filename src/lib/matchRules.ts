@@ -21,6 +21,8 @@ import { postgamePhase } from '@/lib/postgame';
 import { canHireStar, getStarHire, playsForText, teamFavoured } from '@/lib/starPlayers';
 import { getPosition, getRoster, hasRule, journeymanPositions, skillBaseName, type Roster } from '@/lib/rosters';
 import { computeTeamValue } from '@/lib/teamValue';
+import { categoryLetters } from '@/lib/advancement';
+import { getPrayer, parsePrayers, prayerProblem, prayerStatFields, primarySkillOptions, PRAYER_STATS, type PrayerResult } from '@/lib/prayers';
 import type { MatchInjury, Player, PlayerStatus } from '@/lib/types';
 
 type Row = Record<string, unknown>;
@@ -125,6 +127,9 @@ export type PregameTeamInput = {
   journeyman_position?: string | null;
   inducements?: InducementChoice[];
   riotous_roll?: number | null;
+  // Prayers to Nuffle tirati (p. 142). I giocatori sono id, oppure "journeyman:N" per l'N-esimo
+  // Journeyman che questo stesso pre-partita crea (non ha ancora un id)
+  prayers?: PrayerResult[];
 };
 
 export type PregameInput = {
@@ -204,7 +209,10 @@ export async function applyPregame(matchId: string, input: PregameInput) {
 
   const statements: Statement[] = [];
   const skillIds = await skillIdsByName();
-  const plan = new Map<string, { team: Row; roster: Roster | null; ctv: number; treasury: number; cost: number; fanFactor: number; fairWeather: number; journeymen: number; choices: InducementChoice[] }>();
+  const plan = new Map<string, {
+    team: Row; roster: Roster | null; ctv: number; treasury: number; cost: number; fanFactor: number; fairWeather: number; journeymen: number; choices: InducementChoice[];
+    playing: Map<string, { id: string; primary: string[] }>;   // chi gioca questa partita, per i Prayers to Nuffle (chiave: id o "journeyman:N")
+  }>();
 
   for (const teamId of ctx.teamIds) {
     const team = ctx.teams.get(teamId)!;
@@ -234,6 +242,11 @@ export async function applyPregame(matchId: string, input: PregameInput) {
       journeymen += t.riotous_roll as number;
     }
     const newJourneymen: Player[] = [];
+    const playing = new Map<string, { id: string; primary: string[] }>();
+    for (const p of players.filter(canPlayNext)) {
+      const primary = getPosition(roster, p.position_key)?.primary ?? categoryLetters(p.primary_skills);
+      playing.set(p.id, { id: p.id, primary: primarySkillOptions(primary) });
+    }
     if (journeymen > 0) {
       const options = journeymanPositions(roster);
       if (!options.length) throw new RuleError(`${team.name} needs ${journeymen} Journeymen: link the team to its Team Roster first.`);
@@ -247,6 +260,7 @@ export async function applyPregame(matchId: string, input: PregameInput) {
           ma: position.ma, st: position.st, ag: position.ag, pa: position.pa, av: position.av,
         });
         newJourneymen.push(journeyman);
+        playing.set(`journeyman:${i}`, { id, primary: primarySkillOptions(position.primary) });
         statements.push({
           sql: `INSERT INTO players (id, team_id, name, role, position_key, value, hiring_fee, primary_skills, secondary_skills,
                                      ma, st, ag, pa, av, spp, spp_base, advancements, status, mng, dead, journeyman, journeyman_match_id)
@@ -262,7 +276,28 @@ export async function applyPregame(matchId: string, input: PregameInput) {
 
     const { ctv } = computeTeamValue(team, [...players, ...newJourneymen]);
     const cost = validateInducements(choices, roster, str(team.favoured_of), str(team.team_league), players, newJourneymen.length);
-    plan.set(teamId, { team, roster, ctv, treasury, cost, fanFactor: fanFactor(num(team.fan_factor), t.fair_weather), fairWeather: t.fair_weather, journeymen, choices });
+    plan.set(teamId, { team, roster, ctv, treasury, cost, fanFactor: fanFactor(num(team.fan_factor), t.fair_weather), fairWeather: t.fair_weather, journeymen, choices, playing });
+  }
+
+  // Prayers to Nuffle (pp. 142-143): un D16 per preghiera comprata, senza doppioni, e i giocatori che servono.
+  // Si controlla dopo aver creato i Journeymen di tutte e due: possono essere scelti anche loro.
+  const prayers = new Map<string, PrayerResult[]>();
+  for (const teamId of ctx.teamIds) {
+    const own = plan.get(teamId)!;
+    const opponent = plan.get(teamId === ctx.teamIds[0] ? ctx.teamIds[1] : ctx.teamIds[0])!;
+    const byId = new Map([...own.playing.values(), ...opponent.playing.values()].map(p => [p.id, p]));
+    const list = parsePrayers(input.teams[teamId]?.prayers).map(p => {
+      const side = getPrayer(p.roll)?.target?.side === 'opponent' ? opponent : own;
+      return p.players ? { ...p, players: p.players.map(ref => side.playing.get(ref)?.id ?? ref) } : p;
+    });
+    const qty = own.choices.filter(c => c.key === 'prayers').reduce((sum, c) => sum + c.qty, 0);
+    const problem = prayerProblem(list, qty, {
+      own: [...own.playing.values()].map(p => p.id),
+      opponent: [...opponent.playing.values()].map(p => p.id),
+      primarySkills: id => byId.get(id)?.primary ?? [],
+    });
+    if (problem) throw new RuleError(`${own.team.name}: ${problem}`);
+    prayers.set(teamId, list);
   }
 
   // Petty Cash (p. 94)
@@ -292,6 +327,7 @@ export async function applyPregame(matchId: string, input: PregameInput) {
     statements.push(upsertReport(matchId, teamId, {
       fair_weather: p.fairWeather, fan_factor: p.fanFactor, ctv: p.ctv, petty_cash: s.petty, treasury_spent: s.treasury,
       inducements: JSON.stringify(p.choices), journeymen: p.journeymen,
+      prayers: prayers.get(teamId)!.length ? JSON.stringify(prayers.get(teamId)) : null,
     }));
   }
   // Meteo e squadra che calcia: facoltativi (il vecchio pannello non li mandava), ma se ci sono devono essere validi
@@ -312,6 +348,7 @@ export type InjuryInput = { result: CasualtyResult; stat?: InjuryStat | null; ha
 export type PlayerResultInput = {
   player_id: string;
   td: number; cas: number; int: number; comp: number; ttm: number; landing: number; mvp: number;
+  catches?: number; crowd_cas?: number; foul_cas?: number;   // solo con il Prayer to Nuffle giusto (p. 143)
   injury?: InjuryInput | null;
   status?: PlayerStatus;   // solo partite legacy
 };
@@ -380,6 +417,17 @@ function revertResultInMemory(ctx: MatchContext) {
   }
   ctx.injuries = [];
 }
+
+// Riga di player_stats con le colonne dei Prayers to Nuffle
+const insertStats = (matchId: string, playerId: string, v: SppStats, spp: number): Statement => ({
+  sql: `INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, ttm, landings, mvp,
+                                  catches, crowd_cas, foul_cas, spp_earned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  args: [crypto.randomUUID(), matchId, playerId, v.td, v.cas, v.int, v.comp, v.ttm, v.landing, v.mvp, v.catches ?? 0, v.crowd_cas ?? 0, v.foul_cas ?? 0, spp],
+});
+
+// Preghiere tirate da ciascuna squadra nel pre-partita
+const prayersOf = (ctx: MatchContext) => new Map(ctx.teamIds.map(id => [id, parsePrayers(ctx.reports.get(id)?.prayers)]));
 
 const outcomeOf = (value: unknown): MatchOutcome => (MATCH_OUTCOMES.includes(value as MatchOutcome) ? value as MatchOutcome : 'played');
 
@@ -457,13 +505,22 @@ export async function applyResult(matchId: string, input: ResultInput) {
   const mvps: Record<string, number> = { [homeId]: 0, [awayId]: 0 };
   const injuries: Statement[] = [];
   const recalc = new Set<string>();
+  const prayers = prayersOf(ctx);
 
   for (const s of stats) {
     const p = byId.get(String(s?.player_id));
     if (!p) throw new RuleError('Unknown player in the match report');
     const teamId = p.team_id;
-    const values: SppStats = { td: s.td, cas: s.cas, int: s.int, comp: s.comp, ttm: s.ttm ?? 0, landing: s.landing ?? 0, mvp: s.mvp };
+    const values: SppStats = {
+      td: s.td, cas: s.cas, int: s.int, comp: s.comp, ttm: s.ttm ?? 0, landing: s.landing ?? 0, mvp: s.mvp,
+      catches: s.catches ?? 0, crowd_cas: s.crowd_cas ?? 0, foul_cas: s.foul_cas ?? 0,
+    };
     for (const [k, v] of Object.entries(values)) if (!isCount(v)) throw new RuleError(`${p.name}: ${k} must be a whole number`);
+    // Prese, Casualty nel pubblico e da Foul si segnano solo con il Prayer to Nuffle che le premia (p. 143)
+    const allowed = prayerStatFields(prayers.get(teamId));
+    for (const stat of PRAYER_STATS) {
+      if (values[stat.field] && !allowed.includes(stat.field)) throw new RuleError(`${p.name}: ${stat.field} earn SPP only with the ${stat.prayer} Prayer to Nuffle (p. 143)`);
+    }
     const any = Object.values(values).some(v => v > 0);
     const injury = s.injury && s.injury.result ? s.injury : null;
     if (!any && !injury) continue;
@@ -479,12 +536,8 @@ export async function applyResult(matchId: string, input: ResultInput) {
 
     const roster = getRoster(str(ctx.teams.get(teamId)!.roster));
     const lostSpp = outcome === 'conceded' && teamId === conceder;   // chi concede perde gli SPP (p. 101)
-    const spp = lostSpp ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes') });
-    statements.push({
-      sql: `INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, ttm, landings, mvp, spp_earned)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [crypto.randomUUID(), matchId, p.id, values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
-    });
+    const spp = lostSpp ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes'), prayers: prayers.get(teamId) });
+    statements.push(insertStats(matchId, p.id, values, spp));
     recalc.add(p.id);
 
     if (injury) {
@@ -609,20 +662,18 @@ async function applySimpleResult(ctx: MatchContext, input: ResultInput, friendly
   statements.push({ sql: 'DELETE FROM player_stats WHERE match_id = ?', args: [matchId] });
 
   const mvps = new Map<string, number>();
+  const prayers = prayersOf(ctx);
   for (const s of Array.isArray(input.playerStats) ? input.playerStats : []) {
     const p = byId.get(String(s?.player_id));
     if (!p) throw new RuleError('Unknown player in the match report');
-    const values: SppStats = { td: count(s.td), cas: count(s.cas), int: count(s.int), comp: count(s.comp), ttm: count(s.ttm), landing: count(s.landing), mvp: count(s.mvp) };
+    const values: SppStats = {
+      td: count(s.td), cas: count(s.cas), int: count(s.int), comp: count(s.comp), ttm: count(s.ttm), landing: count(s.landing), mvp: count(s.mvp),
+      catches: count(s.catches), crowd_cas: count(s.crowd_cas), foul_cas: count(s.foul_cas),
+    };
     mvps.set(p.team_id, (mvps.get(p.team_id) ?? 0) + values.mvp);
     const roster = getRoster(str(ctx.teams.get(p.team_id)?.roster));
-    const spp = friendly ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes') });
-    if (Object.values(values).some(v => v > 0)) {
-      statements.push({
-        sql: `INSERT INTO player_stats (id, match_id, player_id, touchdowns, casualties, interceptions, completions, ttm, landings, mvp, spp_earned)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [crypto.randomUUID(), matchId, p.id, values.td, values.cas, values.int, values.comp, values.ttm, values.landing, values.mvp, spp],
-      });
-    }
+    const spp = friendly ? 0 : sppEarned(values, { brawlinBrutes: hasRule(roster, 'Brawlin Brutes'), prayers: prayers.get(p.team_id) });
+    if (Object.values(values).some(v => v > 0)) statements.push(insertStats(matchId, p.id, values, spp));
     // Partite legacy: lo stato si imposta a mano come prima. Le amichevoli non cambiano lo stato dei giocatori.
     if (!friendly && s.status) {
       if (!isPlayerStatus(s.status)) throw new RuleError(`${p.name}: unknown status`);

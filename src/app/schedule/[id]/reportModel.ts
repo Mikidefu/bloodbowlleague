@@ -4,7 +4,8 @@ import { CASUALTY_RESULTS, type CasualtyResult, type InjuryStat } from '@/lib/le
 
 // Valore di un campo numerico mentre l'utente scrive: '' = campo svuotato
 export type NumericInput = number | '';
-export type StatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'mvp';
+// catches, crowd_cas e foul_cas esistono solo con il Prayer to Nuffle giusto (src/lib/prayers.ts)
+export type StatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'catches' | 'crowd_cas' | 'foul_cas' | 'mvp';
 
 export type PlayerStatDraft = {
   player_id: string;

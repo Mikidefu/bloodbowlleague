@@ -1,6 +1,7 @@
 // Fotografia di inizio partita: dai dati di squadra e dal pre-partita salvato ai valori che servono in campo.
 
 import { isLeagueMatch, MATCH_TYPES } from '@/lib/matchTypes';
+import { parsePrayers } from '@/lib/prayers';
 import type { DieRoller } from './kickoff';
 import type { LiveStartPayload, LiveTeamSetup } from './types';
 
@@ -25,6 +26,7 @@ export function teamSetup(team: Row, report: Row | undefined): LiveTeamSetup {
     // Fan Factor di partita del pre-partita (p. 44); senza pre-partita resta quello dei Dedicated Fans
     fan_factor: report?.fan_factor !== null && report?.fan_factor !== undefined ? num(report.fan_factor) : num(team.fan_factor),
     bribes: inducementQty(report, 'bribes'),
+    prayers: parsePrayers(report?.prayers).map(p => p.roll),                                        // p. 143
   };
 }
 

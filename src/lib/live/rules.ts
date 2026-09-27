@@ -7,7 +7,7 @@
 // Ogni rifiuto ha un codice (LiveErrorCode): web e telefono lo traducono (src/lib/live/errors.ts),
 // il messaggio inglese resta per i log e per chi chiama le API a mano.
 
-import { EXTRA_TIME_HALF, STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type LiveEventType, type LiveState } from './types';
+import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type LiveEventType, type LiveState, type StatEvent } from './types';
 
 export type LiveActor = { role: 'admin' } | { role: 'companion'; teamId: string };
 
@@ -25,7 +25,7 @@ export type LiveErrorCode =
   | 'invalid' | 'not_started' | 'match_ended' | 'match_played' | 'not_your_team' | 'admin_only' | 'not_found'
   | 'kickoff_first' | 'between_drives' | 'no_turn_yet' | 'not_your_turn' | 'no_turns_left' | 'half_over' | 'half_not_over'
   | 'not_active_team' | 'no_rerolls' | 'no_bribes' | 'kickoff_done' | 'kicking_team_only' | 'no_kicking_team'
-  | 'extra_time_not_allowed' | 'already_undone' | 'cannot_undo' | 'wrong_half';
+  | 'extra_time_not_allowed' | 'already_undone' | 'cannot_undo' | 'wrong_half' | 'prayer_missing' | 'player_required';
 
 export class LiveRuleError extends Error {
   status: number;
@@ -163,6 +163,9 @@ export function validateLiveEvent(state: LiveState, input: ClientEventInput, act
     }
   }
 
+  // Prese, Casualty nel pubblico e da Foul valgono SPP solo con il loro Prayer to Nuffle (p. 143)
+  const prayer = PRAYER_STAT_EVENTS[type as StatEvent];
+  if (prayer && !state.setup?.teams[teamId!]?.prayers?.includes(prayer)) fail('This stat earns SPP only with its Prayer to Nuffle (p. 143)', 409, 'prayer_missing');
   // Statistiche: solo a drive in corso (anche durante il kick-off: Charge! può fare Casualty)
   requireDrive(state);
   // Un touchdown si segna durante un turno (anche quello avversario, p. 80): serve un turno iniziato
@@ -171,6 +174,8 @@ export function validateLiveEvent(state: LiveState, input: ClientEventInput, act
   if (raw.player_id !== undefined && raw.player_id !== null) {
     if (typeof raw.player_id !== 'string' || raw.player_id.length > 64) fail('Invalid player');
     payload.player_id = raw.player_id;
+  } else if (prayer) {
+    fail('Choose the player who earns the SPP', 400, 'player_required');
   }
   // Il touchdown è un evento di fase: web e telefono che lo segnano insieme ne registrano uno solo
   const dedupe = type === 'touchdown' ? `touchdown:${teamId}:${phase}` : null;
@@ -184,6 +189,8 @@ export function whyNot(state: LiveState, type: LiveEventType, teamId: string | n
     validateLiveEvent(state, { id: '00000000-0000-4000-8000-000000000000', type, team_id: teamId ?? undefined, payload }, actor, []);
     return null;
   } catch (error) {
+    // Il giocatore si sceglie dopo aver premuto il tasto: non è un motivo per spegnerlo
+    if (error instanceof LiveRuleError && error.code === 'player_required') return null;
     if (error instanceof LiveRuleError) return { code: error.code, message: error.message, params: error.params };
     throw error;
   }

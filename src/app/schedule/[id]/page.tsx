@@ -19,6 +19,8 @@ import MatchPlayerStats from './MatchPlayerStats';
 import LivePrefillNote from './LivePrefillNote';
 import { livePrefill, type LivePrefill } from '@/lib/live/prefill';
 import { toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
+import { savedPrayers } from './pregameModel';
+import { PRAYER_STATS, prayerSpp, prayerStatFields } from '@/lib/prayers';
 import MatchTables from '@/components/match/MatchTables';
 import { isTrue, type MatchDetails } from '@/lib/types';
 import {
@@ -75,8 +77,18 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     { field: 'comp', label: 'CMP', title: 'Completions (1 SPP)' },
     { field: 'ttm', label: t.rules.ttm, title: t.rules.ttmTitle },
     { field: 'landing', label: t.rules.landing, title: t.rules.landingTitle },
+    ...PRAYER_STATS.map(s => ({ field: s.field as StatField, label: s.short[language], title: s.title[language] })),
     { field: 'mvp', label: 'MVP', title: 'MVP (4 SPP)' },
   ];
+  // Le colonne dei Prayers to Nuffle compaiono solo per la squadra che ha la preghiera
+  const statColumnsFor = (teamId: string) => {
+    if (!match) return STAT_COLUMNS;
+    const prayers = savedPrayers(match, teamId);
+    const allowed: string[] = prayerStatFields(prayers);
+    return STAT_COLUMNS
+        .filter(col => !PRAYER_STATS.some(s => s.field === col.field) || allowed.includes(col.field))
+        .map(col => (col.field === 'comp' && prayerSpp(prayers).completion === 2 ? { ...col, title: 'Completions (Perfect Passing: 2 SPP)' } : col));
+  };
 
   const load = useCallback(() => {
     fetch(`/api/schedule/${id}`)
@@ -121,6 +133,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               comp: existing ? existing.completions : 0,
               ttm: existing ? existing.ttm || 0 : 0,
               landing: existing ? existing.landings || 0 : 0,
+              catches: existing ? existing.catches || 0 : 0,
+              crowd_cas: existing ? existing.crowd_cas || 0 : 0,
+              foul_cas: existing ? existing.foul_cas || 0 : 0,
               mvp: existing ? existing.mvp : 0,
               status: currentStatus,
               injury: injury?.result ?? '',
@@ -151,17 +166,18 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     setPlayerStats(prev => {
       const updatedStats = prev.map(p => p.player_id === playerId ? { ...p, [field]: value } : p);
 
-      if (field === 'td' || field === 'cas') {
+      // Le Casualty della squadra comprendono quelle dei Prayers to Nuffle (pubblico e Foul)
+      if (field === 'td' || field === 'cas' || field === 'crowd_cas' || field === 'foul_cas') {
         let hScore = 0, aScore = 0, hCas = 0, aCas = 0;
 
         updatedStats.forEach(p => {
           const isHome = match?.homePlayers.some(h => h.id === p.player_id);
           if (isHome) {
             hScore += Number(p.td) || 0; // Somma forzando a numero (se vuoto diventa 0)
-            hCas += Number(p.cas) || 0;
+            hCas += (Number(p.cas) || 0) + (Number(p.crowd_cas) || 0) + (Number(p.foul_cas) || 0);
           } else {
             aScore += Number(p.td) || 0;
-            aCas += Number(p.cas) || 0;
+            aCas += (Number(p.cas) || 0) + (Number(p.crowd_cas) || 0) + (Number(p.foul_cas) || 0);
           }
         });
 
@@ -180,7 +196,10 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
     if (!match) return;
     setPlayerStats(prev => prev.map(p => {
       const s = prefill.players[p.player_id];
-      return { ...p, td: s?.td ?? 0, cas: s?.cas ?? 0, int: s?.int ?? 0, comp: s?.comp ?? 0, ttm: s?.ttm ?? 0, landing: s?.landing ?? 0 };
+      return {
+        ...p, td: s?.td ?? 0, cas: s?.cas ?? 0, int: s?.int ?? 0, comp: s?.comp ?? 0, ttm: s?.ttm ?? 0, landing: s?.landing ?? 0,
+        catches: s?.catches ?? 0, crowd_cas: s?.crowd_cas ?? 0, foul_cas: s?.foul_cas ?? 0,
+      };
     }));
     setHomeScore(prefill.scores[match.home_team_id] ?? 0);
     setAwayScore(prefill.scores[match.away_team_id] ?? 0);
@@ -248,6 +267,9 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
         comp: Number(p.comp) || 0,
         ttm: Number(p.ttm) || 0,
         landing: Number(p.landing) || 0,
+        catches: Number(p.catches) || 0,
+        crowd_cas: Number(p.crowd_cas) || 0,
+        foul_cas: Number(p.foul_cas) || 0,
         mvp: Number(p.mvp) || 0,
         injury: p.injury ? { result: p.injury, stat: p.injury === 'LI' ? p.injuryStat || null : null, hatred: p.hatred.trim() || null } : null,
       }));
@@ -369,6 +391,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
   const renderTeamStats = (index: string, side: 'home' | 'away', teamName: string, teamId: string, teamColor: string | null) => {
     const isExpanded = !!expandedTeams[teamId];
     const roster = playerStats.filter(p => p.team_id === teamId);
+    const columns = statColumnsFor(teamId);
 
     return (
         <section className={`${styles.teamReport} ${isExpanded ? styles.teamReportOpen : ''}`} style={teamAccent(teamColor)}>
@@ -409,7 +432,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                     <tr>
                       <th className={`num ${styles.colJersey}`}>N°</th>
                       <th>{t.match.thPlayer}</th>
-                      {STAT_COLUMNS.map(col => (
+                      {columns.map(col => (
                           <th key={col.field} title={col.title} className={`num ${styles.colStat}`}>{col.label}</th>
                       ))}
                       {legacy && <th title="Status" className={styles.colStatus}>STATUS</th>}
@@ -442,7 +465,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
                             )}
                           </td>
 
-                          {STAT_COLUMNS.map(col => (
+                          {columns.map(col => (
                               <td key={col.field} className={`num ${styles.statCell}`}>
                                 <input
                                     type="number"

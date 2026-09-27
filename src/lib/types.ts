@@ -133,7 +133,7 @@ export type Match = {
   kicking_team_id?: string | null;   // chi calcia il primo drive
 };
 
-export type MatchPlayer = Pick<Player, 'id' | 'jersey_number' | 'name' | 'role' | 'status' | 'team_id' | 'mng' | 'dead' | 'position_key' | 'advancements' | 'journeyman' | 'temp_retired' | 'niggling_injuries' | 'ma' | 'st' | 'ag' | 'pa' | 'av'> & {
+export type MatchPlayer = Pick<Player, 'id' | 'jersey_number' | 'name' | 'role' | 'status' | 'team_id' | 'mng' | 'dead' | 'position_key' | 'advancements' | 'journeyman' | 'temp_retired' | 'niggling_injuries' | 'ma' | 'st' | 'ag' | 'pa' | 'av' | 'primary_skills'> & {
   unavailable: 'mng' | 'retired' | null;   // non poteva giocare questa partita
 };
 
@@ -159,6 +159,7 @@ export type MatchTeamReport = {
   petty_cash: number;
   treasury_spent: number;
   inducements: string | null;
+  prayers?: string | null;           // JSON dei Prayers to Nuffle tirati (src/lib/prayers.ts)
   journeymen: number;
   stalling: SqlBoolean;
   winnings: number;
@@ -191,6 +192,9 @@ export type PlayerStatsRow = {
   spp_earned: number;
   ttm: number;
   landings: number;
+  catches: number;     // Prayers to Nuffle (p. 143): Dazzling Catching
+  crowd_cas: number;   // Fan Interaction
+  foul_cas: number;    // Fouling Frenzy
 };
 
 // GET /api/schedule/[id]

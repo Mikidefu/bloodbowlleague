@@ -4,7 +4,10 @@
 import {
   LIMITS, PETTY_CASH_TREASURY_TOP_UP, fanFactor, inducementChoiceCost, pettyCash, type InducementChoice,
 } from '@/lib/leagueRules';
-import { getRoster, hasRule, isLineman, journeymanPositions } from '@/lib/rosters';
+import { getPosition, getRoster, hasRule, isLineman, journeymanPositions } from '@/lib/rosters';
+import { categoryLetters } from '@/lib/advancement';
+import type { ArmourValue, MovementValue } from '@/lib/characteristics';
+import { parsePrayers, primarySkillOptions } from '@/lib/prayers';
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
 
 export type TeamPregameDraft = {
@@ -27,6 +30,9 @@ export function savedInducements(match: MatchDetails, teamId: string): Inducemen
     return [];
   }
 }
+
+// Prayers to Nuffle tirati dalla squadra nel pre-partita (p. 142)
+export const savedPrayers = (match: MatchDetails, teamId: string) => parsePrayers(reportOf(match, teamId)?.prayers);
 
 // Anteprima di una squadra: disponibili, Journeymen, CTV con i Journeymen, costo degli incentivi, Fan Factor
 export function teamPreview(match: MatchDetails, team: MatchTeam, draft: TeamPregameDraft) {
@@ -69,4 +75,32 @@ export function pregameBudget(home: MatchTeam, away: MatchTeam, pHome: TeamPrevi
   if (!equal && pHigher.cost > pHigher.treasury) problems.push('higher');
   if (!equal && topUp > maxTopUp) problems.push('lower');
   return { equal, higher, lower, pHigher, pLower, petty, topUp, maxTopUp, problems };
+}
+
+// Chi può essere scelto da un Prayer to Nuffle (p. 142): i giocatori che giocano questa partita, compresi
+// i Journeymen che il pre-partita sta per creare ("journeyman:N", come li nomina il server). Mai gli Star Player.
+export type PrayerCandidate = { ref: string; name: string; ma: MovementValue; av: ArmourValue; skills: string[] };
+
+export function prayerCandidates(match: MatchDetails, team: MatchTeam, preview: TeamPreview): PrayerCandidate[] {
+  const roster = getRoster(team.roster);
+  const players = playersOf(match, team.id)
+      .filter(p => !p.unavailable && !isTrue(p.journeyman) && !isTrue(p.dead))
+      .map(p => ({
+        ref: p.id,
+        name: `${p.jersey_number ? `#${p.jersey_number} ` : ''}${p.name}`,
+        ma: p.ma, av: p.av,
+        skills: primarySkillOptions(getPosition(roster, p.position_key)?.primary ?? categoryLetters(p.primary_skills)),
+      }));
+  const position = preview.jPosition;
+  const journeymen = position ? Array.from({ length: preview.journeymen }, (_, i) => ({
+    ref: `journeyman:${i + 1}`, name: `Journeyman ${i + 1}`, ma: position.ma, av: position.av, skills: primarySkillOptions(position.primary),
+  })) : [];
+  return [...players, ...journeymen];
+}
+
+// Un Journeyman di un pre-partita già salvato torna "journeyman:N": rifacendo il pre-partita il server lo ricrea
+export function prayerRef(match: MatchDetails, id: string) {
+  const p = [...match.homePlayers, ...match.awayPlayers].find(pl => pl.id === id);
+  const n = p && isTrue(p.journeyman) ? /^Journeyman (\d+)$/.exec(p.name)?.[1] : null;
+  return n ? `journeyman:${n}` : id;
 }

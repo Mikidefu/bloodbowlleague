@@ -17,6 +17,9 @@ const STAT_LABEL: Record<string, { it: string; en: string }> = {
   interception: { it: 'Intercetto', en: 'Interception' },
   ttm: { it: 'Lancio del compagno', en: 'Throw Team-mate' },
   landing: { it: 'Atterraggio', en: 'Landing' },
+  catch: { it: 'Passaggio preso', en: 'Catch' },
+  crowd_casualty: { it: 'Casualty nel pubblico', en: 'Crowd Casualty' },
+  foul_casualty: { it: 'Casualty da Foul', en: 'Foul Casualty' },
 };
 
 export function describeEvent(event: LiveEvent, ctx: DescribeContext): string {

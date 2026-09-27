@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffHeadline, type ManualKickoffDice } from '@/lib/live/kickoff';
-import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, type StatEvent } from '@/lib/live/types';
+import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, type StatEvent } from '@/lib/live/types';
 import { whyNot } from '@/lib/live/rules';
 import type { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
@@ -28,8 +28,14 @@ const STAT_BUTTONS: { type: StatEvent; label: string; title: { it: string; en: s
   { type: 'interception', label: 'INT', title: { it: 'Intercetto', en: 'Interception' } },
   { type: 'ttm', label: 'TTM', title: { it: 'Lancio del compagno riuscito', en: 'Successful Throw Team-mate' } },
   { type: 'landing', label: 'ATT', title: { it: 'Atterraggio riuscito', en: 'Successful landing' } },
+  // Solo per la squadra che ha il Prayer to Nuffle (p. 143), sempre con il giocatore
+  { type: 'catch', label: 'PRESA', title: { it: 'Passaggio preso (Dazzling Catching, 1 SPP)', en: 'Pass caught (Dazzling Catching, 1 SPP)' } },
+  { type: 'crowd_casualty', label: 'CAS PUB', title: { it: 'Avversario spinto nel pubblico con Casualty (Fan Interaction, 2 SPP)', en: 'Opponent pushed into the crowd with a Casualty (Fan Interaction, 2 SPP)' } },
+  { type: 'foul_casualty', label: 'CAS FOUL', title: { it: 'Casualty causata con un Foul (Fouling Frenzy, 2 SPP)', en: 'Casualty caused by a Foul (Fouling Frenzy, 2 SPP)' } },
 ];
-const STAT_SHORT: Record<string, string> = { touchdowns: 'TD', casualties: 'CAS', completions: 'CMP', interceptions: 'INT', ttm: 'TTM', landings: 'ATT' };
+const STAT_SHORT: Record<string, string> = {
+  touchdowns: 'TD', casualties: 'CAS', completions: 'CMP', interceptions: 'INT', ttm: 'TTM', landings: 'ATT', catches: 'PRESE', crowd_cas: 'CAS PUB', foul_cas: 'CAS FOUL',
+};
 const NEEDS_ROLLS = [6, 7, 11, 12];
 const NEEDS_D3 = [4, 9, 10, 12];
 
@@ -336,6 +342,10 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
     if (reason !== null) send('rerolls_adjusted', teamId, { delta, ...(reason.trim() ? { reason: reason.trim() } : {}) });
   };
   const stats = Object.entries(team.stats).filter(([, s]) => statLine(s));
+  // I tasti dei Prayers to Nuffle solo per chi ha la preghiera
+  const prayers = state.setup?.teams[teamId]?.prayers ?? [];
+  const buttons = STAT_BUTTONS.filter(b => !PRAYER_STAT_EVENTS[b.type] || prayers.includes(PRAYER_STAT_EVENTS[b.type]!));
+  const needsPlayer = (type: StatEvent) => !!PRAYER_STAT_EVENTS[type] && !player;
 
   return (
       <div className={`${wz.team} ${active ? styles.activeTeam : ''}`} style={{ '--team-color': color } as React.CSSProperties}>
@@ -394,9 +404,10 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
                 {players.map(p => <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} ` : ''}{p.name}</option>)}
               </select>
               <div className={styles.inline}>
-                {STAT_BUTTONS.map(b => (
-                    <button key={b.type} type="button" className="btn" title={tip(why(b.type)) ?? b.title[language]}
-                      disabled={!!why(b.type)} onClick={() => record(b.type)}>{b.label}</button>
+                {buttons.map(b => (
+                    <button key={b.type} type="button" className="btn"
+                      title={tip(why(b.type)) ?? (needsPlayer(b.type) ? L('Scegli prima il giocatore', 'Choose the player first') : b.title[language])}
+                      disabled={!!why(b.type) || needsPlayer(b.type)} onClick={() => record(b.type)}>{b.label}</button>
                 ))}
               </div>
             </div>

@@ -13,6 +13,8 @@ import { Facts, Term, WizardStepCard, WizardSteps, rich, type FactRow } from '@/
 import { glossaryTip } from '@/lib/glossary';
 import wz from '@/components/match/Wizard.module.css';
 import { casualtyForRoll, toNumericInput, zeroAsEmpty, type NumericInput, type PlayerStatDraft, type StatField, type TeamResultDraft } from './reportModel';
+import { savedPrayers } from './pregameModel';
+import { PRAYER_STATS, getPrayer, prayerStatFields } from '@/lib/prayers';
 import styles from './MatchDetails.module.css';
 
 type Props = {
@@ -38,6 +40,12 @@ type Props = {
 
 const STEPS = ['outcome', 'stats', 'injuries', 'mvp', 'fans', 'confirm'] as const;
 const STAT_FIELDS: StatField[] = ['td', 'cas', 'int', 'comp', 'ttm', 'landing'];
+const PRAYER_SPP_TEXT: Record<string, { it: string; en: string }> = {
+  completion: { it: 'ogni **CMP** vale **2 SPP**', en: 'every **CMP** is worth **2 SPP**' },
+  catch: { it: '**PRESE**: 1 SPP per ogni passaggio preso', en: '**CATCH**: 1 SPP for every pass caught' },
+  crowd: { it: '**CAS PUB**: 2 SPP a chi spinge nel pubblico un avversario che subisce una Casualty', en: '**CAS CROWD**: 2 SPP to whoever pushes into the crowd an opponent who suffers a Casualty' },
+  foul: { it: '**CAS FOUL**: 2 SPP per una Casualty causata con un Foul', en: '**CAS FOUL**: 2 SPP for a Casualty caused by a Foul' },
+};
 const gp = (n: number) => n.toLocaleString();
 const dice1 = (s: string): DiceValues => (s ? [Number(s)] : emptyDice());
 
@@ -132,16 +140,26 @@ export default function ReportWizard(props: Props) {
               onNext={() => go(played ? 2 : 3)}
               blocker={needPenalty ? L('Playoff in parità: indica chi ha vinto ai rigori', 'Play-off tied: say who won the penalty shoot-out') : null}
           >
-            {played && teams.map(team => (
+            {played && teams.map(team => {
+              // Prayers to Nuffle (p. 143): colonne in più e SPP diversi solo per chi ha la preghiera
+              const prayers = savedPrayers(match, team.id);
+              const fields: StatField[] = [...STAT_FIELDS, ...prayerStatFields(prayers)];
+              const sppPrayers = prayers.map(p => getPrayer(p.roll)).filter(def => def?.spp);
+              const label = (f: StatField) => PRAYER_STATS.find(s => s.field === f)?.short[language]
+                  ?? (f === 'comp' ? 'CMP' : f === 'ttm' ? t.rules.ttm : f === 'landing' ? t.rules.landing : f.toUpperCase());
+              return (
                 <div key={team.id} className={wz.team} style={{ '--team-color': colorOf(team.id) ?? undefined } as React.CSSProperties}>
                   <h4 className={wz.teamName}>{team.name}</h4>
+                  {sppPrayers.length > 0 && (
+                      <p className={wz.note}>{rich(`Prayers to Nuffle: ${sppPrayers.map(def => `**${def!.name}**, ${PRAYER_SPP_TEXT[def!.spp!][language]}`).join('; ')} (p. 143).`, language)}</p>
+                  )}
                   <div className="table-container">
                     <table className={`data-table ${styles.statsTable}`}>
                       <thead>
                         <tr>
                           <th className="num">N°</th>
                           <th>{t.match.thPlayer}</th>
-                          {STAT_FIELDS.map(f => <th key={f} className="num"><Term>{f === 'comp' ? 'CMP' : f === 'ttm' ? t.rules.ttm : f === 'landing' ? t.rules.landing : f.toUpperCase()}</Term></th>)}
+                          {fields.map(f => <th key={f} className="num"><Term tip={PRAYER_STATS.find(s => s.field === f)?.title[language]}>{label(f)}</Term></th>)}
                         </tr>
                       </thead>
                       <tbody>
@@ -149,7 +167,7 @@ export default function ReportWizard(props: Props) {
                             <tr key={p.player_id}>
                               <td className="num">{p.jersey_number ?? '-'}</td>
                               <td>{p.name}</td>
-                              {STAT_FIELDS.map(f => (
+                              {fields.map(f => (
                                   <td key={f} className={`num ${styles.statCell}`}>
                                     <input type="number" min="0" inputMode="numeric" value={zeroAsEmpty(p[f])} placeholder="0" className={styles.statsInput}
                                            aria-label={`${p.name} ${f}`} onChange={e => props.onStatChange(p.player_id, f, toNumericInput(e.target.value))} />
@@ -174,7 +192,8 @@ export default function ReportWizard(props: Props) {
                            onChange={e => (team.id === home.id ? props.scores.setHome : props.scores.setAway)(toNumericInput(e.target.value))} />
                   </label>
                 </div>
-            ))}
+              );
+            })}
             {knockout && played && tie && (
                 <label className={wz.field}>{t.rules.penaltyWinner} <small>{L('Playoff pari dopo i supplementari: si decide ai rigori (p. 83)', 'Play-off level after extra time: decided on penalties (p. 83)')}</small>
                   <select value={props.penaltyWinner} onChange={e => props.setPenaltyWinner(e.target.value)}>

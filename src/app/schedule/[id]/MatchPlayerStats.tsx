@@ -1,8 +1,10 @@
 'use client';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { casualtyInfo, sppEarned } from '@/lib/leagueRules';
+import { PRAYER_STATS, prayerStatFields, type PrayerResult } from '@/lib/prayers';
 import { getRoster, hasRule } from '@/lib/rosters';
 import type { MatchDetails } from '@/lib/types';
+import { savedPrayers } from './pregameModel';
 import type { PlayerStatDraft } from './reportModel';
 import styles from './MatchPlayerStats.module.css';
 
@@ -20,19 +22,24 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
     { key: 'comp', label: 'CMP', title: L('Passaggi completati', 'Completions') },
     { key: 'ttm', label: 'TTM', title: 'Throw Team-mate' },
     { key: 'landing', label: L('ATT', 'LAND'), title: L('Atterraggi', 'Landings') },
+    ...PRAYER_STATS.map(s => ({ key: s.field, label: s.short[language], title: s.title[language] })),
     { key: 'mvp', label: 'MVP', title: 'Most Valuable Player' },
   ] as const;
+  const PRAYER_KEYS: string[] = PRAYER_STATS.map(s => s.field);
 
   const teams = [
     { id: match.home_team_id, name: match.home_name, color: match.home_color, score: match.home_score },
     { id: match.away_team_id, name: match.away_name, color: match.away_color, score: match.away_score },
   ];
 
-  const sppOf = (p: PlayerStatDraft, brutes: boolean) => {
+  const sppOf = (p: PlayerStatDraft, brutes: boolean, prayers: PrayerResult[]) => {
     // Dopo il referto vale quello salvato (tiene conto di concessioni e partite non giocate)
     const saved = match.stats.find(s => s.player_id === p.player_id);
     if (saved) return saved.spp_earned;
-    return sppEarned({ td: n(p.td), cas: n(p.cas), int: n(p.int), comp: n(p.comp), ttm: n(p.ttm), landing: n(p.landing), mvp: n(p.mvp) }, { brawlinBrutes: brutes });
+    return sppEarned({
+      td: n(p.td), cas: n(p.cas), int: n(p.int), comp: n(p.comp), ttm: n(p.ttm), landing: n(p.landing), mvp: n(p.mvp),
+      catches: n(p.catches), crowd_cas: n(p.crowd_cas), foul_cas: n(p.foul_cas),
+    }, { brawlinBrutes: brutes, prayers });
   };
 
   return (
@@ -45,9 +52,13 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
         <div className={styles.teams}>
           {teams.map(team => {
             const brutes = hasRule(getRoster(match.teams.find(t => t.id === team.id)?.roster), 'Brawlin Brutes');
+            const prayers = savedPrayers(match, team.id);
+            const withPrayer: string[] = prayerStatFields(prayers);
+            // Le colonne dei Prayers to Nuffle solo per la squadra che aveva la preghiera
+            const cols = COLS.filter(c => !PRAYER_KEYS.includes(c.key) || withPrayer.includes(c.key));
             const rows = playerStats
                 .filter(p => p.team_id === team.id && !p.unavailable)
-                .map(p => ({ p, spp: sppOf(p, brutes), injury: casualtyInfo(p.injury) }))
+                .map(p => ({ p, spp: sppOf(p, brutes, prayers), injury: casualtyInfo(p.injury) }))
                 .sort((a, b) => b.spp - a.spp || (a.p.jersey_number ?? 99) - (b.p.jersey_number ?? 99));
             const total = (key: (typeof COLS)[number]['key']) => rows.reduce((sum, r) => sum + n(r.p[key]), 0);
             const totalSpp = rows.reduce((sum, r) => sum + r.spp, 0);
@@ -63,7 +74,7 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
                       <tr>
                         <th className="num">N°</th>
                         <th>{L('Giocatore', 'Player')}</th>
-                        {COLS.map(c => <th key={c.key} className="num" title={c.title}>{c.label}</th>)}
+                        {cols.map(c => <th key={c.key} className="num" title={c.title}>{c.label}</th>)}
                         <th className={`num ${styles.sppHead}`} title="Star Player Points">SPP</th>
                         <th>{L('Infortunio', 'Injury')}</th>
                       </tr>
@@ -73,7 +84,7 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
                           <tr key={p.player_id} className={spp === 0 && !injury ? styles.quiet : injury?.key === 'DEAD' ? styles.dead : undefined}>
                             <td className="num">{p.jersey_number ?? '-'}</td>
                             <td className={styles.name}>{p.name}</td>
-                            {COLS.map(c => {
+                            {cols.map(c => {
                               const v = n(p[c.key]);
                               return <td key={c.key} className={`num ${v ? styles.hit : styles.zero}`}>{v || '·'}</td>;
                             })}
@@ -88,7 +99,7 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
                           </tr>
                       ))}
                       {rows.length === 0 && (
-                          <tr><td colSpan={COLS.length + 4} className={styles.empty}>{L('Nessun giocatore registrato.', 'No players recorded.')}</td></tr>
+                          <tr><td colSpan={cols.length + 4} className={styles.empty}>{L('Nessun giocatore registrato.', 'No players recorded.')}</td></tr>
                       )}
                       </tbody>
                       {rows.length > 0 && (
@@ -96,7 +107,7 @@ export default function MatchPlayerStats({ match, playerStats }: { match: MatchD
                           <tr>
                             <td />
                             <td className={styles.name}>{L('Totale', 'Total')}</td>
-                            {COLS.map(c => <td key={c.key} className="num">{total(c.key)}</td>)}
+                            {cols.map(c => <td key={c.key} className="num">{total(c.key)}</td>)}
                             <td className={`num ${styles.spp}`}>{totalSpp}</td>
                             <td />
                           </tr>

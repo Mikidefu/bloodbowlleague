@@ -141,6 +141,10 @@ CREATE TABLE IF NOT EXISTS player_stats (
     spp_earned INTEGER DEFAULT 0,
     ttm INTEGER DEFAULT 0,                  -- Throw Team-mate riusciti (1 SPP al lanciatore)
     landings INTEGER DEFAULT 0,             -- atterraggi riusciti dopo un lancio (1 SPP)
+    -- Prayers to Nuffle (p. 143): contano solo se la squadra ha la preghiera
+    catches INTEGER DEFAULT 0,              -- Dazzling Catching: passaggi presi (1 SPP)
+    crowd_cas INTEGER DEFAULT 0,            -- Fan Interaction: avversari spinti nel pubblico con Casualty (2 SPP)
+    foul_cas INTEGER DEFAULT 0,             -- Fouling Frenzy: Casualty causate con un Foul (2 SPP)
     FOREIGN KEY(match_id) REFERENCES matches(id) ON DELETE CASCADE,
     FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
 );
@@ -205,6 +209,7 @@ CREATE TABLE IF NOT EXISTS match_team_reports (
     petty_cash INTEGER DEFAULT 0,
     treasury_spent INTEGER DEFAULT 0,       -- Treasury spesa in incentivi
     inducements TEXT,                       -- JSON delle scelte (vedi InducementChoice)
+    prayers TEXT,                           -- JSON dei Prayers to Nuffle tirati (vedi PrayerResult in src/lib/prayers.ts)
     journeymen INTEGER DEFAULT 0,
     stalling BOOLEAN DEFAULT 0,
     winnings INTEGER DEFAULT 0,

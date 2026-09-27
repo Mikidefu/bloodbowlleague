@@ -29,6 +29,8 @@ const TEXTS: Partial<Texts> = {
   already_undone: ['È già stato annullato.', 'It has already been undone.'],
   cannot_undo: ['Questo evento non si può annullare.', 'This event cannot be undone.'],
   wrong_half: ['Il prossimo tempo è il {half}°.', 'The next half is half {half}.'],
+  prayer_missing: ['Questa statistica vale SPP solo con il suo Prayer to Nuffle (p. 143).', 'This stat earns SPP only with its Prayer to Nuffle (p. 143).'],
+  player_required: ['Scegli il giocatore che prende gli SPP.', 'Choose the player who earns the SPP.'],
 };
 
 export function problemText(problem: LiveProblem, language: 'it' | 'en', teamName: (id: string) => string): string {

@@ -12,7 +12,9 @@ import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffHeadline } from '@/lib/live/kickoff';
 import { noticesFor, type Notice } from '@/lib/live/notify';
 import { whyNot } from '@/lib/live/rules';
-import { EXTRA_TIME_HALF, TURNS_PER_HALF, type LiveEvent, type StatEvent } from '@/lib/live/types';
+import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type StatEvent } from '@/lib/live/types';
+import { parsePrayers } from '@/lib/prayers';
+import PrayerList, { matchPrayerPlayer } from '@/components/match/PrayerList';
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import type { MatchDetails } from '@/lib/types';
@@ -29,6 +31,10 @@ const STATS: { type: StatEvent; short: string; it: string; en: string }[] = [
   { type: 'interception', short: 'INT', it: 'Intercetto', en: 'Interception' },
   { type: 'ttm', short: 'TTM', it: 'Lancio compagno', en: 'Throw Team-mate' },
   { type: 'landing', short: 'ATT', it: 'Atterraggio', en: 'Landing' },
+  // Solo con il Prayer to Nuffle giusto (p. 143)
+  { type: 'catch', short: 'PRESA', it: 'Passaggio preso', en: 'Catch' },
+  { type: 'crowd_casualty', short: 'CAS PUB', it: 'Casualty nel pubblico', en: 'Crowd Casualty' },
+  { type: 'foul_casualty', short: 'CAS FOUL', it: 'Casualty da Foul', en: 'Foul Casualty' },
 ];
 const WAKE_KEY = 'bbl-companion-wake';
 const TAP_COOLDOWN_MS = 700;   // contro il doppio tocco involontario
@@ -154,6 +160,10 @@ function Board({ session }: { session: CompanionSession }) {
   const recent = [...live.events].reverse().slice(0, 8);
   const canUndo = (e: LiveEvent) => e.team_id === myTeam && e.source !== 'server' && !['undo', 'half_started'].includes(e.type) && !state.voided.includes(e.id);
   const myPlayers = players.filter(p => p.team_id === myTeam && !p.unavailable);
+  const myPrayers = state.setup?.teams[myTeam]?.prayers ?? [];
+  const stats = STATS.filter(s => !PRAYER_STAT_EVENTS[s.type] || myPrayers.includes(PRAYER_STAT_EVENTS[s.type]!));
+  // Prayers to Nuffle delle due squadre (anche quelli avversari toccano i miei giocatori: Bad Habits, Greasy Cleats)
+  const prayerTeams = match ? [myTeam, ...(oppId ? [oppId] : [])].map(id => ({ id, prayers: parsePrayers(match.reports.find(r => r.team_id === id)?.prayers) })).filter(t => t.prayers.length) : [];
 
   const rollKickoff = async () => {
     const values = manual && dice.every(d => /^[1-6]$/.test(d)) ? { dice: [Number(dice[0]), Number(dice[1])] as [number, number] } : undefined;
@@ -306,7 +316,7 @@ function Board({ session }: { session: CompanionSession }) {
               <section className={styles.panel}>
                 <h2 className={styles.title}>{L('Segna', 'Record')}</h2>
                 <div className={styles.statGrid}>
-                  {STATS.map(s => (
+                  {stats.map(s => (
                       <button key={s.type} type="button" className="btn" disabled={!!why(s.type)} onClick={() => setPicking(s.type)}>
                         <span className={styles.statShort}>{s.short}</span>
                         <span className={styles.statLong}>{s[language]}</span>
@@ -317,6 +327,18 @@ function Board({ session }: { session: CompanionSession }) {
                 {!statWhy && why('touchdown') && <p className={styles.help}>{say(why('touchdown'))}</p>}
               </section>
             </>
+        )}
+
+        {match && prayerTeams.length > 0 && (
+            <section className={styles.panel}>
+              <h2 className={styles.title}>Prayers to Nuffle</h2>
+              {prayerTeams.map(t => (
+                  <div key={t.id}>
+                    <p className={styles.help}><b>{teamName(t.id)}</b></p>
+                    <PrayerList prayers={t.prayers} player={matchPrayerPlayer(match)} />
+                  </div>
+              ))}
+            </section>
         )}
 
         {recent.length > 0 && (
@@ -386,7 +408,9 @@ function Board({ session }: { session: CompanionSession }) {
                     </button>
                 ))}
               </div>
-              <button type="button" className={`btn ${styles.wide}`} onClick={() => record(picking, null)}>{L('Senza giocatore', 'No player')}</button>
+              {!PRAYER_STAT_EVENTS[picking] && (
+                  <button type="button" className={`btn ${styles.wide}`} onClick={() => record(picking, null)}>{L('Senza giocatore', 'No player')}</button>
+              )}
             </div>
         )}
       </div>
