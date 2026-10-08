@@ -1,5 +1,6 @@
 'use client';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { INDUCEMENTS } from '@/lib/leagueRules';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { getStarHire } from '@/lib/starPlayers';
@@ -15,6 +16,7 @@ import { reportOf, savedInducements, savedPrayers } from './pregameModel';
 
 /** Si gioca: il riassunto del pre-partita a portata di mano, le tabelle per i tiri, e il passaggio al referto. */
 export default function InPlayPanel({ match, onReport, onRedoPregame }: { match: MatchDetails; onReport: () => void; onRedoPregame: () => void }) {
+  const confirm = useConfirm();
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const teams = [match.home_team_id, match.away_team_id].map(id => match.teams.find(tm => tm.id === id)).filter(Boolean) as MatchTeam[];
@@ -30,7 +32,7 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
   // Finita la partita dal vivo, i telefoni non devono più scrivere: si chiude prima di passare al referto
   const toReport = async () => {
     if (isLive) {
-      if (!confirm(L('Chiudere la partita dal vivo? I telefoni non potranno più segnare niente (puoi riaprirla).', 'Close the live match? The phones will no longer be able to record anything (you can reopen it).'))) return;
+      if (!await confirm(L('Chiudere la partita dal vivo? I telefoni non potranno più segnare niente (puoi riaprirla).', 'Close the live match? The phones will no longer be able to record anything (you can reopen it).'))) return;
       await live.end();
     }
     onReport();
@@ -38,7 +40,7 @@ export default function InPlayPanel({ match, onReport, onRedoPregame }: { match:
   // Il live fotografa il pre-partita all'avvio: rifarlo vuol dire ripartire da zero
   const redoPregame = async () => {
     if (live.live) {
-      if (!confirm(L('Rifare il pre-partita azzera la partita dal vivo (cronologia e telefoni collegati). Continuare?', 'Redoing the pre-game resets the live match (timeline and connected phones). Continue?'))) return;
+      if (!await confirm(L('Rifare il pre-partita azzera la partita dal vivo (cronologia e telefoni collegati). Continuare?', 'Redoing the pre-game resets the live match (timeline and connected phones). Continue?'))) return;
       await live.reset();
     }
     onRedoPregame();

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { fill } from '@/lib/i18n/translations';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
 import styles from './NewTeam.module.css';
@@ -23,6 +25,7 @@ export default function NewTeamPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin, authLoading } = useAuth();
+  const confirm = useConfirm();
   const { activeSeason } = useSeason();
   const [loading, setLoading] = useState(false);
   const [coaches, setCoaches] = useState<Coach[]>([]);
@@ -126,6 +129,7 @@ export default function NewTeamPage() {
       alert(check.errors.join('\n'));
       return;
     }
+    if (!await confirm(fill(t.confirm.createTeam, { name: formData.name }))) return;
     setLoading(true);
 
     try {

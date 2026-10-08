@@ -3,6 +3,7 @@
 
 import { Radio, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
 import type { LivePrefill, ReportStatField } from '@/lib/live/prefill';
 import { PRAYER_STATS } from '@/lib/prayers';
 import type { MatchDetails } from '@/lib/types';
@@ -16,6 +17,7 @@ const line = (stats: Partial<Record<ReportStatField, number>>) =>
   (Object.entries(stats) as [ReportStatField, number][]).filter(([, n]) => n).map(([k, n]) => `${n} ${LABEL[k]}`).join(', ');
 
 export default function LivePrefillNote({ match, prefill, applied, onApply }: { match: MatchDetails; prefill: LivePrefill; applied: boolean; onApply: () => void }) {
+  const confirm = useConfirm();
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const name = (teamId: string) => (teamId === match.home_team_id ? match.home_name : match.away_name);
@@ -50,8 +52,8 @@ export default function LivePrefillNote({ match, prefill, applied, onApply }: { 
             </span>
         ))}
         <div className={wz.actions}>
-          <button type="button" className="btn" onClick={() => {
-            if (confirm(L('Usare i numeri del live? Punteggio e statistiche scritti nel referto vengono sostituiti (infortuni e MVP restano).', 'Use the live numbers? The score and stats in the report are replaced (injuries and MVPs stay).'))) onApply();
+          <button type="button" className="btn" onClick={async () => {
+            if (await confirm(L('Usare i numeri del live? Punteggio e statistiche scritti nel referto vengono sostituiti (infortuni e MVP restano).', 'Use the live numbers? The score and stats in the report are replaced (injuries and MVPs stay).'))) onApply();
           }}>
             <RotateCcw size={16} /> {applied ? L('Rimetti i numeri del live', 'Put the live numbers back') : L('Usa i numeri del live', 'Use the live numbers')}
           </button>

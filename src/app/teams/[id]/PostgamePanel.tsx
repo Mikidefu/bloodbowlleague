@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { fill } from '@/lib/i18n/translations';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { MISTAKE_THRESHOLD, expensiveMistake, mistakeExtraRoll, rollDie } from '@/lib/leagueRules';
 import { mustAdvance, onDraftList } from '@/lib/players';
 import { getPosition, getRoster, hasRule } from '@/lib/rosters';
@@ -50,11 +52,14 @@ export function CaptainPicker({ team, onChange }: { team: TeamWithPlayers; onCha
   const { t } = useLanguage();
   const [choice, setChoice] = useState('');
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
   const roster = getRoster(team.roster);
   const candidates = team.players.filter(p => onDraftList(p) && !isTrue(p.journeyman)
       && !getPosition(roster, p.position_key)?.keywords.includes('Big Guy'));
 
   const appoint = async () => {
+    const player = candidates.find(p => p.id === choice);
+    if (!player || !await confirm(fill(t.confirm.appointCaptain, { name: player.name }))) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/teams/${team.id}/captain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player_id: choice }) });
@@ -86,6 +91,7 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
   const [roll, setRoll] = useState('');
   const [extra, setExtra] = useState('');
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
 
   const journeymen = team.players.filter(p => isTrue(p.journeyman) && p.journeyman_match_id === pending.match_id && !isTrue(p.left_team));
   const treasury = team.treasury || 0;
@@ -94,7 +100,8 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
   const preview = needsRoll && d6 >= 1 && d6 <= 6 ? expensiveMistake(treasury, d6) : null;
   const extraKind = mistakeExtraRoll(preview);
 
-  const post = async (url: string, body: unknown) => {
+  const post = async (url: string, body: unknown, question: Parameters<typeof confirm>[0]) => {
+    if (!await confirm(question)) return;
     setBusy(true);
     try {
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -106,6 +113,7 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
     }
   };
 
+  const mistakesQuestion = `${fill(t.confirm.mistakes, { treasury: treasury.toLocaleString() })}${preview ? `\n${t.rules.mistakeResult[preview]}` : ''}`;
   const fmt = (n: number) => `${n > 0 ? '+' : ''}${n.toLocaleString()}`;
 
   return (
@@ -127,7 +135,13 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
                       <span>{j.name} · {j.role} · {j.spp} SPP</span>
                       {isAdmin && (
                           <button type="button" className="btn btn-navy" disabled={busy || treasury < j.value}
-                                  onClick={() => post(`/api/players/${j.id}/hire`, { name: prompt(t.rules.playerName, j.name) ?? j.name })}>
+                                  onClick={() => {
+                                    const name = prompt(t.rules.playerName, j.name)?.trim() || j.name;
+                                    post(`/api/players/${j.id}/hire`, { name }, {
+                                      title: t.confirm.hireTitle, confirmLabel: t.confirm.hireOk,
+                                      message: `${fill(t.confirm.hireJourneyman, { name, cost: j.value.toLocaleString() })}\n${fill(t.confirm.treasuryAfter, { before: treasury.toLocaleString(), after: (treasury - j.value).toLocaleString() })}`,
+                                    });
+                                  }}>
                             {t.rules.hireJourneyman.replace('{cost}', j.value.toLocaleString())}
                           </button>
                       )}
@@ -144,7 +158,7 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
               {!needsRoll ? (
                   <div className={styles.diceRow}>
                     <span>{t.rules.mistakesNoRoll}</span>
-                    <button type="button" className="btn btn-primary" disabled={busy} onClick={() => post(`/api/schedule/${pending.match_id}/mistakes`, { team_id: team.id })}>
+                    <button type="button" className="btn btn-primary" disabled={busy} onClick={() => post(`/api/schedule/${pending.match_id}/mistakes`, { team_id: team.id }, mistakesQuestion)}>
                       {t.rules.mistakesRoll}
                     </button>
                   </div>
@@ -165,7 +179,7 @@ function PendingMatch({ team, pending, isAdmin, onChange }: { team: TeamWithPlay
                         </>
                     )}
                     <button type="button" className="btn btn-primary" disabled={busy || !preview || (!!extraKind && !extra)}
-                            onClick={() => post(`/api/schedule/${pending.match_id}/mistakes`, { team_id: team.id, roll: d6, extra: Number(extra) || undefined })}>
+                            onClick={() => post(`/api/schedule/${pending.match_id}/mistakes`, { team_id: team.id, roll: d6, extra: Number(extra) || undefined }, mistakesQuestion)}>
                       {t.rules.mistakesRoll}
                     </button>
                   </div>

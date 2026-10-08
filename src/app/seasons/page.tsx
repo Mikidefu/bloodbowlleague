@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CalendarRange, Plus, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import PageHeader from '@/components/brand/PageHeader';
@@ -40,6 +41,7 @@ const formatDate = (value: string | null) => (value ? new Date(value.replace(' '
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function SeasonsPage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
@@ -90,7 +92,7 @@ export default function SeasonsPage() {
       return;
     }
     const name = seasonName.trim() || `Season ${nextNumber}`;
-    if (!confirm(fill(t.seasons.confirmStart, { name, count: included.length }))) return;
+    if (!await confirm(fill(t.seasons.confirmStart, { name, count: included.length }))) return;
     await submitNewSeason({});
   };
 
@@ -118,7 +120,7 @@ export default function SeasonsPage() {
           return;
         }
         // Campione già proclamato ma partite ancora da giocare: basta una conferma
-        if (!conflict?.incomplete || !confirm(`${conflict.error}\n\n${t.seasons.confirmIncomplete}`)) return;
+        if (!conflict?.incomplete || !await confirm(`${conflict.error}\n\n${t.seasons.confirmIncomplete}`)) return;
         res = await post({ ...payload, force: true });
       }
       const data = await res.json().catch(() => null);
@@ -155,14 +157,14 @@ export default function SeasonsPage() {
 
   const chooseDecision = async (action: PreviousAction) => {
     if (!decision) return;
-    if (action === 'delete' && !confirm(fill(t.seasons.confirmDelete, { name: decision.name }))) return;
+    if (action === 'delete' && !await confirm({ message: fill(t.seasons.confirmDelete, { name: decision.name }), danger: true })) return;
     await submitNewSeason({ previous_action: action });
   };
 
   // Azioni sulla singola stagione (pausa, annullamento, ripresa, eliminazione)
   const changeStatus = async (season: SeasonSummary, action: 'pause' | 'cancel' | 'resume') => {
     const messages = { pause: t.seasons.confirmPause, cancel: t.seasons.confirmCancel, resume: t.seasons.confirmResume };
-    if (!confirm(fill(messages[action], { name: season.name }))) return;
+    if (!await confirm(fill(messages[action], { name: season.name }))) return;
 
     const send = (pauseCurrent: boolean) => fetch(`/api/seasons/${season.id}/status`, {
       method: 'POST',
@@ -177,7 +179,7 @@ export default function SeasonsPage() {
         const conflict = await res.json().catch(() => null);
         // Riprendere una stagione quando un'altra è in corso: quella in corso va in pausa
         if (!conflict?.active_exists) { alert(conflict?.error || 'Operation failed'); return; }
-        if (!confirm(fill(t.seasons.confirmResumePauseCurrent, { name: season.name, current: conflict.active_name }))) return;
+        if (!await confirm(fill(t.seasons.confirmResumePauseCurrent, { name: season.name, current: conflict.active_name }))) return;
         res = await send(true);
       }
       if (!res.ok) {
@@ -192,7 +194,7 @@ export default function SeasonsPage() {
   };
 
   const deleteSeason = async (season: SeasonSummary) => {
-    if (!confirm(fill(t.seasons.confirmDelete, { name: season.name }))) return;
+    if (!await confirm({ message: fill(t.seasons.confirmDelete, { name: season.name }), danger: true })) return;
     setBusySeasonId(season.id);
     try {
       const res = await fetch(`/api/seasons/${season.id}`, { method: 'DELETE' });

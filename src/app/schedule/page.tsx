@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Plus, ShieldAlert, Clock, Settings, Trash2, ChevronLeft, ChevronRight, Filter, Trophy, ArrowRight, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
+import { fill } from '@/lib/i18n/translations';
 import { useAuth } from '@/lib/AuthContext';
 import { useSeason } from '@/lib/SeasonContext';
 import { MATCH_TYPES, displayMatchType, isFinal, isLeagueMatch, isSemifinal, isUnranked } from '@/lib/matchTypes';
@@ -26,6 +28,7 @@ const teamRing = (color: string | null | undefined) =>
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function SchedulePage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
@@ -146,7 +149,7 @@ export default function SchedulePage() {
   };
 
   const handleGenerateSchedule = async () => {
-    if (!confirm(`Are you sure you want to generate the schedule starting from Round ${generateStartRound}?`)) return;
+    if (!await confirm(fill(t.confirm.generateSchedule, { round: generateStartRound }))) return;
     setIsGenerating(true);
     try {
       const res = await fetch('/api/schedule/generate', {
@@ -176,7 +179,7 @@ export default function SchedulePage() {
   const canGenerateFinals = semifinals.length === 2 && semifinals.every(m => m.is_played) && finals.length === 0;
 
   const handlePlayoffs = async (stage: 'semifinals' | 'finals') => {
-    if (!confirm(stage === 'semifinals' ? t.schedule.confirmPlayoffs : t.schedule.confirmFinals)) return;
+    if (!await confirm(stage === 'semifinals' ? t.schedule.confirmPlayoffs : t.schedule.confirmFinals)) return;
     setIsGenerating(true);
     try {
       const url = stage === 'semifinals' ? '/api/playoffs' : '/api/playoffs/finals';
@@ -190,7 +193,7 @@ export default function SchedulePage() {
       if (res.status === 409) {
         // Girone incompleto: il server chiede una conferma esplicita
         const data = await res.json().catch(() => null);
-        if (!data?.incomplete || !confirm(`${data.error}\n\n${t.schedule.confirmIncompletePlayoffs}`)) return;
+        if (!data?.incomplete || !await confirm(`${data.error}\n\n${t.schedule.confirmIncompletePlayoffs}`)) return;
         res = await post(true);
       }
 
@@ -208,7 +211,7 @@ export default function SchedulePage() {
   };
 
   const deleteMatch = async (id: string) => {
-    if (!confirm("Delete this match? Stats will be lost.")) return;
+    if (!await confirm({ message: t.confirm.deleteMatch, danger: true })) return;
     try {
       const res = await fetch(`/api/schedule/${id}`, { method: 'DELETE' });
       if (!res.ok) alert(await errorMessage(res, "Failed to delete match"));
@@ -219,7 +222,7 @@ export default function SchedulePage() {
   };
 
   const handleDeleteRound = async (round: number) => {
-    if (!confirm(`ATTENZIONE! Vuoi davvero eliminare l'intero MATCHDAY ${round}?\nTutte le partite e le statistiche guadagnate dai giocatori in questo round andranno perdute per sempre.`)) return;
+    if (!await confirm({ message: fill(t.confirm.deleteRound, { round }), danger: true })) return;
     try {
       const res = await fetch(`/api/schedule/round/${round}`, { method: 'DELETE' });
       if (!res.ok) alert(await errorMessage(res, "Failed to delete matchday"));

@@ -1,0 +1,84 @@
+/* Finestra di conferma condivisa (vedi ConfirmDialog.tsx) */
+.dialog {
+  width: min(480px, calc(100vw - 2rem));
+  max-width: none;
+  max-height: 90vh;
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+
+.dialog::backdrop {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(122, 26, 28, 0.35), transparent 70%),
+    rgba(12, 14, 18, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+.box {
+  --cut: 22px;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: 0;
+  border-left: 8px solid var(--bb-navy);
+}
+
+.box.danger {
+  border-left-color: var(--bb-red);
+}
+
+.micro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bb-navy);
+}
+
+.micro i {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: currentColor;
+}
+
+.danger .micro {
+  color: var(--bb-red);
+}
+
+.title {
+  margin: 0 0 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .box {
+    --cut: 14px;
+  }
+
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}

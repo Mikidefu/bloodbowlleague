@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, BellOff, Dices, LogOut, Sun, Undo2, WifiOff, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
@@ -56,6 +57,7 @@ export default function CompanionMatchPage({ params }: { params: Promise<{ match
 }
 
 function Board({ session }: { session: CompanionSession }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
@@ -194,13 +196,13 @@ function Board({ session }: { session: CompanionSession }) {
     setPicking(null);
   };
   // Prima della fine degli 8 turni si cambia tempo solo confermando (turni non segnati): arriva come force
-  const startHalf = () => {
+  const startHalf = async () => {
     const turns = [me?.turn ?? 0, opp?.turn ?? 0];
     const over = state.turns_done;
     const ask = over
       ? L('Iniziare il secondo tempo? I Team Re-roll tornano pieni.', 'Start the second half? Team Re-rolls are replenished.')
       : L(`I turni non sono finiti (${turns[0]} e ${turns[1]} su ${TURNS_PER_HALF}). Iniziare comunque il secondo tempo?`, `The turns are not over (${turns[0]} and ${turns[1]} of ${TURNS_PER_HALF}). Start the second half anyway?`);
-    if (confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) });
+    if (await confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) });
   };
 
   return (
@@ -367,7 +369,7 @@ function Board({ session }: { session: CompanionSession }) {
                       <span>{describeEvent(e, ctx)}</span>
                       {!ended && canUndo(e) && (
                           <button type="button" className={`btn ${styles.iconBtn}`} aria-label={L('Annulla', 'Undo')}
-                            onClick={() => { if (confirm(L(`Annullare "${describeEvent(e, ctx)}"?`, `Undo "${describeEvent(e, ctx)}"?`))) live.send('undo', myTeam, { event_id: e.id }); }}>
+                            onClick={async () => { if (await confirm(L(`Annullare "${describeEvent(e, ctx)}"?`, `Undo "${describeEvent(e, ctx)}"?`))) live.send('undo', myTeam, { event_id: e.id }); }}>
                             <Undo2 size={18} />
                           </button>
                       )}
@@ -403,7 +405,7 @@ function Board({ session }: { session: CompanionSession }) {
           )}
           {!ended && (
               <button type="button" className="btn" onClick={async () => {
-                if (!confirm(L('Lasciare la squadra? Potrai ricollegarti col codice.', 'Leave the team? You can reconnect with the code.'))) return;
+                if (!await confirm(L('Lasciare la squadra? Potrai ricollegarti col codice.', 'Leave the team? You can reconnect with the code.'))) return;
                 await live.leave();
                 leave(null);
               }}><LogOut size={18} /> {L('Lascia la squadra', 'Leave the team')}</button>

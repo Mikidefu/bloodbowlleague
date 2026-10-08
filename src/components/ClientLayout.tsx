@@ -6,6 +6,7 @@ import { Trophy, Users, Calendar, Menu, X, Book, Lock, LogOut, BarChart3, UserRo
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { SeasonProvider } from '@/lib/SeasonContext';
+import { ConfirmProvider } from '@/components/ConfirmDialog';
 import Emblem from '@/components/brand/Emblem';
 import Wordmark from '@/components/brand/Wordmark';
 import Shards from '@/components/brand/Shards';
@@ -187,22 +188,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   if (pathname?.startsWith('/companion')) {
     return (
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider><ConfirmProvider>{children}</ConfirmProvider></LanguageProvider>
     );
   }
   return (
       <LanguageProvider>
-        <AuthProvider>
-          <SeasonProvider>
-            <NavBar />
-            <SeasonBar />
-            <main className="container">
-              {children}
-            </main>
-            <SiteFooter />
-            <div className="page-rail" aria-hidden="true"><i /><i /><i /><i /><span>BBL // New Season</span></div>
-          </SeasonProvider>
-        </AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <SeasonProvider>
+              <NavBar />
+              <SeasonBar />
+              <main className="container">
+                {children}
+              </main>
+              <SiteFooter />
+              <div className="page-rail" aria-hidden="true"><i /><i /><i /><i /><span>BBL // New Season</span></div>
+            </SeasonProvider>
+          </AuthProvider>
+        </ConfirmProvider>
       </LanguageProvider>
   );
 }

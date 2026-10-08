@@ -5,6 +5,8 @@ import Link from 'next/link';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
 import { ShieldAlert, Trash2, Plus, Edit2, Save, X, Skull, ArrowUpCircle, Dices } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { fill } from '@/lib/i18n/translations';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
@@ -58,6 +60,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
+  const confirm = useConfirm();
 
   const [team, setTeam] = useState<TeamWithPlayers | null>(null);
   const [loading, setLoading] = useState(true);
@@ -199,8 +202,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     setSkillSuggestions([]);
   };
 
-  const removeSkillFromPlayer = (skill: Skill) => {
-    if (!confirm(`Rimuovere "${formatSkillName(skill.name)}"?`)) return;
+  const removeSkillFromPlayer = async (skill: Skill) => {
+    if (!await confirm({ message: fill(t.confirm.removeSkill, { skill: formatSkillName(skill.name) }), danger: true })) return;
     setPlayerForm({ ...playerForm, skills: playerForm.skills.filter(s => s.id !== skill.id) });
   };
   // -----------------------------------
@@ -262,33 +265,52 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  // Gli SPP spesi non tornano indietro: ogni avanzamento passa dalla finestra di conferma
+  const confirmAdvancement = (message: string) => confirm({
+    title: t.confirm.advanceTitle, message: `${message}\n${t.confirm.cannotUndo}`, confirmLabel: t.confirm.advanceOk,
+  });
+
   // Skill estratta dalla Skill Table: si sceglie una delle due uscite (p. 97)
   const handleRandomChoice = async (skillId: string) => {
+    if (!levelUpPlayer || !randomRoll) return;
+    const skill = randomRoll.options.find(o => o.id === skillId);
+    if (!await confirmAdvancement(fill(t.confirm.advanceSkill, { name: levelUpPlayer.name, skill: formatSkillName(skill?.name ?? ''), cost: randomRoll.cost }))) return;
     const data = await requestAdvancement({ kind: 'randomPrimary', skill_id: skillId, token: randomRoll!.token });
     if (data?.skill) setCelebrationSkill(data.skill);
   };
 
   // --- LOGICA LEVEL UP STANDARD (Scelta Manuale) ---
   const handleLevelUpSave = async () => {
+    if (!levelUpPlayer) return;
     if (!levelUpChoice) return alert('Seleziona un potenziamento!');
+    const name = levelUpPlayer.name;
 
     if (levelUpChoice === 'choosePrimary' || levelUpChoice === 'chooseSecondary') {
       if (!selectedAdvancement) return alert('Seleziona una skill!');
+      const cost = ADVANCEMENT_TIERS[Math.min(levelUpPlayer.advancements || 0, 5)][levelUpChoice];
+      if (!await confirmAdvancement(fill(t.confirm.advanceSkill, { name, skill: formatSkillName(selectedAdvancement.name), cost }))) return;
       await requestAdvancement({ kind: levelUpChoice, skill_id: selectedAdvancement.id });
     } else if (levelUpChoice === 'statDeclined') {
       if (!selectedAdvancement || !statRoll) return alert('Seleziona una skill!');
+      if (!await confirmAdvancement(fill(t.confirm.advanceDeclined, { name, skill: formatSkillName(selectedAdvancement.name), cost: statRoll.cost }))) return;
       await requestAdvancement({
         kind: 'statDeclined', skill_id: selectedAdvancement.id, token: statRoll.token,
         from: declinedFrom,
       });
-    } else if (levelUpChoice.startsWith('stat_')) {
-      await requestAdvancement({ kind: 'stat', stat: levelUpChoice.split('_')[1], token: statRoll!.token });
+    } else if (levelUpChoice.startsWith('stat_') && statRoll) {
+      const stat = levelUpChoice.split('_')[1];
+      if (!await confirmAdvancement(fill(t.confirm.advanceStat, { name, stat: stat.toUpperCase(), cost: statRoll.cost }))) return;
+      await requestAdvancement({ kind: 'stat', stat, token: statRoll.token });
     }
   };
   // -----------------------
 
   const handleDeleteTeam = async () => {
-    if (!team || !confirm(t.teamDetail.confirmDisband.replace('{teamName}', team.name))) return;
+    if (!team) return;
+    if (!await confirm({
+      title: t.confirm.disbandTitle, message: `${fill(t.teamDetail.confirmDisband, { teamName: team.name })}\n${t.confirm.cannotUndo}`,
+      confirmLabel: t.confirm.disbandOk, danger: true,
+    })) return;
     try {
       const res = await fetch(`/api/teams/${id}`, { method: 'DELETE' });
       if (res.ok) router.push('/teams');
@@ -319,6 +341,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!await confirm({ message: fill(t.confirm.saveTeam, { name: team?.name ?? editForm.name }), confirmLabel: t.confirm.saveOk })) return;
     setIsEditingTeam(true);
     try {
       const submitData = new FormData();
@@ -352,6 +375,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!await confirm({
+      title: t.confirm.hireTitle, confirmLabel: t.confirm.hireOk,
+      message: fill(t.confirm.hirePlayer, { name: playerForm.name, role: playerForm.role, cost: Number(playerForm.value).toLocaleString() }),
+    })) return;
     setIsSubmitting(true);
     const skillIds = playerForm.skills.map(s => s.id);
 
@@ -377,9 +404,21 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     finally { setIsSubmitting(false); }
   };
 
+  // Riga "Treasury: prima → dopo" mostrata nelle conferme di acquisto
+  const treasuryAfter = (cost: number) => {
+    const before = team?.treasury || 0;
+    return fill(t.confirm.treasuryAfter, { before: before.toLocaleString(), after: (before - cost).toLocaleString() });
+  };
+
   // Ingaggio dal Team Roster: profilo, costo e limiti li decide il server (p. 99)
   const handleHireFromRoster = async (e: React.FormEvent) => {
     e.preventDefault();
+    const position = getRoster(team?.roster)?.positions.find(p => p.key === hireForm.position_key);
+    if (!position) return;
+    if (!await confirm({
+      title: t.confirm.hireTitle, confirmLabel: t.confirm.hireOk,
+      message: `${fill(t.confirm.hirePlayer, { name: hireForm.name, role: position.name, cost: position.cost.toLocaleString() })}\n${treasuryAfter(position.cost)}`,
+    })) return;
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/players', {
@@ -401,7 +440,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   };
 
   // Staff e Team Re-roll pagati dalla Treasury (p. 90)
-  const handleStaff = async (item: string, action: 'hire' | 'fire') => {
+  const handleStaff = async (item: string, action: 'hire' | 'fire', label: string, cost: number) => {
+    const ok = action === 'hire'
+        ? await confirm({
+          title: t.confirm.buyTitle, confirmLabel: t.confirm.buyOk,
+          message: `${fill(t.confirm.buyStaff, { item: label, cost: cost.toLocaleString() })}\n${treasuryAfter(cost)}`,
+        })
+        : await confirm({ message: fill(t.confirm.fireStaff, { item: label }), confirmLabel: t.confirm.fireOk, danger: true });
+    if (!ok) return;
     setStaffBusy(true);
     try {
       const res = await fetch(`/api/teams/${id}/staff`, {
@@ -417,6 +463,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleTempRetire = async (player: Player) => {
+    if (!await confirm(fill(isTrue(player.temp_retired) ? t.confirm.unretire : t.confirm.retire, { name: player.name }))) return;
     const res = await fetch(`/api/players/${player.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -428,7 +475,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleDeletePlayer = async (playerId: string, name: string) => {
-    if (!confirm(t.teamDetail.confirmFire.replace('{playerName}', name))) return;
+    if (!await confirm({
+      title: t.confirm.fireTitle, message: fill(t.teamDetail.confirmFire, { playerName: name }),
+      confirmLabel: t.confirm.fireOk, danger: true,
+    })) return;
     try {
       const res = await fetch(`/api/players/${playerId}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
@@ -449,6 +499,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleSavePlayerEdit = async (playerId: string) => {
+    if (!await confirm({ message: fill(t.confirm.savePlayer, { name: editPlayerForm.name }), confirmLabel: t.confirm.saveOk })) return;
     try {
       const res = await fetch(`/api/players/${playerId}`, {
         method: 'PUT',
@@ -675,11 +726,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 ]).filter(s => s.allowed).map(s => (
                     <span key={s.item} className={`chamfer ${styles.staffItem}`}>
                       <span>{s.label}: <strong>{s.count}/{s.max}</strong></span>
-                      <button type="button" className="btn btn-navy" disabled={locked || staffBusy || s.count >= s.max || (team.treasury || 0) < s.cost} onClick={() => handleStaff(s.item, 'hire')}>
+                      <button type="button" className="btn btn-navy" disabled={locked || staffBusy || s.count >= s.max || (team.treasury || 0) < s.cost} onClick={() => handleStaff(s.item, 'hire', s.label, s.cost)}>
                         {t.rules.buy} {s.cost.toLocaleString()}
                       </button>
                       {s.canFire && (
-                          <button type="button" className="btn" disabled={locked || staffBusy || s.count <= 0} onClick={() => handleStaff(s.item, 'fire')}>{t.rules.fire}</button>
+                          <button type="button" className="btn" disabled={locked || staffBusy || s.count <= 0} onClick={() => handleStaff(s.item, 'fire', s.label, s.cost)}>{t.rules.fire}</button>
                       )}
                     </span>
                 ))}

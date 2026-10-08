@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Dices, Minus, Plus, Radio, RotateCcw, Smartphone, Undo2, WifiOff } from 'lucide-react';
 import LiveScoreboard from '@/components/live/LiveScoreboard';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffHeadline, type ManualKickoffDice } from '@/lib/live/kickoff';
@@ -43,6 +44,7 @@ const statLine = (stats: Partial<Record<string, number>>) =>
   Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${n} ${STAT_SHORT[k] ?? k}`).join(', ');
 
 export default function LiveBoard({ match, live }: { match: MatchDetails; live: Live }) {
+  const confirm = useConfirm();
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const { state, events } = live;
@@ -125,7 +127,7 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
                   <span className={styles.what}>{describe(e)}</span>
                   {undoable(e) && !ended && (
                       <button type="button" className={`btn ${styles.small}`} title={L('Annulla', 'Undo')}
-                        onClick={() => { if (confirm(L(`Annullare "${describe(e)}"?`, `Undo "${describe(e)}"?`))) live.send('undo', null, { event_id: e.id }); }}>
+                        onClick={async () => { if (await confirm(L(`Annullare "${describe(e)}"?`, `Undo "${describe(e)}"?`))) live.send('undo', null, { event_id: e.id }); }}>
                         <Undo2 size={15} aria-hidden="true" /> {L('Annulla', 'Undo')}
                       </button>
                   )}
@@ -137,8 +139,8 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
         {allPaired && connect}
 
         <div className={styles.danger}>
-          <button type="button" className={`btn ${styles.small}`} onClick={() => {
-            if (confirm(L('Azzerare la partita dal vivo? Si perdono cronologia e collegamenti dei telefoni. Il referto non cambia.', 'Reset the live match? The timeline and phone connections are lost. The match report does not change.'))) live.reset();
+          <button type="button" className={`btn ${styles.small}`} onClick={async () => {
+            if (await confirm(L('Azzerare la partita dal vivo? Si perdono cronologia e collegamenti dei telefoni. Il referto non cambia.', 'Reset the live match? The timeline and phone connections are lost. The match report does not change.'))) live.reset();
           }}><RotateCcw size={15} aria-hidden="true" /> {L('Azzera il live', 'Reset the live match')}</button>
         </div>
       </section>
@@ -148,6 +150,7 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
 // Collegamento dei telefoni: QR, codice sulla placca d'ottone, stato delle due squadre.
 // Finché manca un telefono sta in alto; con tutti e due collegati scende in fondo, chiuso.
 function ConnectPanel({ live, teamIds, teamName, L }: { live: Live; teamIds: string[]; teamName: (id: string | null) => string; L: Tr }) {
+  const confirm = useConfirm();
   const info = live.live!;
   const allPaired = teamIds.every(id => info.paired[id]);
   const body = (
@@ -171,8 +174,8 @@ function ConnectPanel({ live, teamIds, teamName, L }: { live: Live; teamIds: str
                   {info.paired[id] ? L('Collegato', 'Connected') : L('In attesa', 'Waiting')}
                 </span>
                 {info.paired[id] && (
-                    <button type="button" className={`btn ${styles.small}`} onClick={() => {
-                      if (confirm(L(`Scollegare il telefono di ${teamName(id)}? Potrà ricollegarsi col codice.`, `Disconnect ${teamName(id)}'s phone? It can reconnect with the code.`))) live.unpair(id);
+                    <button type="button" className={`btn ${styles.small}`} onClick={async () => {
+                      if (await confirm(L(`Scollegare il telefono di ${teamName(id)}? Potrà ricollegarsi col codice.`, `Disconnect ${teamName(id)}'s phone? It can reconnect with the code.`))) live.unpair(id);
                     }}>{L('Scollega', 'Disconnect')}</button>
                 )}
               </li>
@@ -423,6 +426,7 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
 }
 
 function HalfControls({ match, live, teamName, L }: { match: MatchDetails; live: Live; teamName: (id: string | null) => string; L: Tr }) {
+  const confirm = useConfirm();
   const { state } = live;
   const [kicking, setKicking] = useState('');
   const tied = state.teams[match.home_team_id]?.score === state.teams[match.away_team_id]?.score;
@@ -435,7 +439,7 @@ function HalfControls({ match, live, teamName, L }: { match: MatchDetails; live:
     const ask = over ? L('Iniziare il secondo tempo? I Team Re-roll tornano pieni (p. 33).', 'Start the second half? Team Re-rolls are replenished (p. 33).') : early(L('Iniziare il secondo tempo', 'Start the second half'));
     return (
         <div className={wz.actions}>
-          <button type="button" className={over ? 'btn btn-primary' : 'btn'} onClick={() => { if (confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) }); }}>
+          <button type="button" className={over ? 'btn btn-primary' : 'btn'} onClick={async () => { if (await confirm(ask)) live.send('half_started', null, { half: 2, ...(over ? {} : { force: true }) }); }}>
             {L('Inizia il secondo tempo', 'Start the second half')}
           </button>
         </div>
@@ -448,8 +452,8 @@ function HalfControls({ match, live, teamName, L }: { match: MatchDetails; live:
             <option value="">{L('Chi calcia? (roll-off, p. 83)', 'Who kicks? (roll-off, p. 83)')}</option>
             {[match.home_team_id, match.away_team_id].map(id => <option key={id} value={id}>{teamName(id)}</option>)}
           </select>
-          <button type="button" className={over ? 'btn btn-primary' : 'btn'} disabled={!kicking} onClick={() => {
-            if (over || confirm(early(L('Iniziare i supplementari', 'Start extra time')))) {
+          <button type="button" className={over ? 'btn btn-primary' : 'btn'} disabled={!kicking} onClick={async () => {
+            if (over || await confirm(early(L('Iniziare i supplementari', 'Start extra time')))) {
               live.send('half_started', null, { half: EXTRA_TIME_HALF, kicking_team_id: kicking, ...(over ? {} : { force: true }) });
             }
           }}>
