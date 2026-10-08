@@ -967,11 +967,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 <div className={styles.grid3Col}>
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>{t.teamDetail.treasury}</label>
-                    <input type="number" min="0" step="10000" value={editForm.treasury} onChange={e => setEditForm({...editForm, treasury: parseInt(e.target.value) || 0})} className={styles.inputField} />
+                    <input type="number" min="0" step="5000" value={editForm.treasury} onChange={e => setEditForm({...editForm, treasury: parseInt(e.target.value) || 0})} className={styles.inputField} />
                   </div>
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>{t.teamDetail.bank}</label>
-                    <input type="number" min="0" step="10000" value={editForm.bank} onChange={e => setEditForm({...editForm, bank: parseInt(e.target.value) || 0})} className={styles.inputField} />
+                    <input type="number" min="0" step="5000" value={editForm.bank} onChange={e => setEditForm({...editForm, bank: parseInt(e.target.value) || 0})} className={styles.inputField} />
                   </div>
                 </div>
 
