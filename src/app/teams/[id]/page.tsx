@@ -13,7 +13,7 @@ import styles from './TeamDetails.module.css';
 import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, SKILL_CATEGORY_LETTERS, categoryLetters, categoryName, isEliteSkill, skillsForCategories } from '@/lib/advancement';
 import { CHARACTERISTIC_VALUES, parseCharacteristic, statLabel, type Characteristics, type StatKey } from '@/lib/characteristics';
 import { isTrue, type Coach, type Player, type Skill, type TeamWithPlayers } from '@/lib/types';
-import { ROSTERS, favouredOptions, getRoster, type SkillCategory } from '@/lib/rosters';
+import { ROSTERS, TIER_LIST_SOURCE, favouredOptions, getRoster, rosterTier, type SkillCategory } from '@/lib/rosters';
 import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
 import { mustAdvance } from '@/lib/players';
 import PostgamePanel from './PostgamePanel';
@@ -479,6 +479,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   // Team Value e Current Team Value calcolati dal server (src/lib/teamValue.ts, p. 91)
   const totalValue = team.tv;
   const roster = getRoster(team.roster);
+  const teamTier = rosterTier(roster);
   // Post-partita concluso (p. 95): rosa e staff si toccano di nuovo dopo la prossima partita
   const locked = team.postgame_phase === 'closed';
   const editRoster = getRoster(editForm.roster);
@@ -512,6 +513,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           : <span>—</span>,
     },
     { label: t.rules.teamRoster, value: roster ? `${roster.name} (p. ${roster.page})` : <span>{t.rules.linkRoster}</span> },
+    ...(teamTier ? [{ label: t.rules.tier, value: <span title={t.rules.tierNote.replace('{tier}', String(teamTier)).replace('{source}', TIER_LIST_SOURCE)}>{teamTier}</span> }] : []),
     ...(team.team_league ? [{ label: t.rules.league, value: team.team_league }] : []),
     ...(team.favoured_of ? [{ label: t.rules.favouredOf, value: team.favoured_of }] : []),
     {

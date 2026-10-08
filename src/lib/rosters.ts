@@ -420,6 +420,23 @@ export const ROSTERS: Roster[] = [
 
 export const getRoster = (key: string | null | undefined) => ROSTERS.find(r => r.key === key) ?? null;
 
+// Team Tiers (p. 156): quattro fasce che dicono quanto è impegnativa una squadra. In League Play sono solo
+// un'indicazione; gli Skill Points per tier valgono in Matched Play (pp. 111-112), che la lega non usa.
+// La lista non è nel libro: è nel Designers' Commentary di warhammer-community.com e cambia a ogni rilascio.
+export type TeamTier = 1 | 2 | 3 | 4;
+export const TIER_LIST_SOURCE = "Designers' Commentary, May 2026";
+
+const TEAM_TIERS: Record<string, TeamTier> = {
+  'amazon': 1, 'chaos-dwarf': 1, 'dark-elf': 1, 'lizardmen': 1, 'norse': 1, 'wood-elf': 1,
+  'bretonnian': 2, 'dwarf': 2, 'elven-union': 2, 'human': 2, 'imperial-nobility': 2, 'necromantic-horror': 2,
+  'old-world-alliance': 2, 'skaven': 2,
+  'black-orc': 3, 'chaos-chosen': 3, 'chaos-renegade': 3, 'goblin': 3, 'halfling': 3, 'khorne': 3, 'nurgle': 3,
+  'orc': 3, 'shambling-undead': 3, 'tomb-kings': 3, 'underworld-denizens': 3, 'vampire': 3,
+  'gnome': 4, 'ogre': 4, 'snotling': 4,
+};
+
+export const rosterTier = (roster: Roster | null): TeamTier | null => (roster ? TEAM_TIERS[roster.key] ?? null : null);
+
 export const getPosition = (roster: Roster | null, positionKey: string | null | undefined) =>
   roster?.positions.find(pos => pos.key === positionKey) ?? null;
 

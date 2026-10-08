@@ -10,7 +10,7 @@ import styles from './NewTeam.module.css';
 import CoachPicker, { coachChoicePayload, emptyCoachChoice, isCoachChoiceComplete } from '@/components/CoachPicker';
 import { useSeason } from '@/lib/SeasonContext';
 import type { Coach } from '@/lib/types';
-import { ROSTERS, favouredOptions, getRoster, hasRule } from '@/lib/rosters';
+import { ROSTERS, TIER_LIST_SOURCE, favouredOptions, getRoster, hasRule, rosterTier } from '@/lib/rosters';
 import { DRAFT_BUDGET, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
 import { checkDraft, type DraftInput } from '@/lib/draft';
 
@@ -251,6 +251,7 @@ export default function NewTeamPage() {
                     {[...roster.specialRules.map(r => (r === 'Favoured of' && favouredOf ? `Favoured of ${favouredOf}` : r === 'Brawlin Brutes' ? "Brawlin' Brutes" : r)),
                       ...(roster.favouredIfLeague && favouredOf ? [`Favoured of ${favouredOf}`] : [])].join(', ') || t.rules.none}
                     {' · '}Apothecary: {roster.apothecary ? 'YES' : 'NO'}
+                    {rosterTier(roster) && <><br />{t.rules.tierNote.replace('{tier}', String(rosterTier(roster))).replace('{source}', TIER_LIST_SOURCE)}</>}
                   </p>
               )}
 

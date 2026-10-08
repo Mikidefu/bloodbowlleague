@@ -8,6 +8,7 @@ import { PRAYER_DIE, getPrayer, targetCount, type PrayerResult } from '@/lib/pra
 import { isTrue, type MatchDetails, type MatchTeam } from '@/lib/types';
 import { isUnranked } from '@/lib/matchTypes';
 import DiceRoll, { diceDone, diceTotal, emptyDice, type DiceValues } from '@/components/match/DiceRoll';
+import { rosterTier } from '@/lib/rosters';
 import { Facts, WizardStepCard, WizardSteps, rich, type FactRow } from '@/components/match/Wizard';
 import wz from '@/components/match/Wizard.module.css';
 import PrayerList, { prayerEffectText } from '@/components/match/PrayerList';
@@ -230,6 +231,8 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                   'The pre-game sequence gets both teams ready before kick-off. The app walks you through it one step at a time: fans, weather, **Journeymen**, inducements and who kicks.'),
                 L('Per ogni tiro puoi usare i dadi veri e scrivere quello che è uscito, oppure premere **Tira**. Se devi ripetere un tiro premi **Ritira**. Niente viene salvato finché non confermi l\'ultimo passo.',
                   'For every roll you can use real dice and type what came up, or press **Roll**. If a roll has to be repeated, press **Re-roll**. Nothing is saved until you confirm the last step.'),
+                L('Il **Tier** di ogni squadra indica solo quanto è impegnativa da allenare (p. 156): in lega non cambia tifosi, incentivi né **Petty Cash**.',
+                  'The **Tier** of each team is only a rough guide to how hard it is to coach (p. 156): in a league it changes neither fans, inducements nor **Petty Cash**.'),
                 ...(unranked ? [L('È una **Non classificata**: il pre-partita è quello di campionato, ma gli incentivi si pagano sulla carta (la **Treasury** non scende) e i **Journeymen** valgono solo per questa partita. Il post-partita di lega delle due squadre non conta e non viene toccato.',
                   'This is an **Unranked** match: the pre-game is the league one, but inducements are paid on paper (the **Treasury** does not go down) and **Journeymen** are only for this match. The league post-game of both teams does not matter and is left untouched.')] : []),
               ]}
@@ -246,6 +249,7 @@ export default function PregameWizard({ match, onSaved }: { match: MatchDetails;
                         ['Dedicated Fans', team.dedicated_fans],
                         ['Treasury', `${gp(p.treasury)} gp`],
                         ['CTV', `${gp(team.ctv)} gp`],
+                        ...(rosterTier(p.roster) ? [['Tier', rosterTier(p.roster)] as FactRow] : []),
                       ])}
                       {p.unavailable.length > 0 && (
                           <p className={wz.note}>{L('Non giocano', 'Not playing')}: {p.unavailable.map(pl => `${pl.name} (${pl.unavailable === 'mng' ? 'MNG' : 'TR'})`).join(', ')}</p>

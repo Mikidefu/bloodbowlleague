@@ -4,6 +4,7 @@ import { INDUCEMENTS } from '@/lib/leagueRules';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
 import { getStarHire } from '@/lib/starPlayers';
 import { getPrayer } from '@/lib/prayers';
+import { getRoster, rosterTier } from '@/lib/rosters';
 import { isUnranked } from '@/lib/matchTypes';
 import { prayerEffectText, matchPrayerPlayer } from '@/components/match/PrayerList';
 import type { MatchDetails } from '@/lib/types';
@@ -43,6 +44,7 @@ export default function PregamePanel({ match }: { match: MatchDetails }) {
             return (
                 <div key={team!.id} className={styles.rulesTeam}>
                   <strong className={styles.rulesTeamName}>{team!.name}</strong>
+                  {rosterTier(getRoster(team!.roster)) && <span>{t.rules.tier}: <strong>{rosterTier(getRoster(team!.roster))}</strong></span>}
                   <span>{t.rules.fanFactor}: <strong>{report?.fan_factor ?? '—'}</strong> ({t.rules.dedicatedFans} + D3 {report?.fair_weather ?? '—'})</span>
                   <span>{t.rules.ctv}: <strong>{gp(report?.ctv ?? 0)}</strong></span>
                   <span>
