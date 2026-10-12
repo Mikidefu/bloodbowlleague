@@ -48,8 +48,10 @@
   --font-read: 'Source Serif 4', 'Source Serif Pro', Georgia, serif; /* testi lunghi da leggere (tutorial) */
 
   /* --- Superfici e texture --- */
-  --tex-grain: url('/brand/grain.svg');
-  --tex-grunge: url('/brand/grunge.svg');
+  /* Raster generati da `npm run textures`: gli SVG con feTurbulence usati come sfondo
+     fanno scattare lo scroll sui telefoni (il rumore va ricalcolato a ogni ridisegno) */
+  --tex-grain: url('/brand/grain.webp');
+  --tex-grunge: url('/brand/grunge.webp');
   --shadow-print: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 10px 24px -12px rgba(0, 0, 0, 0.65);
   --shadow-hard: 5px 5px 0 rgba(0, 0, 0, 0.45);
   --radius: 2px;
@@ -101,13 +103,6 @@ body {
   line-height: 1.55;
   color: var(--bb-parchment);
   background-color: var(--bb-slate-800);
-  background-image:
-    var(--tex-grunge),
-    radial-gradient(ellipse at 50% -10%, rgba(154, 34, 38, 0.35), transparent 60%),
-    linear-gradient(180deg, var(--bb-slate-800), var(--bb-slate-900));
-  background-size: 900px, 100% 900px, 100% 100%;
-  background-repeat: repeat, no-repeat, no-repeat;
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -121,7 +116,7 @@ body {
   container-type: inline-size;
 }
 
-/* Vignettatura da stadio e grana di stampa sopra a tutto */
+/* Fondo della pagina con vignettatura da stadio, e grana di stampa sopra a tutto */
 body::before,
 body::after {
   content: '';
@@ -130,11 +125,20 @@ body::after {
   pointer-events: none;
 }
 
+/* Il fondo sta su un livello fisso e non in background-attachment: fixed, che su mobile
+   viene ridisegnato a ogni scroll. Alto quanto lo schermo senza barre del browser (lvh):
+   non cambia misura quando la barra degli indirizzi sparisce. */
 body::before {
   z-index: -1;
+  bottom: auto;
+  height: 100vh;
+  height: 100lvh;
   background:
     radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 214, 140, 0.07), transparent 70%),
-    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%),
+    var(--tex-grunge) 0 0 / 900px,
+    radial-gradient(ellipse at 50% -10%, rgba(154, 34, 38, 0.35), transparent 60%) 0 0 / 100% 900px no-repeat,
+    linear-gradient(180deg, var(--bb-slate-800), var(--bb-slate-900));
 }
 
 body::after {
@@ -856,5 +860,29 @@ main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* ================================================================== */
+/*  TELEFONI E TABLET: via gli effetti che fanno scattare lo scroll    */
+/* ================================================================== */
+@media (pointer: coarse) {
+  /* Il velo di grana in mix-blend-mode obbliga a rifondere tutta la pagina a ogni frame;
+     i pannelli hanno già la loro grana */
+  body::after {
+    display: none;
+  }
+
+  /* La sfocatura dello sfondo va ricalcolata a ogni frame: restano i fondi semitrasparenti */
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* L'ingresso animato mette ogni blocco di pagina su un livello a parte e lo ridisegna a fine corsa */
+  main.container > * {
+    animation: none;
   }
 }

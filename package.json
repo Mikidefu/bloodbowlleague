@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/test-register.mjs --test \"src/**/*.test.ts\"",
     "art": "node scripts/prepare-art.mjs",
-    "dice": "node scripts/make-dice.mjs"
+    "dice": "node scripts/make-dice.mjs",
+    "textures": "node scripts/make-textures.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

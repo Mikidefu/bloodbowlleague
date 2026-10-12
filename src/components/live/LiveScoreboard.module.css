@@ -187,8 +187,9 @@
   animation: onAir 1.6s var(--ease-out) infinite;
 }
 
+/* Solo opacity: animare anche l'ombra ridisegna il tabellone a ogni frame */
 @keyframes onAir {
-  50% { opacity: 0.25; box-shadow: none; }
+  50% { opacity: 0.25; }
 }
 
 @media (prefers-reduced-motion: reduce) {

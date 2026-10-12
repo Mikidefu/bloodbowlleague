@@ -95,6 +95,13 @@
   to { transform: scale(1.06) translateY(-1%); }
 }
 
+/* Sui telefoni la foto resta ferma: lo zoom continuo tiene occupata la GPU per tutta la copertina */
+@media (pointer: coarse) {
+  .heroBgPhoto {
+    animation: none;
+  }
+}
+
 .heroShards {
   z-index: -2;
 }
