@@ -1,7 +1,7 @@
 // Kick-off Event (p. 48) con dadi decisi dal test: npm test
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { resolveKickoff, validateManualDice, type KickoffInput } from './kickoff';
+import { kickoffForTeam, kickoffRolls, manualDiceMissing, resolveKickoff, validateManualDice, type KickoffInput } from './kickoff';
 import type { LiveTeamSetup } from './types';
 
 const H = 'home-team';
@@ -78,5 +78,39 @@ describe('resolveKickoff', () => {
     assert.ok(validateManualDice({ rolls: { other: 3 } }, [A, H]));
     assert.ok(validateManualDice({ d3: 4 }, [A, H]));
     assert.equal(validateManualDice({ dice: [6, 6], rolls: { [A]: 1 }, d3: 2 }, [A, H]), null);
+  });
+});
+
+describe('kick-off coi dadi del tavolo', () => {
+  test('servono tutti i dadi che il risultato fa tirare', () => {
+    const ids = [A, H];
+    assert.ok(manualDiceMissing(undefined, ids));
+    assert.equal(manualDiceMissing({ dice: [2, 3] }, ids), null);                               // High Kick: solo il 2D6
+    assert.ok(manualDiceMissing({ dice: [3, 4] }, ids));                                        // Brilliant Coaching: mancano i D6
+    assert.ok(manualDiceMissing({ dice: [3, 4], rolls: { [A]: 2 } }, ids));
+    assert.equal(manualDiceMissing({ dice: [3, 4], rolls: { [A]: 2, [H]: 5 } }, ids), null);
+    assert.ok(manualDiceMissing({ dice: [6, 6], rolls: { [A]: 2, [H]: 5 } }, ids));             // Pitch Invasion: manca il D3
+    assert.equal(manualDiceMissing({ dice: [6, 6], rolls: { [A]: 2, [H]: 5 }, d3: 2 }, ids), null);
+    assert.ok(manualDiceMissing({ dice: [4, 4] }, ids));                                        // Changing Weather: manca il Meteo
+    assert.equal(manualDiceMissing({ dice: [4, 4], weather: [3, 4] }, ids), null);
+  });
+
+  test('i tiri si leggono riga per riga, con i modificatori', () => {
+    const r = resolveKickoff(input({ assistant_coaches: 2 }, {}, { manual: { dice: [3, 4], rolls: { [A]: 5, [H]: 4 } } }), dice());
+    assert.deepEqual(kickoffRolls(r, id => id, 'it'), [`${A}: D6 5 + 0 Assistant Coaches = 5`, `${H}: D6 4 + 2 Assistant Coaches = 6`]);
+    const charge = resolveKickoff(input({}, {}, { manual: { dice: [5, 5], d3: 2 } }), dice());
+    assert.deepEqual(kickoffRolls(charge, id => id, 'it'), ['D3 2 + 3 = 5 giocatori']);
+  });
+
+  test('cosa vuol dire per la mia squadra', () => {
+    const coaching = resolveKickoff(input({ assistant_coaches: 2 }, {}, { manual: { dice: [3, 4], rolls: { [A]: 5, [H]: 4 } } }), dice());
+    assert.equal(kickoffForTeam(coaching, H)?.tone, 'good');
+    assert.equal(kickoffForTeam(coaching, A), null);
+    const charge = resolveKickoff(input({}, {}, { manual: { dice: [5, 5], d3: 2 } }), dice());
+    assert.equal(kickoffForTeam(charge, A)?.tone, 'act');     // calcia A
+    assert.equal(kickoffForTeam(charge, H), null);
+    const invasion = resolveKickoff(input({}, {}, { manual: { dice: [6, 6], rolls: { [A]: 1, [H]: 6 }, d3: 3 } }), dice());
+    assert.equal(kickoffForTeam(invasion, A)?.tone, 'bad');
+    assert.match(kickoffForTeam(invasion, A)!.text, /^3 /);
   });
 });

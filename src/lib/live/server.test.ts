@@ -68,6 +68,9 @@ describe('partita dal vivo sul database', () => {
   test('kick-off: solo chi calcia, uno solo per drive anche se chiesto due volte insieme', async () => {
     const home: Actor = { role: 'companion', teamId: H };
     await rejected(server.rollKickoff(MATCH, home, randomUUID()), 403);
+    // Nemmeno l'admin fa tirare il sito: senza i dadi del tavolo (tutti) il kick-off non passa
+    await rejected(server.rollKickoff(MATCH, admin, randomUUID()), 400);
+    await rejected(server.rollKickoff(MATCH, admin, randomUUID(), { dice: [3, 4] }), 400);
     const away: Actor = { role: 'companion', teamId: A };
     const results = await Promise.allSettled([
       server.rollKickoff(MATCH, away, randomUUID(), { dice: [3, 4], rolls: { [A]: 2, [H]: 2 } }),

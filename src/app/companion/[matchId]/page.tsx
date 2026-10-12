@@ -4,13 +4,13 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellOff, ChevronRight, Dices, LogOut, Sun, Undo2, Users, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, ChevronRight, LogOut, Sun, Undo2, Users, WifiOff, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
-import { kickoffHeadline } from '@/lib/live/kickoff';
+import type { ManualKickoffDice } from '@/lib/live/kickoff';
 import { noticesFor, type Notice } from '@/lib/live/notify';
 import { whyNot } from '@/lib/live/rules';
 import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type StatEvent } from '@/lib/live/types';
@@ -23,6 +23,7 @@ import LiveScoreboard from '@/components/live/LiveScoreboard';
 import LangSwitch from '../LangSwitch';
 import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
+import { KickoffCard, KickoffEntry } from './Kickoff';
 import RosterSlide, { useRosterView } from './Roster';
 import styles from '../Companion.module.css';
 import rosterStyles from './Roster.module.css';
@@ -66,8 +67,6 @@ function Board({ session }: { session: CompanionSession }) {
   const [match, setMatch] = useState<MatchDetails | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [picking, setPicking] = useState<StatEvent | null>(null);
-  const [manual, setManual] = useState(false);
-  const [dice, setDice] = useState(['', '']);
   const [cooling, setCooling] = useState(false);
   // Il Board si monta solo nel browser (dopo aver letto la sessione), quindi localStorage qui c'è
   const [wake, setWake] = useState(() => { try { return localStorage.getItem(WAKE_KEY) === '1'; } catch { return false; } });
@@ -188,12 +187,10 @@ function Board({ session }: { session: CompanionSession }) {
   const prayerTeams = match ? [myTeam, ...(oppId ? [oppId] : [])].map(id => ({ id, prayers: parsePrayers(match.reports.find(r => r.team_id === id)?.prayers) })).filter(t => t.prayers.length) : [];
   const prayersByTeam = Object.fromEntries(prayerTeams.map(t => [t.id, t.prayers]));
 
-  const rollKickoff = async () => {
-    const values = manual && dice.every(d => /^[1-6]$/.test(d)) ? { dice: [Number(dice[0]), Number(dice[1])] as [number, number] } : undefined;
-    const status = await live.kickoff(values);
-    if (status === 'duplicate') setNotices(list => [...list, { id: `dup-${Date.now()}`, text: L('Il kick-off era già stato tirato: vale quello.', 'The kick-off had already been rolled: that one stands.'), tone: 'neutral' as const }].slice(-3));
-    setManual(false);
-    setDice(['', '']);
+  // I dadi sono sempre quelli tirati al tavolo: il sito registra il risultato e ne applica gli effetti
+  const recordKickoff = async (dice: ManualKickoffDice) => {
+    const status = await live.kickoff(dice);
+    if (status === 'duplicate') setNotices(list => [...list, { id: `dup-${Date.now()}`, text: L('Il kick-off era già stato registrato: vale quello.', 'The kick-off had already been recorded: that one stands.'), tone: 'neutral' as const }].slice(-3));
   };
   const record = (type: StatEvent, playerId: string | null) => {
     live.send(type, myTeam, playerId ? { player_id: playerId } : {});
@@ -249,26 +246,7 @@ function Board({ session }: { session: CompanionSession }) {
             </section>
         )}
 
-        {!ended && iKick && (
-            <section className={`panel-blood ${styles.kick}`}>
-              <h2 className={styles.kickTitle}>{L(`Tocca a te: kick-off del drive ${state.drive + 1}`, `Your turn: drive ${state.drive + 1} kick-off`)}</h2>
-              <p className={styles.help}>{L('Dopo la deviazione del calcio, con la palla in aria (p. 48).', 'After the kick deviates, with the ball in the air (p. 48).')}</p>
-              {manual && (
-                  <div className={styles.diceRow}>
-                    {[0, 1].map(i => (
-                        <input key={i} className={styles.die} inputMode="numeric" maxLength={1} placeholder="?" aria-label={`D6 ${i + 1}`} value={dice[i]}
-                          onChange={e => { const v = e.target.value.replace(/[^1-6]/g, ''); setDice(d => d.map((x, j) => (j === i ? v : x))); }} />
-                    ))}
-                  </div>
-              )}
-              <button type="button" className={`btn btn-gold ${styles.big}`} onClick={rollKickoff} disabled={manual && !dice.every(d => /^[1-6]$/.test(d))}>
-                <Dices size={24} /> {manual ? L('Registra i dadi', 'Record the dice') : L('Tira il kick-off', 'Roll the kick-off')}
-              </button>
-              <button type="button" className={`btn ${styles.wide}`} onClick={() => setManual(m => !m)}>
-                {manual ? L('Tira il sito', 'Let the site roll') : L('Ho tirato i dadi al tavolo', 'I rolled the dice at the table')}
-              </button>
-            </section>
-        )}
+        {!ended && iKick && <KickoffEntry state={state} teamName={teamName} language={language} onRecord={recordKickoff} />}
         {!ended && state.status === 'awaiting_kickoff' && state.turns_done && (
             <p className={styles.notice}>{state.half === 1
               ? L('Primo tempo finito: si riparte col secondo tempo.', 'First half over: the second half is next.')
@@ -278,7 +256,7 @@ function Board({ session }: { session: CompanionSession }) {
             <p className={styles.notice}>{L(`In attesa del kick-off di ${teamName(state.kicking_team_id)}.`, `Waiting for ${teamName(state.kicking_team_id)}'s kick-off.`)}</p>
         )}
         {state.last_kickoff && inDrive && (
-            <p className={styles.kickLine}><Dices size={16} aria-hidden="true" /> {kickoffHeadline(state.last_kickoff, teamName, language)}</p>
+            <KickoffCard key={state.last_kickoff.event_id} kickoff={state.last_kickoff} myTeam={myTeam} teamName={teamName} language={language} />
         )}
 
         {me && !ended && (

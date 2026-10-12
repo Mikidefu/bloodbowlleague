@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
-import { kickoffHeadline, type ManualKickoffDice } from '@/lib/live/kickoff';
+import { kickoffExtraDice, kickoffHeadline, kickoffRolls, type ManualKickoffDice } from '@/lib/live/kickoff';
 import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, type StatEvent } from '@/lib/live/types';
 import { whyNot } from '@/lib/live/rules';
 import type { useLiveMatch } from '@/lib/live/useLiveMatch';
@@ -37,8 +37,6 @@ const STAT_BUTTONS: { type: StatEvent; label: string; title: { it: string; en: s
 const STAT_SHORT: Record<string, string> = {
   touchdowns: 'TD', casualties: 'CAS', completions: 'CMP', interceptions: 'INT', ttm: 'TTM', landings: 'ATT', catches: 'PRESE', crowd_cas: 'CAS PUB', foul_cas: 'CAS FOUL',
 };
-const NEEDS_ROLLS = [6, 7, 11, 12];
-const NEEDS_D3 = [4, 9, 10, 12];
 
 const statLine = (stats: Partial<Record<string, number>>) =>
   Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${n} ${STAT_SHORT[k] ?? k}`).join(', ');
@@ -208,7 +206,6 @@ function Problems({ live, L, teamName }: { live: Live; L: Tr; teamName: (id: str
 function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live: Live; teamName: (id: string | null) => string; L: Tr }) {
   const { language } = useLanguage();
   const { state } = live;
-  const [manual, setManual] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dice, setDice] = useState<Record<string, string>>({});
   const k = state.last_kickoff;
@@ -217,23 +214,29 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
   const total = d('a') && d('b') ? d('a') + d('b') : 0;
   const receiving = state.kicking_team_id === match.home_team_id ? match.away_team_id : match.home_team_id;
 
-  const roll = async (values?: ManualKickoffDice) => {
+  // Il sito non tira niente: servono i due D6 e tutti i dadi che il risultato fa tirare dopo
+  const extra = total ? kickoffExtraDice(total) : null;
+  const preview = total ? rowForTotal(getMatchTable('kickoff')!, total) : null;
+  const ready = !!total
+      && (!extra?.opposed || (d('kick') > 0 && d('recv') > 0))
+      && (!extra?.d3 || d('d3') > 0)
+      && (!extra?.weather || (d('w1') > 0 && d('w2') > 0));
+
+  const record = async () => {
+    const values: ManualKickoffDice = { dice: [d('a'), d('b')] };
+    if (extra?.opposed) values.rolls = { [state.kicking_team_id!]: d('kick'), [receiving]: d('recv') };
+    if (extra?.d3) values.d3 = d('d3');
+    if (extra?.weather) values.weather = [d('w1'), d('w2')];
     setBusy(true);
     const status = await live.kickoff(values);
     setBusy(false);
-    if (status === 'duplicate') alert(L('Il kick-off di questo drive era già stato tirato: vale quello.', 'The kick-off for this drive had already been rolled: that one stands.'));
-    if (status) { setManual(false); setDice({}); }
+    if (status === 'duplicate') alert(L('Il kick-off di questo drive era già stato registrato: vale quello.', 'The kick-off for this drive had already been recorded: that one stands.'));
+    if (status) setDice({});
   };
-
-  const submitManual = () => {
-    const values: ManualKickoffDice = { dice: [d('a'), d('b')] };
-    const rolls: Record<string, number> = {};
-    if (d('kick')) rolls[state.kicking_team_id!] = d('kick');
-    if (d('recv')) rolls[receiving] = d('recv');
-    if (Object.keys(rolls).length) values.rolls = rolls;
-    if (d('d3')) values.d3 = d('d3');
-    if (d('w1') && d('w2')) values.weather = [d('w1'), d('w2')];
-    roll(values);
+  const opposedLabel = (teamId: string) => {
+    const setup = state.setup?.teams[teamId];
+    const bonus = extra?.opposed?.label && setup ? ` + ${extra.opposed.modifier(setup)} ${extra.opposed.label}` : '';
+    return `${teamName(teamId)}: D6${bonus}`;
   };
 
   const die = (key: string, label: string, max = 6) => (
@@ -249,27 +252,25 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
                 <span className={wz.diceLabel}>
                   {L(`Kick-off del drive ${state.drive + 1}: calcia ${teamName(state.kicking_team_id)}`, `Drive ${state.drive + 1} kick-off: ${teamName(state.kicking_team_id)} kicks`)}
                 </span>
-                <span className={wz.diceActions}>
-                  <button type="button" className="btn btn-primary" disabled={busy} onClick={() => roll()}><Dices size={18} /> {L('Tira il kick-off', 'Roll the kick-off')}</button>
-                  <button type="button" className="btn" disabled={busy} onClick={() => setManual(m => !m)}>{L('Dadi del tavolo', 'Table dice')}</button>
-                </span>
               </div>
-              <p className={wz.diceHint}>{L('Il kick-off si tira dopo la deviazione del calcio, con la palla ancora in aria (p. 48). Può tirarlo anche il telefono della squadra che calcia.', 'The kick-off is rolled after the kick deviates, with the ball still in the air (p. 48). The kicking team\'s phone can roll it too.')}</p>
-              {manual && (
-                  <div className={styles.manual}>
-                    <div className={wz.diceRow}>{die('a', 'D6 1')}{die('b', 'D6 2')}{total > 0 && <span className={wz.diceTotal}>= {total}</span>}</div>
-                    {NEEDS_ROLLS.includes(total) && (
-                        <div className={wz.diceRow}>
-                          <span>{L('D6 di', 'D6 for')} {teamName(state.kicking_team_id)}</span>{die('kick', 'D6')}
-                          <span>{L('D6 di', 'D6 for')} {teamName(receiving)}</span>{die('recv', 'D6')}
-                        </div>
-                    )}
-                    {NEEDS_D3.includes(total) && <div className={wz.diceRow}><span>D3</span>{die('d3', 'D3', 3)}</div>}
-                    {total === 8 && <div className={wz.diceRow}><span>{L('Nuovo Meteo 2D6', 'New Weather 2D6')}</span>{die('w1', 'D6')}{die('w2', 'D6')}</div>}
-                    <p className={wz.diceHint}>{L('I dadi lasciati vuoti li tira il sito.', 'Dice left empty are rolled by the site.')}</p>
-                    <button type="button" className="btn btn-primary" disabled={busy || !total} onClick={submitManual}>{L('Registra il kick-off', 'Record the kick-off')}</button>
-                  </div>
-              )}
+              <p className={wz.diceHint}>{L('Il kick-off si tira al tavolo dopo la deviazione del calcio, con la palla ancora in aria (p. 48): scrivi qui i dadi, il sito non ne tira nessuno. Può registrarlo anche il telefono della squadra che calcia.', 'The kick-off is rolled at the table after the kick deviates, with the ball still in the air (p. 48): enter the dice here, the site rolls none of them. The kicking team\'s phone can record it too.')}</p>
+              <div className={styles.manual}>
+                <div className={wz.diceRow}>{die('a', 'D6 1')}{die('b', 'D6 2')}{total > 0 && <span className={wz.diceTotal}>= {total}{preview ? ` · ${preview.name}` : ''}</span>}</div>
+                {preview && <p className={wz.diceHint}>{preview.text[language]}</p>}
+                {extra?.opposed && (
+                    <div className={wz.diceRow}>
+                      <span>{opposedLabel(state.kicking_team_id!)}</span>{die('kick', `D6 ${teamName(state.kicking_team_id)}`)}
+                      <span>{opposedLabel(receiving)}</span>{die('recv', `D6 ${teamName(receiving)}`)}
+                    </div>
+                )}
+                {extra?.opposed?.mascotRerollsOne && [state.kicking_team_id!, receiving].some(id => state.setup?.teams[id]?.mascot) && (
+                    <p className={wz.diceHint}>{L('Team Mascot: un 1 naturale si ritira al tavolo, scrivi il dado finale.', 'Team Mascot: a natural 1 is re-rolled at the table, enter the final die.')}</p>
+                )}
+                {extra?.d3 && <div className={wz.diceRow}><span>D3</span>{die('d3', 'D3', 3)}</div>}
+                {extra?.weather && <div className={wz.diceRow}><span>{L('Nuovo Meteo 2D6', 'New Weather 2D6')}</span>{die('w1', L('Meteo D6 1', 'Weather D6 1'))}{die('w2', L('Meteo D6 2', 'Weather D6 2'))}</div>}
+                <button type="button" className="btn btn-primary" disabled={busy || !ready} onClick={record}><Dices size={18} /> {L('Registra il kick-off', 'Record the kick-off')}</button>
+                {total > 0 && !ready && <p className={wz.diceHint}>{L('Mancano dei dadi.', 'Some dice are missing.')}</p>}
+              </div>
             </div>
         )}
         {k && state.status !== 'awaiting_kickoff' && (
@@ -282,7 +283,7 @@ function KickoffPanel({ match, live, teamName, L }: { match: MatchDetails; live:
                 <span className={`tag tag-red ${styles.kickTag}`}>Kick-off · Drive {k.drive}</span>
               </span>
               <p>{kickoffHeadline(k, id => teamName(id), language)}</p>
-              {k.outcomes && <p className={styles.kickRolls}>{k.outcomes.map(o => `${teamName(o.team_id)}: ${o.rerolled ? `${o.rerolled} → ` : ''}${o.roll}${o.total !== o.roll ? ` → ${o.total}` : ''}`).join(' · ')}</p>}
+              {kickoffRolls(k, id => teamName(id), language).map((line, i) => <p key={i} className={styles.kickRolls}>{line}</p>)}
               <p className={styles.kickRolls}>{rowForTotal(getMatchTable('kickoff')!, k.total)?.text[language]}</p>
             </div>
         )}

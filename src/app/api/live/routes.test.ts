@@ -69,7 +69,13 @@ describe('/api/live', () => {
     const noToken = await call(`/api/live/${MATCH}/events`, events.POST, { body: { id: randomUUID(), type: 'casualty' } });
     assert.equal(noToken.status, 401);
 
-    const kick = await call(`/api/live/${MATCH}/kickoff?since=0`, kickoff.POST, { token: awayToken, body: { id: randomUUID() } });
+    // Il kick-off non si tira dal sito: servono i dadi del tavolo, tutti
+    const auto = await call(`/api/live/${MATCH}/kickoff?since=0`, kickoff.POST, { token: awayToken, body: { id: randomUUID() } });
+    assert.equal(auto.status, 400);
+    const partial = await call(`/api/live/${MATCH}/kickoff?since=0`, kickoff.POST, { token: awayToken, body: { id: randomUUID(), manual: { dice: [3, 4] } } });
+    assert.equal(partial.status, 400);
+
+    const kick = await call(`/api/live/${MATCH}/kickoff?since=0`, kickoff.POST, { token: awayToken, body: { id: randomUUID(), manual: { dice: [2, 3] } } });
     assert.equal(kick.status, 200);
     assert.equal(kick.json.status, 'ok');
     assert.equal(kick.json.state.status, 'in_drive');

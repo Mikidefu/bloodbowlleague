@@ -8,7 +8,7 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { rollDie } from '@/lib/matchTables';
-import { resolveKickoff, validateManualDice, type DieRoller, type ManualKickoffDice } from './kickoff';
+import { manualDiceMissing, resolveKickoff, validateManualDice, type DieRoller, type ManualKickoffDice } from './kickoff';
 import { reduceLive } from './reduce';
 import { LiveRuleError, canRollKickoff, isEventId, kickoffDedupeKey, validateLiveEvent, type ClientEventInput, type LiveActor, type LiveErrorCode, type ValidatedEvent } from './rules';
 import { chefRolls, liveStartPayload } from './setup';
@@ -330,7 +330,8 @@ export async function recordEvents(matchId: string, actor: LiveActor, inputs: Cl
   return results;
 }
 
-// Il kick-off lo tira il server (o registra i dadi tirati al tavolo) e ne scrive subito anche gli effetti
+// Il kick-off si tira al tavolo: qui si registrano i dadi (tutti, anche quelli che il risultato fa tirare dopo)
+// e se ne scrivono subito gli effetti. Il sito non tira niente, né per l'admin né per i telefoni.
 export async function rollKickoff(matchId: string, actor: LiveActor, id: unknown, manual?: ManualKickoffDice, roll: DieRoller = rollDie) {
   if (!isEventId(id)) fail('Event id must be a UUID');
   await assertNotPlayed(matchId);
@@ -342,7 +343,7 @@ export async function rollKickoff(matchId: string, actor: LiveActor, id: unknown
   const dedupe = kickoffDedupeKey(state);
   const kicking = state.kicking_team_id!;
   const receiving = kicking === state.home_team_id ? state.away_team_id! : state.home_team_id!;
-  const invalid = validateManualDice(manual, [kicking, receiving]);
+  const invalid = validateManualDice(manual, [kicking, receiving]) ?? manualDiceMissing(manual, [kicking, receiving]);
   if (invalid) fail(invalid);
 
   const result = resolveKickoff({

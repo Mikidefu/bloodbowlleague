@@ -1,0 +1,247 @@
+/* Kick-off nella companion: i dadi del tavolo da scrivere (dentro il pannello rosso .kick di Companion.module.css)
+   e la scheda del risultato che resta in vista per tutto il drive. Materiali di docs/BRAND.md. */
+
+/* ------------------------------------------------------------------ */
+/*  Inserimento dei dadi                                               */
+/* ------------------------------------------------------------------ */
+.total {
+  align-self: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--bb-mustard);
+  text-shadow: 2px 3px 0 rgba(20, 8, 4, 0.55);
+}
+
+/* Cosa esce con questi due dadi, prima di registrare */
+.preview {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.8rem;
+  color: var(--bb-ink);
+  background: var(--tex-grain) 0 0 / 240px, linear-gradient(180deg, #f5eddd, var(--bb-parchment-2));
+  box-shadow: inset 0 3px 0 var(--bb-mustard-deep), 0 0 0 1px rgba(40, 22, 6, 0.8);
+}
+
+.preview strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.preview p {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.4;
+}
+
+.extra {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  background: rgba(10, 4, 4, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(243, 216, 151, 0.35);
+}
+
+.extraTitle {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
+
+.extraRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.extraRow > span {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.extraRow b {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.25rem;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.extraRow small {
+  font-size: 0.88rem;
+  color: rgba(239, 229, 210, 0.85);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Scheda del risultato                                               */
+/* ------------------------------------------------------------------ */
+.card.card {
+  padding: 0;
+  border-width: 4px 0 0;
+}
+
+.card summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.45rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+  list-style: none;
+  cursor: pointer;
+}
+
+.card summary::-webkit-details-marker {
+  display: none;
+}
+
+.card summary:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: -3px;
+}
+
+.micro {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.dice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Dadi come quelli del sito: neri con la cifra gialla */
+.face {
+  display: inline-grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.7rem;
+  color: #ffd35c;
+  background: linear-gradient(160deg, #2d323a, #101318);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 3px 6px -2px rgba(0, 0, 0, 0.7);
+}
+
+.sum {
+  margin-left: 0.2rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--bb-mustard);
+}
+
+.chevron {
+  flex: none;
+  color: var(--bb-mustard);
+  transition: transform 0.2s var(--ease-out);
+}
+
+.card[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(1.9rem, 9vw, 2.5rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+  text-shadow: 2px 3px 0 rgba(20, 8, 4, 0.55);
+}
+
+.headline {
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.cardBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0 0.95rem 1rem;
+}
+
+/* Cosa vuol dire per la mia squadra: foglietto chiaro col filetto nel tono della notizia */
+.forMe {
+  display: grid;
+  justify-items: start;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.7rem 0.8rem 0.75rem;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bb-ink);
+  background: #fff1c4;
+  box-shadow: inset 5px 0 0 var(--bb-navy);
+}
+
+.forMe.good {
+  box-shadow: inset 5px 0 0 var(--bb-success);
+}
+
+.forMe.bad {
+  background: #f7dcd6;
+  box-shadow: inset 5px 0 0 var(--bb-red);
+}
+
+.forMe :global(.tag) {
+  font-size: 0.85rem;
+}
+
+.rolls {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rule {
+  margin: 0.3rem 0 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: rgba(239, 229, 210, 0.9);
+}
