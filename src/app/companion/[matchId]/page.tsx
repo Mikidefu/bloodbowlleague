@@ -4,7 +4,7 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellOff, Dices, LogOut, Sun, Undo2, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, ChevronRight, Dices, LogOut, Sun, Undo2, Users, WifiOff, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
@@ -23,7 +23,9 @@ import LiveScoreboard from '@/components/live/LiveScoreboard';
 import LangSwitch from '../LangSwitch';
 import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
+import RosterSlide, { useRosterView } from './Roster';
 import styles from '../Companion.module.css';
+import rosterStyles from './Roster.module.css';
 
 const STATS: { type: StatEvent; short: string; it: string; en: string }[] = [
   { type: 'touchdown', short: 'TD', it: 'Touchdown', en: 'Touchdown' },
@@ -74,6 +76,7 @@ function Board({ session }: { session: CompanionSession }) {
   const ctxRef = useRef<Parameters<typeof noticesFor>[2] | null>(null);
   const myTeam = session.team_id;
 
+  const roster = useRosterView();
   const [closed, setClosed] = useState(false);   // referto salvato: il live è finito (di una Non classificata non resta)
 
   useEffect(() => {
@@ -183,6 +186,7 @@ function Board({ session }: { session: CompanionSession }) {
   const stats = STATS.filter(s => !PRAYER_STAT_EVENTS[s.type] || myPrayers.includes(PRAYER_STAT_EVENTS[s.type]!));
   // Prayers to Nuffle delle due squadre (anche quelli avversari toccano i miei giocatori: Bad Habits, Greasy Cleats)
   const prayerTeams = match ? [myTeam, ...(oppId ? [oppId] : [])].map(id => ({ id, prayers: parsePrayers(match.reports.find(r => r.team_id === id)?.prayers) })).filter(t => t.prayers.length) : [];
+  const prayersByTeam = Object.fromEntries(prayerTeams.map(t => [t.id, t.prayers]));
 
   const rollKickoff = async () => {
     const values = manual && dice.every(d => /^[1-6]$/.test(d)) ? { dice: [Number(dice[0]), Number(dice[1])] as [number, number] } : undefined;
@@ -219,9 +223,13 @@ function Board({ session }: { session: CompanionSession }) {
             activeLabel={L('di turno', 'on turn')}
             sync={live.offline ? <><WifiOff size={13} aria-hidden="true" /> {L('offline', 'offline')}</> : live.pending ? L(`invio ${live.pending}`, `sending ${live.pending}`) : null}
           />
+          <button type="button" className={rosterStyles.open} onClick={roster.openList}>
+            <Users size={20} aria-hidden="true" /><span>{L('La mia rosa', 'My roster')}</span><ChevronRight size={20} aria-hidden="true" />
+          </button>
         </div>
 
-        <div className={styles.toasts} aria-live="polite">
+        {/* Con la rosa aperta gli avvisi (kick-off, reroll vinto) restano in vista sopra il pannello */}
+        <div className={`${styles.toasts} ${roster.view ? styles.toastsOver : ''}`} aria-live="polite">
           {notices.map(n => (
               <button key={n.id} type="button" className={`${n.tone === 'good' ? 'plate' : n.tone === 'bad' ? 'panel-blood' : 'panel-slate'} ${styles.toast} ${n.tone === 'good' ? styles.toastGood : ''}`}
                 onClick={() => setNotices(list => list.filter(x => x.id !== n.id))}>
@@ -412,6 +420,9 @@ function Board({ session }: { session: CompanionSession }) {
           )}
           <LangSwitch />
         </footer>
+
+        <RosterSlide view={roster.view} teamId={myTeam} teamName={teamName(myTeam)} match={match} prayers={prayersByTeam}
+          onOpenPlayer={roster.openPlayer} onSwapPlayer={roster.swapPlayer} onBack={roster.back} />
 
         {picking && (
             <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={L('Chi è stato?', 'Who was it?')}>

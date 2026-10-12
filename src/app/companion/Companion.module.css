@@ -298,10 +298,19 @@
 /* Avvisi sotto il tabellone: si toccano per chiuderli */
 .toasts {
   position: sticky;
-  top: 6.6rem;
+  top: 9.6rem;
   z-index: 6;
   display: grid;
   gap: 0.45rem;
+}
+
+/* Sopra il pannello della rosa (Roster.module.css, z-index 30) */
+.toastsOver {
+  position: fixed;
+  top: calc(4.6rem + env(safe-area-inset-top));
+  left: calc(1rem + env(safe-area-inset-left));
+  right: calc(1rem + env(safe-area-inset-right));
+  z-index: 40;
 }
 
 .toasts:empty {
