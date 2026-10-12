@@ -224,7 +224,7 @@ function Board({ session }: { session: CompanionSession }) {
             sync={live.offline ? <><WifiOff size={13} aria-hidden="true" /> {L('offline', 'offline')}</> : live.pending ? L(`invio ${live.pending}`, `sending ${live.pending}`) : null}
           />
           <button type="button" className={rosterStyles.open} onClick={roster.openList}>
-            <Users size={20} aria-hidden="true" /><span>{L('La mia rosa', 'My roster')}</span><ChevronRight size={20} aria-hidden="true" />
+            <Users size={20} aria-hidden="true" /><span>{L('Rose delle squadre', 'Team rosters')}</span><ChevronRight size={20} aria-hidden="true" />
           </button>
         </div>
 
@@ -421,8 +421,9 @@ function Board({ session }: { session: CompanionSession }) {
           <LangSwitch />
         </footer>
 
-        <RosterSlide view={roster.view} teamId={myTeam} teamName={teamName(myTeam)} match={match} prayers={prayersByTeam}
-          onOpenPlayer={roster.openPlayer} onSwapPlayer={roster.swapPlayer} onBack={roster.back} />
+        <RosterSlide view={roster.view} match={match} prayers={prayersByTeam}
+          teams={[myTeam, ...(oppId ? [oppId] : [])].map(id => ({ id, name: teamName(id), color: !match ? null : id === match.home_team_id ? match.home_color : match.away_color }))}
+          onOpenPlayer={roster.openPlayer} onSwap={roster.swap} onBack={roster.back} />
 
         {picking && (
             <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={L('Chi è stato?', 'Who was it?')}>

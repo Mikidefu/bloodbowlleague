@@ -54,7 +54,7 @@
   inset: 0;
   z-index: 30;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   grid-template-columns: minmax(0, 1fr);
   color: var(--bb-parchment);
   background: var(--tex-grunge) 0 0 / 900px, linear-gradient(180deg, var(--bb-slate-800), var(--bb-slate-900));
@@ -120,7 +120,62 @@
   color: rgba(243, 216, 151, 0.8);
 }
 
+/* Le due squadre: linguette col filetto nel colore della squadra, gialla quella aperta */
+.tabs {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: #0c0e12;
+}
+
+.tabs button {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0.35rem 0.8rem 0.4rem;
+  text-align: left;
+  color: rgba(239, 229, 210, 0.75);
+  background: #171a20;
+  border: 0;
+  box-shadow: inset 0 -4px 0 var(--team-color, var(--bb-slate-500));
+  cursor: pointer;
+}
+
+.tabs button[aria-pressed='true'] {
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+}
+
+.tabs button:focus-visible {
+  outline: 3px solid var(--bb-parchment);
+  outline-offset: -3px;
+}
+
+.tabs small {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tabs span {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .body {
+  grid-row: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
@@ -535,6 +590,7 @@
 
 /* Giocatore precedente e successivo: in fondo, a portata di pollice */
 .pager {
+  grid-row: 4;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;

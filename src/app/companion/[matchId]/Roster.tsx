@@ -1,6 +1,6 @@
 'use client';
-// La rosa della propria squadra sul telefono: un pannello che scorre sopra il tabellone (la partita
-// dal vivo continua sotto, avvisi compresi). Due livelli, perché a 360 px non ci sta tutto insieme:
+// Le rose delle due squadre sul telefono (la propria e, in una seconda linguetta, quella avversaria):
+// un pannello che scorre sopra il tabellone (la partita dal vivo continua sotto, avvisi compresi). Due livelli, perché a 360 px non ci sta tutto insieme:
 // l'elenco con profilo e skill di ognuno, e la scheda del giocatore con il testo delle skill.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,9 +16,10 @@ import type { MatchDetails, Skill, TeamWithPlayers } from '@/lib/types';
 import styles from './Roster.module.css';
 
 const LIST = 'list';
+const OPP = 'opp';
 const HASH = '#roster';
 
-// Cosa si sta guardando: null = tabellone, 'list' = elenco, altrimenti l'id del giocatore.
+// Cosa si sta guardando: null = tabellone, 'list' = la mia rosa, 'opp' = quella avversaria, altrimenti l'id del giocatore.
 // Sta nell'hash dell'URL, così il tasto Indietro del telefono torna all'elenco e poi al tabellone.
 export function useRosterView() {
   const [view, setView] = useState<string | null>(null);
@@ -43,41 +44,46 @@ export function useRosterView() {
     view,
     openList: useCallback(() => go(LIST), [go]),
     openPlayer: useCallback((id: string) => go(id), [go]),
-    swapPlayer: useCallback((id: string) => go(id, true), [go]),   // giocatore precedente/successivo: Indietro torna all'elenco
+    // Giocatore precedente/successivo o cambio di squadra: non aggiunge un passo, Indietro torna dove tornava prima
+    swap: useCallback((next: string) => go(next, true), [go]),
     back: useCallback(() => window.history.back(), []),
   };
 }
 
 type Props = {
   view: string | null;
-  teamId: string;
-  teamName: string;
+  teams: RosterTeam[];                       // la mia squadra, poi l'avversaria
   match: MatchDetails | null;
   prayers: Record<string, PrayerResult[]>;   // Prayers to Nuffle delle due squadre, per id squadra
   onOpenPlayer: (id: string) => void;
-  onSwapPlayer: (id: string) => void;
+  onSwap: (view: string) => void;
   onBack: () => void;
 };
 
-export default function RosterSlide({ view, teamId, teamName, match, prayers, onOpenPlayer, onSwapPlayer, onBack }: Props) {
+export type RosterTeam = { id: string; name: string; color: string | null };
+
+export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer, onSwap, onBack }: Props) {
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
-  const [team, setTeam] = useState<TeamWithPlayers | null>(null);
+  const [loaded, setLoaded] = useState<Record<string, TeamWithPlayers>>({});
   const [allSkills, setAllSkills] = useState<Skill[] | null>(null);
   const [failed, setFailed] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const listScroll = useRef(0);
   const open = view !== null;
 
+  const teamIds = teams.map(t => t.id).join(',');
   const load = useCallback(() => {
     setFailed(false);
-    fetch(`/api/teams/${teamId}`, { cache: 'no-store' })
-        .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-        .then(setTeam)
-        .catch(() => setFailed(true));
-  }, [teamId]);
+    for (const id of teamIds.split(',')) {
+      fetch(`/api/teams/${id}`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+          .then((team: TeamWithPlayers) => setLoaded(all => ({ ...all, [id]: team })))
+          .catch(() => setFailed(true));
+    }
+  }, [teamIds]);
 
-  // Ogni volta che si apre si rilegge la squadra; quella già letta resta a schermo nel frattempo
+  // Ogni volta che si apre si rileggono le squadre; quelle già lette restano a schermo nel frattempo
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lettura dalla rete all'apertura del pannello
     if (open) load();
@@ -92,10 +98,15 @@ export default function RosterSlide({ view, teamId, teamName, match, prayers, on
   }, [open]);
 
   const effects = useMemo(() => prayerEffects(prayers), [prayers]);
-  const entries = useMemo(() => {
-    const matchPlayers = match ? (teamId === match.home_team_id ? match.homePlayers : match.awayPlayers) : null;
-    return rosterEntries(team?.players ?? null, matchPlayers, effects);
-  }, [team, match, teamId, effects]);
+  const entriesByTeam = useMemo(() => teamIds.split(',').map(id => {
+    const matchPlayers = match ? (id === match.home_team_id ? match.homePlayers : match.awayPlayers) : null;
+    return rosterEntries(loaded[id]?.players ?? null, matchPlayers, effects);
+  }), [loaded, match, teamIds, effects]);
+  // Quale squadra: la linguetta scelta, oppure quella del giocatore aperto
+  const side = view === OPP || (view !== null && !!entriesByTeam[1]?.some(e => e.id === view)) ? 1 : 0;
+  const entries = entriesByTeam[side] ?? [];
+  const team = loaded[teams[side]?.id] ?? null;
+  const teamName = teams[side]?.name ?? '';
 
   // Le skill date da un Prayer non sono sulla scheda del giocatore: il testo si prende dall'elenco delle skill
   const needsSkillTexts = entries.some(e => e.effects.some(x => x.skill));
@@ -104,14 +115,14 @@ export default function RosterSlide({ view, teamId, teamName, match, prayers, on
     fetch('/api/skills').then(r => (r.ok ? r.json() : [])).then(setAllSkills).catch(() => { /* resta il solo nome */ });
   }, [open, needsSkillTexts, allSkills]);
 
-  const player = view && view !== LIST ? entries.find(e => e.id === view) ?? null : null;
+  const player = view && view !== LIST && view !== OPP ? entries.find(e => e.id === view) ?? null : null;
   const showPlayer = !!player;
 
   // Dall'elenco alla scheda si riparte dall'alto; tornando indietro si ritrova il punto dell'elenco
   useEffect(() => {
     if (!scroller.current) return;
     scroller.current.scrollTop = showPlayer ? 0 : listScroll.current;
-  }, [showPlayer, player?.id]);
+  }, [showPlayer, player?.id, side]);
 
   if (!open) return null;
 
@@ -119,6 +130,7 @@ export default function RosterSlide({ view, teamId, teamName, match, prayers, on
     listScroll.current = scroller.current?.scrollTop ?? 0;
     onOpenPlayer(id);
   };
+  const title = side === 0 ? L('La mia rosa', 'My roster') : L('Rosa avversaria', 'Opponent roster');
   const playing = entries.filter(e => !e.unavailable);
   const out = entries.filter(e => e.unavailable);
   const index = player ? entries.indexOf(player) : -1;
@@ -181,16 +193,29 @@ export default function RosterSlide({ view, teamId, teamName, match, prayers, on
   );
 
   return (
-      <div className={styles.slide} role="dialog" aria-modal="true" aria-label={showPlayer ? player.name : L('La mia rosa', 'My roster')}>
+      <div className={styles.slide} role="dialog" aria-modal="true" aria-label={showPlayer ? player.name : title}
+        style={{ '--team-color': teams[side]?.color ?? undefined } as React.CSSProperties}>
         <header className={styles.bar}>
           <button type="button" className={styles.barBtn} onClick={onBack} aria-label={showPlayer ? L('Torna all’elenco', 'Back to the list') : L('Torna alla partita', 'Back to the match')}>
             {showPlayer ? <ArrowLeft size={24} /> : <X size={24} />}
           </button>
           <div className={styles.barText}>
-            <span>{showPlayer ? L('Scheda giocatore', 'Player card') : L('La mia rosa', 'My roster')}</span>
+            <span>{showPlayer ? L('Scheda giocatore', 'Player card') : title}</span>
             <strong>{showPlayer || !entries.length ? teamName : `${teamName} · ${playing.length} ${L('giocatori', 'players')}`}</strong>
           </div>
         </header>
+
+        {!showPlayer && teams.length > 1 && (
+            <div className={styles.tabs} role="group" aria-label={L('Squadra', 'Team')}>
+              {teams.map((t, i) => (
+                  <button key={t.id} type="button" aria-pressed={side === i} style={{ '--team-color': t.color ?? undefined } as React.CSSProperties}
+                    onClick={() => { if (side !== i) { listScroll.current = 0; onSwap(i === 0 ? LIST : OPP); } }}>
+                    <small>{i === 0 ? L('La mia', 'Mine') : L('Avversaria', 'Opponent')}</small>
+                    <span>{t.name}</span>
+                  </button>
+              ))}
+            </div>
+        )}
 
         <div className={styles.body} ref={scroller}>
           {failed && (
@@ -326,11 +351,11 @@ export default function RosterSlide({ view, teamId, teamName, match, prayers, on
 
         {showPlayer && (
             <nav className={styles.pager} aria-label={L('Altri giocatori', 'Other players')}>
-              <button type="button" disabled={!previous} onClick={() => previous && onSwapPlayer(previous.id)}>
+              <button type="button" disabled={!previous} onClick={() => previous && onSwap(previous.id)}>
                 <ChevronLeft size={22} aria-hidden="true" />
                 <span>{previous ? `${previous.jersey_number ?? '·'} ${previous.name}` : '—'}</span>
               </button>
-              <button type="button" disabled={!next} onClick={() => next && onSwapPlayer(next.id)}>
+              <button type="button" disabled={!next} onClick={() => next && onSwap(next.id)}>
                 <span>{next ? `${next.jersey_number ?? '·'} ${next.name}` : '—'}</span>
                 <ChevronRight size={22} aria-hidden="true" />
               </button>
