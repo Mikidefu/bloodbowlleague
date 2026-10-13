@@ -358,10 +358,6 @@ export function rollDie(sides: number) {
   return (value % sides) + 1;
 }
 
-export function rollTable(table: MatchTable) {
-  return Array.from({ length: table.dice.count }, () => rollDie(table.dice.sides));
-}
-
 // Il risultato (con eventuale modificatore) portato dentro la tabella: un D16 + 2 fa comunque "Dead" a 16
 export function rowForTotal(table: MatchTable, total: number) {
   const min = table.rows[0].min;

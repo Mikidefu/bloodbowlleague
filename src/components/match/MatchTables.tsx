@@ -1,34 +1,38 @@
 'use client';
 import { useState } from 'react';
-import { ArrowRight, Dices } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import {
-  MATCH_TABLES, diceLabel, getMatchTable, rollTable, rowForTotal, rowRange,
-  type MatchTable, type TableKey,
+  MATCH_TABLES, diceLabel, getMatchTable, rowForTotal, rowRange,
+  type TableKey,
 } from '@/lib/matchTables';
 import styles from './MatchTables.module.css';
 
-type Roll = { dice: number[]; modifier: number };
-
 /** Le tabelle da consultare in partita: striscia scura con i filtri (come la ricerca delle Skills),
  *  poi la tabella scelta su pergamena, impaginata come le tabelle del Rulebook.
+ *  I dadi si tirano al tavolo e si scrivono qui: il sito non tira niente, illumina solo il risultato.
  *  Usato nella pagina /tables e dentro il referto della partita. */
 export default function MatchTables({ initial = 'weather' }: { initial?: TableKey }) {
   const { language, t } = useLanguage();
   const [active, setActive] = useState<TableKey>(initial);
-  const [rolls, setRolls] = useState<Partial<Record<TableKey, Roll>>>({});
+  const [entered, setEntered] = useState<Partial<Record<TableKey, string[]>>>({});   // dadi scritti, per tabella
   const [modifiers, setModifiers] = useState<Partial<Record<TableKey, number>>>({});
 
   const table = getMatchTable(active) ?? MATCH_TABLES[0];
-  const roll = rolls[table.key];
-  const total = roll ? roll.dice.reduce((a, b) => a + b, 0) + roll.modifier : null;
+  const { count, sides } = table.dice;
+  const values = Array.from({ length: count }, (_, i) => entered[table.key]?.[i] ?? '');
+  const dice = values.map(Number);
+  const complete = dice.every(n => n >= 1 && n <= sides);
+  const modifier = table.modifier ? modifiers[table.key] ?? 0 : 0;
+  const total = complete ? dice.reduce((a, b) => a + b, 0) + modifier : null;
   const result = total === null ? null : rowForTotal(table, total);
   const nextTable = result?.next ? getMatchTable(result.next) : null;
 
-  const doRoll = (target: MatchTable) => {
-    const modifier = target.modifier ? modifiers[target.key] ?? 0 : 0;
-    setRolls(r => ({ ...r, [target.key]: { dice: rollTable(target), modifier } }));
-    setActive(target.key);
+  // Solo cifre, mai oltre le facce del dado (un D16 passa da "1" prima di diventare "16")
+  const setDie = (index: number, raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, String(sides).length);
+    if (digits && (Number(digits) < 1 || Number(digits) > sides)) return;
+    setEntered(all => ({ ...all, [table.key]: values.map((v, i) => (i === index ? digits : v)) }));
   };
 
   return (
@@ -71,7 +75,7 @@ export default function MatchTables({ initial = 'weather' }: { initial?: TableKe
           </header>
           <p className={styles.who}>{table.who[language]}</p>
 
-          {/* TIRO: placca d'ottone con i dadi e il risultato */}
+          {/* TIRO: placca d'ottone con i dadi del tavolo da scrivere e il risultato */}
           <div className={`plate ${styles.rollPlate}`}>
             <div className={styles.controls}>
               {table.modifier && (
@@ -89,29 +93,28 @@ export default function MatchTables({ initial = 'weather' }: { initial?: TableKe
                     <small id="modifier-hint" className={styles.modifierHint}>{table.modifier[language]}</small>
                   </label>
               )}
-              <button type="button" className={`btn btn-primary ${styles.rollBtn}`} onClick={() => doRoll(table)}>
-                <Dices size={22} /> {t.tables.roll} {diceLabel(table.dice)}
-              </button>
+              <div className={styles.dice} role="group" aria-label={`${t.tables.enterDice} ${diceLabel(table.dice)}`}>
+                <span className={styles.diceLabel}>{t.tables.enterDice}</span>
+                {values.map((value, i) => (
+                    <input key={`${table.key}-${i}`} className={styles.dieInput} inputMode="numeric" maxLength={String(sides).length} placeholder="?"
+                      aria-label={`D${sides}${count > 1 ? ` ${i + 1}` : ''}`} value={value} onChange={e => setDie(i, e.target.value)} />
+                ))}
+                {complete && modifier > 0 && <span className={styles.sum}>+{modifier}</span>}
+                {complete && (count > 1 || modifier > 0) && <span className={styles.sum}>= <b>{total}</b></span>}
+              </div>
             </div>
 
             <div className={styles.result} aria-live="polite">
-              {roll && result ? (
-                  <>
-                    <div className={styles.dice} aria-label={`${t.tables.total} ${total}`}>
-                      {roll.dice.map((value, i) => <span key={`${i}-${value}-${total}`} className={styles.die}>{value}</span>)}
-                      {roll.modifier > 0 && <span className={styles.sum}>+{roll.modifier}</span>}
-                      {(roll.dice.length > 1 || roll.modifier > 0) && <span className={styles.sum}>= <b>{total}</b></span>}
-                    </div>
-                    <div className={styles.outcome}>
-                      <span className={`${styles.outcomeName} ${styles[result.tone]}`}>{result.name}</span>
-                      <p className={styles.outcomeText}>{result.text[language]}</p>
-                      {nextTable && (
-                          <button type="button" className={`btn btn-slate ${styles.nextBtn}`} onClick={() => doRoll(nextTable)}>
-                            {t.tables.rollOn.replace('{table}', nextTable.title[language])} <ArrowRight size={18} />
-                          </button>
-                      )}
-                    </div>
-                  </>
+              {result ? (
+                  <div className={styles.outcome}>
+                    <span className={`${styles.outcomeName} ${styles[result.tone]}`}>{result.name}</span>
+                    <p className={styles.outcomeText}>{result.text[language]}</p>
+                    {nextTable && (
+                        <button type="button" className={`btn btn-slate ${styles.nextBtn}`} onClick={() => setActive(nextTable.key)}>
+                          {t.tables.rollOn.replace('{table}', nextTable.title[language])} <ArrowRight size={18} />
+                        </button>
+                    )}
+                  </div>
               ) : (
                   <p className={styles.empty}>{t.tables.noRoll}</p>
               )}
