@@ -118,9 +118,10 @@ type CardProps = {
   myTeam: string;
   teamName: (id: string | null) => string;
   language: Lang;
+  open: boolean;   // quando cambia la scheda si apre o si chiude; nel mezzo la apre e chiude chi la tocca
 };
 
-export function KickoffCard({ kickoff, myTeam, teamName, language }: CardProps) {
+export function KickoffCard({ kickoff, myTeam, teamName, language, open }: CardProps) {
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const row = rowForTotal(getMatchTable('kickoff')!, kickoff.total);
   const forMe = kickoffForTeam(kickoff, myTeam, language);
@@ -131,7 +132,7 @@ export function KickoffCard({ kickoff, myTeam, teamName, language }: CardProps) 
   const tag = forMe && { good: L('A tuo favore', 'In your favour'), bad: L('Contro di te', 'Against you'), act: L('Tocca a te', 'Your move'), info: L('Per te', 'For you') }[forMe.tone];
 
   return (
-      <details className={`panel-slate ${styles.card}`} open>
+      <details className={`panel-slate ${styles.card}`} open={open}>
         <summary>
           <span className={styles.micro}>Kick-off · Drive {kickoff.drive}</span>
           <span className={styles.head}>

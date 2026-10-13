@@ -18,13 +18,14 @@ import { parsePrayers } from '@/lib/prayers';
 import PrayerList, { matchPrayerPlayer } from '@/components/match/PrayerList';
 import { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
-import type { MatchDetails } from '@/lib/types';
 import LiveScoreboard from '@/components/live/LiveScoreboard';
 import LangSwitch from '../LangSwitch';
 import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
 import { KickoffCard, KickoffEntry } from './Kickoff';
 import RosterSlide, { useRosterView } from './Roster';
+import { useMatchDetails } from './useMatchDetails';
+import board from '../Board.module.css';
 import styles from '../Companion.module.css';
 import rosterStyles from './Roster.module.css';
 
@@ -64,7 +65,7 @@ function Board({ session }: { session: CompanionSession }) {
   const router = useRouter();
   const { language } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
-  const [match, setMatch] = useState<MatchDetails | null>(null);
+  const match = useMatchDetails(session.match_id);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [picking, setPicking] = useState<StatEvent | null>(null);
   const [cooling, setCooling] = useState(false);
@@ -77,10 +78,6 @@ function Board({ session }: { session: CompanionSession }) {
 
   const roster = useRosterView();
   const [closed, setClosed] = useState(false);   // referto salvato: il live è finito (di una Non classificata non resta)
-
-  useEffect(() => {
-    fetch(`/api/schedule/${session.match_id}`).then(r => r.json()).then(setMatch).catch(() => { /* il tabellone funziona anche senza nomi */ });
-  }, [session.match_id]);
 
   const leave = useCallback((reason: 'unpaired' | 'ended' | null) => {
     clearSession();
@@ -143,10 +140,24 @@ function Board({ session }: { session: CompanionSession }) {
     try { localStorage.setItem(WAKE_KEY, next ? '1' : '0'); } catch { /* resta per questa sessione */ }
   };
 
-  if (live.load === 'loading') return <div className={styles.app}><p className={styles.help}>{L('Collegamento...', 'Connecting...')}</p></div>;
+  if (live.load === 'loading') {
+    return (
+        <div className={`${styles.app} ${board.root}`}>
+          <div className={board.connecting} aria-live="polite">
+            <strong>{L('Collegamento...', 'Connecting...')}</strong>
+            {live.offline && (
+                <>
+                  <p>{L('Non riesco a raggiungere il sito: controlla la rete. Riprovo da solo ogni pochi secondi.', 'I cannot reach the site: check your connection. I keep retrying every few seconds.')}</p>
+                  <button type="button" className={`btn btn-primary ${styles.wide}`} onClick={() => void live.refresh()}>{L('Riprova adesso', 'Try again now')}</button>
+                </>
+            )}
+          </div>
+        </div>
+    );
+  }
   if (live.load === 'not_started' || !live.live) {
     return (
-        <div className={styles.app}>
+        <div className={`${styles.app} ${board.root}`}>
           <p className={styles.notice}>
             {closed
                 ? L('La partita è finita: il referto è stato chiuso.', 'The match is over: the report has been closed.')
@@ -207,7 +218,7 @@ function Board({ session }: { session: CompanionSession }) {
   };
 
   return (
-      <div className={styles.app} style={{ '--team-color': color ?? undefined } as React.CSSProperties}>
+      <div className={`${styles.app} ${board.root}`} style={{ '--team-color': color ?? undefined } as React.CSSProperties}>
         <div className={styles.scoreSticky}>
           <LiveScoreboard compact
             home={{ name: teamName(state.home_team_id), logo: match?.home_logo ?? null, color: match?.home_color ?? null,
@@ -238,6 +249,19 @@ function Board({ session }: { session: CompanionSession }) {
           )}
         </div>
 
+        {live.offline && (
+            <p className={board.offline} role="status">
+              <WifiOff size={20} aria-hidden="true" />
+              <span>
+                <b>{L('Senza rete', 'Offline')}</b>
+                {live.pending === 1 && L('1 tocco salvato sul telefono: parte da solo appena torna la rete. ', '1 tap is saved on the phone and will be sent as soon as you are back online. ')}
+                {live.pending > 1 && L(`${live.pending} tocchi salvati sul telefono: partono da soli appena torna la rete. `, `${live.pending} taps are saved on the phone and will be sent as soon as you are back online. `)}
+                {!live.pending && L('Puoi continuare: i tuoi tocchi restano salvati sul telefono e partono appena torna la rete. ', 'You can keep going: your taps stay saved on the phone and are sent as soon as you are back online. ')}
+                {L('Quello che vedi dell’avversario può non essere aggiornato.', 'What you see of your opponent may be out of date.')}
+              </span>
+            </p>
+        )}
+
         {ended && (
             <section className={styles.panel}>
               <h1 className={styles.title}>{L('Partita chiusa', 'Match closed')}</h1>
@@ -248,15 +272,23 @@ function Board({ session }: { session: CompanionSession }) {
 
         {!ended && iKick && <KickoffEntry state={state} teamName={teamName} language={language} onRecord={recordKickoff} />}
         {!ended && state.status === 'awaiting_kickoff' && state.turns_done && (
-            <p className={styles.notice}>{state.half === 1
-              ? L('Primo tempo finito: si riparte col secondo tempo.', 'First half over: the second half is next.')
-              : L('Tempo finito: aspetta che l’admin chiuda la partita.', 'Half over: wait for the admin to close the match.')}</p>
+            <>
+              <p className={styles.notice}>{state.half === 1
+                ? L('Primo tempo finito. Quando siete pronti, uno dei due allenatori fa partire il secondo tempo.', 'First half over. When you are both ready, either coach starts the second half.')
+                : L('Tempo finito: aspetta che l’admin chiuda la partita.', 'Half over: wait for the admin to close the match.')}</p>
+              {state.half === 1 && (
+                  <button type="button" className={`btn btn-primary ${styles.big}`} onClick={startHalf}>{L('Inizia il secondo tempo', 'Start the second half')}</button>
+              )}
+            </>
         )}
         {!ended && state.status === 'awaiting_kickoff' && !state.turns_done && !iKick && (
-            <p className={styles.notice}>{L(`In attesa del kick-off di ${teamName(state.kicking_team_id)}.`, `Waiting for ${teamName(state.kicking_team_id)}'s kick-off.`)}</p>
+            <p className={styles.notice}>{state.drive === 0
+              ? L(`La partita comincia col kick-off: calcia ${teamName(state.kicking_team_id)}. Fino ad allora turni e statistiche sono fermi.`, `The match starts with the kick-off: ${teamName(state.kicking_team_id)} kicks. Turns and stats are on hold until then.`)
+              : L(`Drive finito: aspetta il kick-off di ${teamName(state.kicking_team_id)}. Fino ad allora turni e statistiche sono fermi.`, `Drive over: waiting for ${teamName(state.kicking_team_id)}'s kick-off. Turns and stats are on hold until then.`)}</p>
         )}
+        {/* Aperta finché nessuno ha iniziato un turno, poi si richiude da sola per lasciare spazio ai tasti */}
         {state.last_kickoff && inDrive && (
-            <KickoffCard key={state.last_kickoff.event_id} kickoff={state.last_kickoff} myTeam={myTeam} teamName={teamName} language={language} />
+            <KickoffCard key={state.last_kickoff.event_id} kickoff={state.last_kickoff} myTeam={myTeam} teamName={teamName} language={language} open={!state.active_team_id} />
         )}
 
         {me && !ended && (
@@ -273,8 +305,8 @@ function Board({ session }: { session: CompanionSession }) {
                 </p>
                 <div className={styles.counter}>
                   <span className={styles.counterLabel}>{L('Il tuo segnalino turno', 'Your turn marker')}</span>
-                  <strong className={styles.counterNum}>{me.turn || '—'}<small>/{TURNS_PER_HALF}</small></strong>
-                  {opp && <span className={styles.counterSide}>{L('avversario', 'opponent')} {opp.turn || '—'}</span>}
+                  <strong className={styles.counterNum}>{me.turn}<small>/{TURNS_PER_HALF}</small></strong>
+                  {opp && <span className={styles.counterSide}>{L('avversario', 'opponent')} {opp.turn}/{TURNS_PER_HALF}</span>}
                 </div>
                 <button type="button" className={`btn ${myTurnNext ? 'btn-primary' : ''} ${styles.big}`} disabled={!!turnWhy || cooling}
                   onClick={tap(() => live.send('turn_started', myTeam))}>
@@ -383,7 +415,8 @@ function Board({ session }: { session: CompanionSession }) {
         )}
 
         <footer className={styles.footer}>
-          {!ended && state.half === 1 && <button type="button" className="btn" onClick={startHalf}>{L('Inizia il secondo tempo', 'Start the second half')}</button>}
+          {/* A turni finiti il tasto grande sta in alto; qui resta la scorciatoia per cambiare tempo prima (chiede conferma) */}
+          {!ended && state.half === 1 && !state.turns_done && <button type="button" className="btn" onClick={startHalf}>{L('Passa al secondo tempo', 'Go to the second half')}</button>}
           {wakeLock.supported && (
               <button type="button" className="btn" aria-pressed={wake} onClick={toggleWake}>
                 <Sun size={18} /> {wake && wakeLock.active ? L('Schermo sempre acceso', 'Screen stays on') : L('Tieni lo schermo acceso', 'Keep the screen on')}

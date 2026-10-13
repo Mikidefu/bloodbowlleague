@@ -9,6 +9,7 @@ import { clearSession, deviceId, readSession, saveSession, type CompanionSession
 import Emblem from '@/components/brand/Emblem';
 import InstallHint from './InstallHint';
 import LangSwitch from './LangSwitch';
+import board from './Board.module.css';
 import styles from './Companion.module.css';
 
 type Lookup = { match_id: string; round: number; teams: { id: string; name: string; color: string | null; logo: string | null; paired: boolean; mine: boolean }[] };
@@ -87,7 +88,7 @@ export default function CompanionJoin() {
     : 'message' in error ? error.message : '';
 
   return (
-      <div className={styles.app}>
+      <div className={`${styles.app} ${board.root}`}>
         <header className={styles.brand}>
           <Emblem size={48} />
           <div className={styles.brandText}>

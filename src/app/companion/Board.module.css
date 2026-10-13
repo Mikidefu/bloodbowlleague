@@ -1,0 +1,76 @@
+/* Companion: comportamento al tocco e stato della rete. Sta accanto a Companion.module.css (materiali e pannelli). */
+
+/* Sul telefono i tasti rispondono al primo tocco: niente attesa per il doppio tocco che ingrandisce,
+   niente alone grigio del browser. */
+.root :global(button),
+.root :global(a),
+.root :global(input),
+.root :global(summary) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Su schermi touch l'hover resta "appiccicato" al tasto dopo il tocco (più chiaro e sollevato finché
+   non si tocca altrove): lì vale solo lo stato premuto. */
+@media (hover: none) {
+  .root :global(.btn:hover:not(:active):not(:disabled)) {
+    filter: none;
+    transform: skewX(-8deg);
+  }
+
+  .root :global(.btn:hover::after) {
+    transform: none;
+  }
+}
+
+/* Senza rete: striscia rossa sotto il tabellone, con quanti tocchi aspettano di partire */
+.offline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--bb-parchment);
+  background: linear-gradient(100deg, var(--bb-blood-800), var(--bb-blood-950));
+  box-shadow: inset 5px 0 0 var(--bb-mustard), var(--shadow-print);
+}
+
+.offline :global(svg) {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--bb-mustard);
+}
+
+.offline b {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.15rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+/* Primo collegamento: testo al centro, con il tasto per riprovare se la rete non c'è */
+.connecting {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 26vh;
+  text-align: center;
+  color: var(--bb-parchment);
+}
+
+.connecting p {
+  margin: 0;
+}
+
+.connecting strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  color: var(--bb-mustard);
+}
