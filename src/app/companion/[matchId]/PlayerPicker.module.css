@@ -1,0 +1,247 @@
+/* Scelta del giocatore per una statistica: pannello di pergamena che sale dal basso sopra il tabellone.
+   Materiali di docs/BRAND.md: testata scura col filetto d'ottone, righe come le schede della rosa. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(8, 9, 12, 0.72);
+  animation: fade 0.2s ease;
+}
+
+.sheet {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 88dvh;
+  color: var(--bb-ink);
+  background: var(--tex-grain) 0 0 / 240px, linear-gradient(180deg, #f5eddd, var(--bb-parchment-2));
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.65);
+  animation: rise 0.28s var(--ease-out);
+}
+
+@keyframes rise {
+  from { transform: translateY(40px); opacity: 0; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .sheet { animation: none; }
+}
+
+/* Testata: la sigla della statistica grande e gialla, come i tasti "Segna" */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.5rem 0.7rem calc(1rem + env(safe-area-inset-left));
+  color: var(--bb-parchment);
+  background: linear-gradient(180deg, #1b1f26, #111419);
+  border-bottom: 3px solid transparent;
+  border-image: var(--bb-brass) 1;
+}
+
+.short {
+  flex: none;
+  min-width: 3.4rem;
+  padding: 0.3rem 0.5rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.7rem;
+  line-height: 1;
+  text-align: center;
+  color: #2a1a05;
+  background: linear-gradient(180deg, #ffe189, #e2a92a);
+  transform: skewX(-8deg);
+}
+
+.headText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.15rem;
+  line-height: 1;
+}
+
+.headText strong {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--bb-mustard);
+}
+
+.headText span {
+  font-family: var(--font-data);
+  font-stretch: 80%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(243, 216, 151, 0.85);
+}
+
+.close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: var(--bb-parchment);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.list {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem calc(0.75rem + env(safe-area-inset-right)) 0.75rem calc(0.75rem + env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+/* Un giocatore: maglia | nome e ruolo | già fatto; sotto il profilo di partita */
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  width: 100%;
+  min-height: 64px;
+  padding: 0.6rem 0.7rem 0.65rem;
+  font: inherit;
+  text-align: left;
+  color: var(--bb-ink);
+  background: linear-gradient(180deg, #fbf5e8 0%, #efe5d2 60%, #e4d6bb 100%);
+  border: 0;
+  box-shadow: inset 4px 0 0 var(--team-color, var(--bb-tan-dark)), inset 0 0 0 1px rgba(95, 62, 25, 0.45), 0 3px 0 #8a6843;
+  cursor: pointer;
+}
+
+.row:active {
+  transform: translateY(2px);
+  box-shadow: inset 4px 0 0 var(--team-color, var(--bb-tan-dark)), inset 0 0 0 1px rgba(95, 62, 25, 0.45), 0 1px 0 #8a6843;
+}
+
+.row:focus-visible,
+.close:focus-visible {
+  outline: 3px solid var(--bb-mustard);
+  outline-offset: -3px;
+}
+
+.jersey {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.6rem;
+  padding: 0.45rem 0.35rem;
+  font-family: var(--font-slab);
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--bb-parchment);
+  background: var(--bb-tan-dark);
+  background-image: var(--tex-grain);
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.3rem;
+  line-height: 1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.role {
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bb-blood-700);
+}
+
+.stars {
+  color: var(--bb-mustard-deep);
+}
+
+.flag {
+  color: var(--bb-navy);
+}
+
+/* Quello che ha già segnato in questa partita: placchetta navy */
+.already {
+  padding: 0.25rem 0.45rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--bb-parchment);
+  background: var(--bb-navy);
+}
+
+/* Profilo in una riga: MA 6 · ST 3 · AG 3+ · PA 4+ · AV 8+ */
+.profile {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.7rem;
+  font-family: var(--font-data);
+  font-stretch: 85%;
+  font-weight: 800;
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile small {
+  margin-right: 0.2rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--bb-ink-soft);
+}
+
+/* Cambiato da un Prayer to Nuffle per questa partita */
+.changed {
+  padding: 0 0.25rem;
+  background: #fff1c4;
+  box-shadow: inset 0 -2px 0 var(--bb-navy);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem calc(0.75rem + env(safe-area-inset-right)) calc(0.75rem + env(safe-area-inset-bottom)) calc(0.75rem + env(safe-area-inset-left));
+  border-top: 1px solid rgba(95, 62, 25, 0.35);
+}
+
+.foot :global(.btn) {
+  flex: 1;
+  min-width: 9rem;
+}

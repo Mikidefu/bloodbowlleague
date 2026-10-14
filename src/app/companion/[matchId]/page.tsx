@@ -4,7 +4,7 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellOff, ChevronRight, LogOut, Sun, Undo2, Users, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, ChevronRight, LogOut, Sun, Undo2, Users, WifiOff } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { clearSession, queueKey, readSession, type CompanionSession } from '@/lib/live/companionSession';
@@ -23,13 +23,14 @@ import LangSwitch from '../LangSwitch';
 import { usePush } from '../usePush';
 import { useWakeLock } from '../useWakeLock';
 import { KickoffCard, KickoffEntry } from './Kickoff';
+import PlayerPicker, { type StatInfo } from './PlayerPicker';
 import RosterSlide, { useRosterView } from './Roster';
 import { useMatchDetails } from './useMatchDetails';
 import board from '../Board.module.css';
 import styles from '../Companion.module.css';
 import rosterStyles from './Roster.module.css';
 
-const STATS: { type: StatEvent; short: string; it: string; en: string }[] = [
+const STATS: StatInfo[] = [
   { type: 'touchdown', short: 'TD', it: 'Touchdown', en: 'Touchdown' },
   { type: 'casualty', short: 'CAS', it: 'Casualty', en: 'Casualty' },
   { type: 'completion', short: 'CMP', it: 'Passaggio', en: 'Completion' },
@@ -271,11 +272,13 @@ function Board({ session }: { session: CompanionSession }) {
         )}
 
         {!ended && iKick && <KickoffEntry state={state} teamName={teamName} language={language} onRecord={recordKickoff} />}
-        {!ended && state.status === 'awaiting_kickoff' && state.turns_done && (
+        {!ended && state.turns_done && (state.status === 'awaiting_kickoff' || state.half === 1) && (
             <>
-              <p className={styles.notice}>{state.half === 1
-                ? L('Primo tempo finito. Quando siete pronti, uno dei due allenatori fa partire il secondo tempo.', 'First half over. When you are both ready, either coach starts the second half.')
-                : L('Tempo finito: aspetta che l’admin chiuda la partita.', 'Half over: wait for the admin to close the match.')}</p>
+              <p className={styles.notice}>{state.half !== 1
+                ? L('Tempo finito: aspetta che l’admin chiuda la partita.', 'Half over: wait for the admin to close the match.')
+                : state.status === 'awaiting_kickoff'
+                  ? L('Primo tempo finito. Quando siete pronti, uno dei due allenatori fa partire il secondo tempo.', 'First half over. When you are both ready, either coach starts the second half.')
+                  : L('Ultimo turno del primo tempo. Quando finisce, uno dei due allenatori fa partire il secondo tempo.', 'Last turn of the first half. When it ends, either coach starts the second half.')}</p>
               {state.half === 1 && (
                   <button type="button" className={`btn btn-primary ${styles.big}`} onClick={startHalf}>{L('Inizia il secondo tempo', 'Start the second half')}</button>
               )}
@@ -415,8 +418,8 @@ function Board({ session }: { session: CompanionSession }) {
         )}
 
         <footer className={styles.footer}>
-          {/* A turni finiti il tasto grande sta in alto; qui resta la scorciatoia per cambiare tempo prima (chiede conferma) */}
-          {!ended && state.half === 1 && !state.turns_done && <button type="button" className="btn" onClick={startHalf}>{L('Passa al secondo tempo', 'Go to the second half')}</button>}
+          {/* A turni finiti il tasto grande sta in alto; qui si cambia tempo anche prima (chiede conferma) */}
+          {!ended && state.half === 1 && !state.turns_done && <button type="button" className="btn" onClick={startHalf}>{L('Inizia il secondo tempo', 'Start the second half')}</button>}
           {wakeLock.supported && (
               <button type="button" className="btn" aria-pressed={wake} onClick={toggleWake}>
                 <Sun size={18} /> {wake && wakeLock.active ? L('Schermo sempre acceso', 'Screen stays on') : L('Tieni lo schermo acceso', 'Keep the screen on')}
@@ -437,23 +440,8 @@ function Board({ session }: { session: CompanionSession }) {
           onOpenPlayer={roster.openPlayer} onSwap={roster.swap} onBack={roster.back} />
 
         {picking && (
-            <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={L('Chi è stato?', 'Who was it?')}>
-              <div className={styles.sheetHead}>
-                <strong>{STATS.find(s => s.type === picking)?.[language]}: {L('chi è stato?', 'who was it?')}</strong>
-                <button type="button" className={`btn ${styles.iconBtn}`} aria-label={L('Chiudi', 'Close')} onClick={() => setPicking(null)}><X size={20} /></button>
-              </div>
-              <div className={styles.playerGrid}>
-                {myPlayers.map(p => (
-                    <button key={p.id} type="button" className="btn" onClick={() => record(picking, p.id)}>
-                      <span className={styles.jersey}>{p.jersey_number ?? '·'}</span>
-                      <span className={styles.playerName}>{p.name}</span>
-                    </button>
-                ))}
-              </div>
-              {!PRAYER_STAT_EVENTS[picking] && (
-                  <button type="button" className={`btn ${styles.wide}`} onClick={() => record(picking, null)}>{L('Senza giocatore', 'No player')}</button>
-              )}
-            </div>
+            <PlayerPicker stat={STATS.find(s => s.type === picking)!} stats={STATS} players={myPlayers} tally={me?.stats} prayers={prayersByTeam}
+              allowNoPlayer={!PRAYER_STAT_EVENTS[picking]} language={language} onPick={id => record(picking, id)} onClose={() => setPicking(null)} />
         )}
       </div>
   );
