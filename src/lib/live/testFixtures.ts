@@ -29,7 +29,7 @@ export async function seedTestDb(db: Client) {
     `INSERT INTO matches (id, round, home_team_id, away_team_id, season_id, match_type, pregame_done, kicking_team_id)
        VALUES ('${MATCH}', 1, '${H}', '${A}', 's1', 'League', 1, '${A}')`,
     `INSERT INTO match_team_reports (match_id, team_id, fan_factor, inducements)
-       VALUES ('${MATCH}', '${H}', 6, '[{"key":"extra_team_training","qty":1},{"key":"team_mascot","qty":1},{"key":"part_time_assistant_coaches","qty":2}]')`,
+       VALUES ('${MATCH}', '${H}', 6, '[{"key":"extra_team_training","qty":1},{"key":"team_mascot","qty":1},{"key":"part_time_assistant_coaches","qty":2},{"key":"star_player","qty":1,"star":"griff-oberwald"}]')`,
     `INSERT INTO match_team_reports (match_id, team_id, fan_factor, inducements)
        VALUES ('${MATCH}', '${A}', 3, '[{"key":"halfling_master_chef","qty":1},{"key":"bribes","qty":1}]')`,
   ], 'write');

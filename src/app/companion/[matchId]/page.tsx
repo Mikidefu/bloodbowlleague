@@ -12,6 +12,7 @@ import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
 import type { ManualKickoffDice } from '@/lib/live/kickoff';
 import { noticesFor, type Notice } from '@/lib/live/notify';
+import { parseInducements, starEntries, starOfId } from '@/lib/live/roster';
 import { whyNot } from '@/lib/live/rules';
 import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type StatEvent } from '@/lib/live/types';
 import { parsePrayers } from '@/lib/prayers';
@@ -122,7 +123,9 @@ function Board({ session }: { session: CompanionSession }) {
   const teamName = useCallback((id: string | null) =>
     !match ? '—' : id === match.home_team_id ? match.home_name : id === match.away_team_id ? match.away_name : '—', [match]);
   const players = useMemo(() => (match ? [...match.homePlayers, ...match.awayPlayers] : []), [match]);
-  const playerName = useCallback((id: string) => players.find(p => p.id === id)?.name ?? null, [players]);
+  const playerName = useCallback((id: string) => players.find(p => p.id === id)?.name ?? starOfId(id)?.name ?? null, [players]);
+  // I miei Star Player ingaggiati: si possono scegliere per le statistiche (niente SPP)
+  const myStars = useMemo(() => (match ? starEntries(parseInducements(match.reports.find(r => r.team_id === myTeam)?.inducements)) : []), [match, myTeam]);
   const ctx = useMemo(() => ({ language, teamName, playerName, events: live.events }), [language, teamName, playerName, live.events]);
   useEffect(() => { ctxRef.current = ctx; }, [ctx]);
 
@@ -442,7 +445,7 @@ function Board({ session }: { session: CompanionSession }) {
           onOpenPlayer={roster.openPlayer} onSwap={roster.swap} onBack={roster.back} />
 
         {picking && (
-            <PlayerPicker stat={STATS.find(s => s.type === picking)!} stats={STATS} players={myPlayers} tally={me?.stats} prayers={prayersByTeam}
+            <PlayerPicker stat={STATS.find(s => s.type === picking)!} stats={STATS} players={myPlayers} stars={myStars} tally={me?.stats} prayers={prayersByTeam}
               allowNoPlayer={!PRAYER_STAT_EVENTS[picking]} language={language} onPick={id => record(picking, id)} onClose={() => setPicking(null)} />
         )}
       </div>

@@ -102,12 +102,13 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
   const entriesByTeam = useMemo(() => teamIds.split(',').map(id => {
     const matchPlayers = match ? (id === match.home_team_id ? match.homePlayers : match.awayPlayers) : null;
     const players = rosterEntries(loaded[id]?.players ?? null, matchPlayers, effects);
-    const stars = match ? starEntries(id, parseInducements(match.reports.find(r => r.team_id === id)?.inducements)) : [];
+    const stars = match ? starEntries(parseInducements(match.reports.find(r => r.team_id === id)?.inducements)) : [];
     // Nell'ordine dell'elenco, che è anche quello per scorrere le schede: chi gioca, le star, chi non gioca
     return [...players.filter(e => !e.unavailable), ...stars, ...players.filter(e => e.unavailable)];
   }), [loaded, match, teamIds, effects]);
   // Quale squadra: la linguetta scelta, oppure quella del giocatore aperto
-  const side = view === OPP || (view !== null && !!entriesByTeam[1]?.some(e => e.id === view)) ? 1 : 0;
+  // (una star ingaggiata da tutte e due ha lo stesso id: si apre la mia, la scheda è identica)
+  const side = view === OPP || (view !== null && !entriesByTeam[0]?.some(e => e.id === view) && !!entriesByTeam[1]?.some(e => e.id === view)) ? 1 : 0;
   const entries = entriesByTeam[side] ?? [];
   const team = loaded[teams[side]?.id] ?? null;
   const teamName = teams[side]?.name ?? '';

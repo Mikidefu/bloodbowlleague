@@ -85,7 +85,7 @@ describe('partita dal vivo sul database', () => {
     assert.equal(state.status, 'in_drive');
   });
 
-  test('eventi: idempotenti per id, giocatore della squadra giusta, lotti con esiti separati', async () => {
+  test('eventi: idempotenti per id, giocatore (o Star Player ingaggiato) della squadra giusta, lotti con esiti separati', async () => {
     const home: Actor = { role: 'companion', teamId: H };
     const turn = { id: randomUUID(), type: 'turn_started' };
     const first = await server.recordEvents(MATCH, home, [turn]);
@@ -98,12 +98,15 @@ describe('partita dal vivo sul database', () => {
       { id: randomUUID(), type: 'reroll_used', payload: { kind: 'drive' } },
       { id: randomUUID(), type: 'reroll_used', payload: { kind: 'drive' } },        // il reroll del drive era uno solo
       { id: randomUUID(), type: 'casualty', payload: { player_id: 'pa1' } },          // giocatore degli ospiti
+      { id: randomUUID(), type: 'casualty', payload: { player_id: 'star-griff-oberwald' } },  // Star Player ingaggiato negli incentivi
+      { id: randomUUID(), type: 'casualty', payload: { player_id: 'star-anqi-panqi' } },      // Star Player non ingaggiato
       { id: randomUUID(), type: 'touchdown', payload: { player_id: 'ph1' } },
     ]);
-    assert.deepEqual(batch.map(r => r.status), ['ok', 'rejected', 'rejected', 'ok']);
+    assert.deepEqual(batch.map(r => r.status), ['ok', 'rejected', 'rejected', 'ok', 'rejected', 'ok']);
     const state = (await server.liveSnapshot(MATCH))!.state;
     assert.equal(state.teams[H].score, 1);
     assert.deepEqual(state.teams[H].stats.ph1, { touchdowns: 1 });
+    assert.deepEqual(state.teams[H].stats['star-griff-oberwald'], { casualties: 1 });
     assert.equal(state.kicking_team_id, H);
     const seqs = (await server.loadEvents(MATCH)).map(e => e.seq);
     assert.deepEqual(seqs, seqs.map((_, i) => i + 1), 'seq senza buchi né doppioni');

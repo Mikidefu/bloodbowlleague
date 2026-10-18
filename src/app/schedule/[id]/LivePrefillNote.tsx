@@ -5,6 +5,7 @@ import { Radio, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/components/ConfirmDialog';
 import type { LivePrefill, ReportStatField } from '@/lib/live/prefill';
+import { starOfId } from '@/lib/live/roster';
 import { PRAYER_STATS } from '@/lib/prayers';
 import type { MatchDetails } from '@/lib/types';
 import wz from '@/components/match/Wizard.module.css';
@@ -41,8 +42,14 @@ export default function LivePrefillNote({ match, prefill, applied, onApply }: { 
         <span>{L('Controlla ogni passo prima di confermare: infortuni e MVP li scegli tu, come sempre.', 'Check every step before confirming: injuries and MVPs are yours to pick, as always.')}</span>
         {loose.map(([teamId, stats]) => (
             <span key={teamId} className={wz.warn}>
-              {L(`${name(teamId)}: ${line(stats)} senza giocatore. Contano nel totale della squadra ma non danno SPP: va bene se è stato il pubblico, uno Star Player o un Mercenario; altrimenti assegnale a un giocatore nel passo Statistiche.`,
-                  `${name(teamId)}: ${line(stats)} without a player. They count in the team total but earn no SPP: fine if it was the crowd, a Star Player or a Mercenary; otherwise assign them to a player in the Stats step.`)}
+              {L(`${name(teamId)}: ${line(stats)} senza giocatore. Contano nel totale della squadra ma non danno SPP: va bene se è stato il pubblico, uno Star Player segnato senza nome o un Mercenario; altrimenti assegnale a un giocatore nel passo Statistiche.`,
+                  `${name(teamId)}: ${line(stats)} without a player. They count in the team total but earn no SPP: fine if it was the crowd, a Star Player recorded without a name or a Mercenary; otherwise assign them to a player in the Stats step.`)}
+            </span>
+        ))}
+        {(prefill.stars ?? []).map(s => (
+            <span key={`${s.team_id}-${s.player_id}`}>
+              {L(`${starOfId(s.player_id)?.name ?? 'Star Player'} (${name(s.team_id)}): ${line(s.stats)}. Star Player: contano nel totale della squadra, niente SPP.`,
+                  `${starOfId(s.player_id)?.name ?? 'Star Player'} (${name(s.team_id)}): ${line(s.stats)}. Star Player: they count in the team total, no SPP.`)}
             </span>
         ))}
         {prefill.skipped.map(s => (

@@ -2,6 +2,7 @@
 // Chi ha fatto il Touchdown, la Casualty, il passaggio...: si sceglie il giocatore e si conferma.
 // Pannello che sale dal basso con un giocatore per riga: numero, nome, ruolo, profilo di partita
 // (Prayers compresi) e quello che ha già segnato in questa partita, così non si sbaglia a chi va.
+// In fondo gli Star Player ingaggiati: le loro statistiche contano per la squadra ma non danno SPP.
 
 import { useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
@@ -20,6 +21,7 @@ type Props = {
   stat: StatInfo;
   stats: StatInfo[];                          // per scrivere cosa ha già fatto ogni giocatore
   players: MatchPlayer[];                     // la mia squadra in questa partita
+  stars: RosterEntry[];                       // Star Player ingaggiati: statistiche sì, SPP no
   tally: LiveTeamState['stats'] | undefined;  // statistiche di questa partita, per giocatore
   prayers: Record<string, PrayerResult[]>;
   allowNoPlayer: boolean;
@@ -28,11 +30,11 @@ type Props = {
   onClose: () => void;
 };
 
-export default function PlayerPicker({ stat, stats, players, tally, prayers, allowNoPlayer, language, onPick, onClose }: Props) {
+export default function PlayerPicker({ stat, stats, players, stars, tally, prayers, allowNoPlayer, language, onPick, onClose }: Props) {
   const confirm = useConfirm();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const label = stat[language];
-  const entries = useMemo(() => rosterEntries(null, players, prayerEffects(prayers)).filter(e => !e.unavailable), [players, prayers]);
+  const entries = useMemo(() => [...rosterEntries(null, players, prayerEffects(prayers)).filter(e => !e.unavailable), ...stars], [players, stars, prayers]);
 
   // Sotto il pannello il tabellone sta fermo
   useEffect(() => {
@@ -51,7 +53,10 @@ export default function PlayerPicker({ stat, stats, players, tally, prayers, all
     const ok = await confirm({
       title: label,
       message: who
-          ? <>{L('Segnare', 'Record')} <b>{label}</b> {L('a', 'for')} <b>{who}</b>{entry!.role ? ` (${entry!.role})` : ''}?</>
+          ? <>
+              {L('Segnare', 'Record')} <b>{label}</b> {L('a', 'for')} <b>{who}</b>{entry!.role ? ` (${entry!.role})` : ''}?
+              {entry!.star && <><br />{L('Conta per la squadra, ma gli Star Player non guadagnano SPP.', 'It counts for the team, but Star Players earn no SPP.')}</>}
+            </>
           : <>{L('Segnare', 'Record')} <b>{label}</b> {L('senza giocatore?', 'with no player?')}</>,
       confirmLabel: L('Segna', 'Record'),
       cancelLabel: L('Indietro', 'Back'),
@@ -77,13 +82,14 @@ export default function PlayerPicker({ stat, stats, players, tally, prayers, all
               return (
                   <li key={e.id}>
                     <button type="button" className={styles.row} onClick={() => pick(e)}>
-                      <span className={styles.jersey}>{e.jersey_number ?? '·'}</span>
+                      <span className={styles.jersey}>{e.star ? '★' : e.jersey_number ?? '·'}</span>
                       <span className={styles.who}>
                         <strong className={styles.name}>{e.name}</strong>
                         <span className={styles.role}>
                           {e.role}
                           {e.advancements > 0 && <span className={styles.stars}> {'★'.repeat(e.advancements)}</span>}
                           {e.journeyman && <span className={styles.flag}> · Journeyman</span>}
+                          {e.star && <span className={styles.flag}> · {L('niente SPP', 'no SPP')}</span>}
                         </span>
                       </span>
                       {already.length > 0 && <span className={styles.already} aria-label={L(`In questa partita: ${already.join(', ')}`, `This match: ${already.join(', ')}`)}>{already.join(' · ')}</span>}

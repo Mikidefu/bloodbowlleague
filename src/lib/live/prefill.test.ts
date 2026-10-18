@@ -48,11 +48,24 @@ describe('livePrefill', () => {
     assert.equal(p.events, 4);
   });
 
-  test('touchdown senza giocatore (Star Player): nel punteggio, non a un giocatore', () => {
+  test('touchdown senza giocatore: nel punteggio, non a un giocatore', () => {
     const p = livePrefill(stateOf([['touchdown', H, {}]]), players)!;
     assert.equal(p.scores[H], 1);
     assert.deepEqual(p.withoutPlayer[H], { td: 1 });
     assert.deepEqual(p.players, {});
+  });
+
+  test('Star Player: statistiche nel totale della squadra, mai a un giocatore del referto (niente SPP)', () => {
+    const p = livePrefill(stateOf([
+      ['casualty', H, { player_id: 'star-griff-oberwald' }],
+      ['touchdown', H, { player_id: 'star-griff-oberwald' }],
+    ]), players)!;
+    assert.equal(p.scores[H], 1);
+    assert.equal(p.casualties[H], 1);
+    assert.deepEqual(p.players, {});
+    assert.deepEqual(p.skipped, []);
+    assert.deepEqual(p.withoutPlayer, {});
+    assert.deepEqual(p.stars, [{ player_id: 'star-griff-oberwald', team_id: H, stats: { td: 1, cas: 1 } }]);
   });
 
   test('Casualty senza giocatore contano nel totale di squadra', () => {

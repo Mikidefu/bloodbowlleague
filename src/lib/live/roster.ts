@@ -7,7 +7,7 @@ import type { Characteristics } from '@/lib/characteristics';
 import type { InducementChoice } from '@/lib/leagueRules';
 import { onDraftList } from '@/lib/players';
 import { profileWithPrayers, type PrayerEffect } from '@/lib/prayers';
-import { getStarHire, type StarPlayer } from '@/lib/starPlayers';
+import { getStarHire, getStarPlayer, type StarPlayer } from '@/lib/starPlayers';
 import type { MatchPlayer, Player, Skill } from '@/lib/types';
 
 export type RosterEntry = Characteristics & {
@@ -55,14 +55,24 @@ export function rosterEntries(teamPlayers: Player[] | null, matchPlayers: MatchP
       .sort((a, b) => Number(!!a.unavailable) - Number(!!b.unavailable) || (a.jersey_number ?? 999) - (b.jersey_number ?? 999));
 }
 
+// Uno Star Player nel live ha come id "star-" + la chiave del catalogo: non è una riga di players,
+// quindi le sue statistiche contano per la squadra ma non arrivano mai a player_stats (niente SPP).
+const STAR_ID = 'star-';
+export const starPlayerId = (key: string) => `${STAR_ID}${key}`;
+export const isStarPlayerId = (id: string) => id.startsWith(STAR_ID);
+export const starOfId = (id: string) => (isStarPlayerId(id) ? getStarPlayer(id.slice(STAR_ID.length)) : null);
+
 // Gli Star Player scelti negli incentivi della squadra: una coppia (es. Grak & Crumbleberry) sono due giocatori (p. 148).
 // Le scelte registrate prima del catalogo hanno solo il nome, senza profilo: restano fuori.
-export function starEntries(teamId: string, inducements: InducementChoice[]): RosterEntry[] {
-  return inducements
-      .filter(c => c.key === 'star_player')
-      .flatMap(c => getStarHire(c.star)?.members ?? [])
+const hiredStars = (inducements: InducementChoice[]): StarPlayer[] =>
+  inducements.filter(c => c.key === 'star_player').flatMap(c => getStarHire(c.star)?.members ?? []);
+
+export const hiredStarIds = (inducements: InducementChoice[]) => hiredStars(inducements).map(s => starPlayerId(s.key));
+
+export function starEntries(inducements: InducementChoice[]): RosterEntry[] {
+  return hiredStars(inducements)
       .map(s => ({
-        id: `star-${teamId}-${s.key}`, jersey_number: null, name: s.name, role: 'Star Player',
+        id: starPlayerId(s.key), jersey_number: null, name: s.name, role: 'Star Player',
         advancements: 0, journeyman: false, niggling_injuries: 0, unavailable: null,
         ma: s.ma, st: s.st, ag: s.ag, pa: s.pa, av: s.av,
         base: { ma: s.ma, av: s.av },

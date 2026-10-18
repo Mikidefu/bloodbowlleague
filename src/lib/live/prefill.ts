@@ -2,6 +2,7 @@
 // Funzione pura. Il referto resta l'unico punto che applica le regole (SPP, infortuni, incassi):
 // qui si preparano solo i numeri da controllare. Infortuni e MVP li sceglie sempre l'admin.
 
+import { isStarPlayerId } from './roster';
 import { STAT_COLUMN, type LiveState, type StatEvent } from './types';
 
 export type ReportStatField = 'td' | 'cas' | 'int' | 'comp' | 'ttm' | 'landing' | 'catches' | 'crowd_cas' | 'foul_cas';
@@ -22,7 +23,8 @@ export type LivePrefill = {
   scores: Record<string, number>;
   casualties: Record<string, number>;                                   // dei giocatori + quelle senza giocatore
   players: Record<string, Record<ReportStatField, number>>;
-  withoutPlayer: Record<string, Partial<Record<ReportStatField, number>>>;  // es. TD di uno Star Player: nel punteggio, niente SPP
+  withoutPlayer: Record<string, Partial<Record<ReportStatField, number>>>;  // es. TD del pubblico o di un Mercenario: nel punteggio, niente SPP
+  stars: { player_id: string; team_id: string; stats: Partial<Record<ReportStatField, number>> }[];    // Star Player: contano per la squadra, niente SPP
   skipped: { player_id: string; team_id: string; stats: Partial<Record<ReportStatField, number>> }[];  // giocatori che nel referto non ci sono
   events: number;                                                       // quante statistiche in tutto
 };
@@ -36,7 +38,7 @@ const toFields = (stats: Partial<Record<Column, number>>) => {
 export function livePrefill(state: LiveState | null | undefined, reportPlayers: ReportPlayer[]): LivePrefill | null {
   if (!state?.setup) return null;
   const eligible = new Map(reportPlayers.filter(p => !p.unavailable).map(p => [p.player_id, p.team_id]));
-  const prefill: LivePrefill = { scores: {}, casualties: {}, players: {}, withoutPlayer: {}, skipped: [], events: 0 };
+  const prefill: LivePrefill = { scores: {}, casualties: {}, players: {}, withoutPlayer: {}, stars: [], skipped: [], events: 0 };
   let anything = false;
 
   for (const [teamId, team] of Object.entries(state.teams)) {
@@ -49,6 +51,11 @@ export function livePrefill(state: LiveState | null | undefined, reportPlayers: 
       if (!count) continue;
       anything = true;
       prefill.events += count;
+      if (isStarPlayerId(playerId)) {
+        prefill.stars.push({ player_id: playerId, team_id: teamId, stats: fields });
+        cas += casualtiesOf(fields);
+        continue;
+      }
       if (eligible.get(playerId) !== teamId) { prefill.skipped.push({ player_id: playerId, team_id: teamId, stats: fields }); continue; }
       prefill.players[playerId] = { td: 0, cas: 0, int: 0, comp: 0, ttm: 0, landing: 0, catches: 0, crowd_cas: 0, foul_cas: 0, ...fields };
       cas += casualtiesOf(fields);

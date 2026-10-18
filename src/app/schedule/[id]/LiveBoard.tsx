@@ -11,6 +11,7 @@ import { describeEvent } from '@/lib/live/describe';
 import { problemText, type LiveProblem } from '@/lib/live/errors';
 import { kickoffExtraDice, kickoffHeadline, kickoffRolls, type ManualKickoffDice } from '@/lib/live/kickoff';
 import { EXTRA_TIME_HALF, PRAYER_STAT_EVENTS, TURNS_PER_HALF, type LiveEvent, type LiveTeamState, type StatEvent } from '@/lib/live/types';
+import { parseInducements, starEntries, starOfId, type RosterEntry } from '@/lib/live/roster';
 import { whyNot } from '@/lib/live/rules';
 import type { useLiveMatch } from '@/lib/live/useLiveMatch';
 import { getMatchTable, rowForTotal } from '@/lib/matchTables';
@@ -50,7 +51,9 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
   const teamName = (id: string | null) => (id === match.home_team_id ? match.home_name : id === match.away_team_id ? match.away_name : '—');
   const color = (id: string) => (id === match.home_team_id ? match.home_color : match.away_color) ?? undefined;
   const players = useMemo(() => [...match.homePlayers, ...match.awayPlayers], [match]);
-  const playerName = (id: string) => players.find(p => p.id === id)?.name ?? null;
+  const playerName = (id: string) => players.find(p => p.id === id)?.name ?? starOfId(id)?.name ?? null;
+  // Star Player ingaggiati nel pre-partita: si possono scegliere per le statistiche (niente SPP)
+  const starsOf = (id: string) => starEntries(parseInducements(match.reports.find(r => r.team_id === id)?.inducements));
   const describe = (e: LiveEvent) => describeEvent(e, { language, teamName, playerName, events });
 
   if (live.load === 'loading') return <p className={wz.note}>{L('Collegamento alla partita dal vivo...', 'Connecting to the live match...')}</p>;
@@ -107,7 +110,7 @@ export default function LiveBoard({ match, live }: { match: MatchDetails; live: 
         <div className={wz.teams}>
           {teamIds.map(id => state.teams[id] && (
               <TeamColumn key={id} teamId={id} name={teamName(id)} color={color(id)} team={state.teams[id]} live={live} ended={ended}
-                players={players.filter(p => p.team_id === id && !p.unavailable)} playerName={playerName} teamName={teamName} L={L} />
+                players={players.filter(p => p.team_id === id && !p.unavailable)} stars={starsOf(id)} playerName={playerName} teamName={teamName} L={L} />
           ))}
         </div>
 
@@ -323,10 +326,10 @@ function PhaseLine({ live, teamName, L }: { live: Live; teamName: (id: string | 
 
 type TeamProps = {
   teamId: string; name: string; color?: string; team: LiveTeamState; live: Live; ended: boolean;
-  players: MatchDetails['homePlayers']; playerName: (id: string) => string | null; teamName: (id: string | null) => string; L: Tr;
+  players: MatchDetails['homePlayers']; stars: RosterEntry[]; playerName: (id: string) => string | null; teamName: (id: string | null) => string; L: Tr;
 };
 
-function TeamColumn({ teamId, name, color, team, live, ended, players, playerName, teamName, L }: TeamProps) {
+function TeamColumn({ teamId, name, color, team, live, ended, players, stars, playerName, teamName, L }: TeamProps) {
   const { language } = useLanguage();
   const [player, setPlayer] = useState('');
   const { state } = live;
@@ -406,6 +409,11 @@ function TeamColumn({ teamId, name, color, team, live, ended, players, playerNam
               <select value={player} onChange={e => setPlayer(e.target.value)} aria-label={L('Giocatore', 'Player')}>
                 <option value="">{L('— giocatore (facoltativo) —', '— player (optional) —')}</option>
                 {players.map(p => <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} ` : ''}{p.name}</option>)}
+                {stars.length > 0 && (
+                    <optgroup label={L('Star Player (niente SPP)', 'Star Players (no SPP)')}>
+                      {stars.map(s => <option key={s.id} value={s.id}>★ {s.name}</option>)}
+                    </optgroup>
+                )}
               </select>
               <div className={styles.inline}>
                 {buttons.map(b => (

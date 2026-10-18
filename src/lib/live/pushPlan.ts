@@ -2,6 +2,7 @@
 // riusa noticesFor, così con l'app chiusa arrivano gli stessi avvisi che si vedono con l'app aperta.
 
 import { noticesFor } from './notify';
+import { starOfId } from './roster';
 import type { KickoffResult, LiveEvent } from './types';
 
 export type PushTarget = { endpoint: string; team_id: string; language: 'it' | 'en' };
@@ -27,7 +28,7 @@ export function planPushes(matchId: string, newEvents: LiveEvent[], allEvents: L
     const notices = noticesFor(others, target.team_id, {
       language: target.language,
       teamName: id => (id ? names.teams[id] ?? '—' : '—'),
-      playerName: id => names.players[id] ?? null,
+      playerName: id => names.players[id] ?? starOfId(id)?.name ?? null,
       events: allEvents,
     });
     if (!notices.length) continue;

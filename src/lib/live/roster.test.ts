@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { toMatchPlayer, toPlayer } from '@/lib/players';
 import { prayerEffects } from '@/lib/prayers';
-import { parseInducements, rosterEntries, starEntries } from './roster';
+import { hiredStarIds, parseInducements, rosterEntries, starEntries, starOfId } from './roster';
 
 const row = (id: string, jersey: number | null, extra: Record<string, unknown> = {}) =>
   ({ id, team_id: 't1', jersey_number: jersey, name: `Player ${id}`, role: 'Lineman', value: 50000, ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', ...extra });
@@ -54,9 +54,12 @@ describe('rosa della companion', () => {
       { key: 'star_player', qty: 1, star: 'grak-crumbleberry' },
       { key: 'star_player', qty: 1, name: 'Vecchia star senza catalogo' },
     ]));
-    const list = starEntries('t1', inducements);
+    const list = starEntries(inducements);
     assert.deepEqual(list.map(p => p.name), ['Griff Oberwald', 'Crumbleberry', 'Grak']);
-    assert.equal(list[0].id, 'star-t1-griff-oberwald');
+    assert.equal(list[0].id, 'star-griff-oberwald');
+    assert.deepEqual(hiredStarIds(inducements), list.map(p => p.id));
+    assert.equal(starOfId('star-griff-oberwald')?.name, 'Griff Oberwald');
+    assert.equal(starOfId('ph1'), null);
     assert.deepEqual([list[0].ma, list[0].st, list[0].av], [7, 4, '9+']);
     assert.ok(list[0].star?.skills.includes('Loner (3+)'));
     assert.equal(list[0].unavailable, null);

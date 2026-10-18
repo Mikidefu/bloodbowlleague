@@ -10,6 +10,7 @@ import db from '@/lib/db';
 import { rollDie } from '@/lib/matchTables';
 import { manualDiceMissing, resolveKickoff, validateManualDice, type DieRoller, type ManualKickoffDice } from './kickoff';
 import { reduceLive } from './reduce';
+import { hiredStarIds, parseInducements } from './roster';
 import { LiveRuleError, canRollKickoff, isEventId, kickoffDedupeKey, validateLiveEvent, type ClientEventInput, type LiveActor, type LiveErrorCode, type ValidatedEvent } from './rules';
 import { chefRolls, liveStartPayload } from './setup';
 import { companionToken, newJoinCode, newNonce, normalizeJoinCode } from './token';
@@ -280,11 +281,15 @@ export async function recordEvents(matchId: string, actor: LiveActor, inputs: Cl
   if (!Array.isArray(inputs) || !inputs.length) fail('No events');
   if (inputs.length > MAX_EVENTS_PER_REQUEST) fail(`At most ${MAX_EVENTS_PER_REQUEST} events per request`);
   await assertNotPlayed(matchId);
-  const [events, players] = await Promise.all([
+  const [events, players, reports] = await Promise.all([
     loadEvents(matchId),
     db.execute({ sql: 'SELECT p.id, p.team_id FROM players p JOIN matches m ON p.team_id IN (m.home_team_id, m.away_team_id) WHERE m.id = ?', args: [matchId] }),
+    db.execute({ sql: 'SELECT team_id, inducements FROM match_team_reports WHERE match_id = ?', args: [matchId] }),
   ]);
   const teamOfPlayer = new Map(players.rows.map(p => [String(p.id), String(p.team_id)]));
+  // Gli Star Player ingaggiati nel pre-partita giocano per la squadra (statistiche sì, SPP no)
+  const starsOf = new Map(reports.rows.map(r => [String(r.team_id), new Set(hiredStarIds(parseInducements(r.inducements as string | null)))]));
+  const plays = (playerId: string, teamId: string | null) => teamOfPlayer.get(playerId) === teamId || (!!teamId && !!starsOf.get(teamId)?.has(playerId));
   const known = new Set(events.map(e => e.id));
   const working = [...events];
   let state = reduceLive(working);
@@ -297,7 +302,7 @@ export async function recordEvents(matchId: string, actor: LiveActor, inputs: Cl
     try {
       const event = validateLiveEvent(state, input, actor, working);
       const playerId = event.payload.player_id;
-      if (typeof playerId === 'string' && teamOfPlayer.get(playerId) !== event.team_id) fail('This player is not on that team');
+      if (typeof playerId === 'string' && !plays(playerId, event.team_id)) fail('This player is not on that team');
       const next: NewEvent = { ...event, source: actor.role };
       // Un nuovo tempo porta con sé i tiri dello Chef, che servono il dado del server
       const chef = next.type === 'half_started'
