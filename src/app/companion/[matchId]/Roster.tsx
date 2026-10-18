@@ -8,10 +8,11 @@ import { ArrowLeft, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { ADVANCEMENT_TIERS, MAX_ADVANCEMENTS, categoryLetters, categoryName } from '@/lib/advancement';
 import { STAT_KEYS, statLabel } from '@/lib/characteristics';
-import { rosterEntries, skillLabel, type RosterEntry } from '@/lib/live/roster';
+import { parseInducements, rosterEntries, skillLabel, starEntries, type RosterEntry } from '@/lib/live/roster';
 import { hatredList, mustAdvance } from '@/lib/players';
 import { prayerEffects, type PrayerResult } from '@/lib/prayers';
 import { skillBaseName } from '@/lib/rosters';
+import { playsForText } from '@/lib/starPlayers';
 import type { MatchDetails, Skill, TeamWithPlayers } from '@/lib/types';
 import styles from './Roster.module.css';
 
@@ -63,7 +64,7 @@ type Props = {
 export type RosterTeam = { id: string; name: string; color: string | null };
 
 export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer, onSwap, onBack }: Props) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const L = (it: string, en: string) => (language === 'it' ? it : en);
   const [loaded, setLoaded] = useState<Record<string, TeamWithPlayers>>({});
   const [allSkills, setAllSkills] = useState<Skill[] | null>(null);
@@ -100,7 +101,10 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
   const effects = useMemo(() => prayerEffects(prayers), [prayers]);
   const entriesByTeam = useMemo(() => teamIds.split(',').map(id => {
     const matchPlayers = match ? (id === match.home_team_id ? match.homePlayers : match.awayPlayers) : null;
-    return rosterEntries(loaded[id]?.players ?? null, matchPlayers, effects);
+    const players = rosterEntries(loaded[id]?.players ?? null, matchPlayers, effects);
+    const stars = match ? starEntries(id, parseInducements(match.reports.find(r => r.team_id === id)?.inducements)) : [];
+    // Nell'ordine dell'elenco, che è anche quello per scorrere le schede: chi gioca, le star, chi non gioca
+    return [...players.filter(e => !e.unavailable), ...stars, ...players.filter(e => e.unavailable)];
   }), [loaded, match, teamIds, effects]);
   // Quale squadra: la linguetta scelta, oppure quella del giocatore aperto
   const side = view === OPP || (view !== null && !!entriesByTeam[1]?.some(e => e.id === view)) ? 1 : 0;
@@ -108,8 +112,8 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
   const team = loaded[teams[side]?.id] ?? null;
   const teamName = teams[side]?.name ?? '';
 
-  // Le skill date da un Prayer non sono sulla scheda del giocatore: il testo si prende dall'elenco delle skill
-  const needsSkillTexts = entries.some(e => e.effects.some(x => x.skill));
+  // Le skill date da un Prayer e quelle delle star non sono su una scheda giocatore: il testo si prende dall'elenco delle skill
+  const needsSkillTexts = entries.some(e => e.star || e.effects.some(x => x.skill));
   useEffect(() => {
     if (!open || !needsSkillTexts || allSkills) return;
     fetch('/api/skills').then(r => (r.ok ? r.json() : [])).then(setAllSkills).catch(() => { /* resta il solo nome */ });
@@ -131,7 +135,8 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
     onOpenPlayer(id);
   };
   const title = side === 0 ? L('La mia rosa', 'My roster') : L('Rosa avversaria', 'Opponent roster');
-  const playing = entries.filter(e => !e.unavailable);
+  const playing = entries.filter(e => !e.unavailable && !e.star);
+  const stars = entries.filter(e => e.star);
   const out = entries.filter(e => e.unavailable);
   const index = player ? entries.indexOf(player) : -1;
   const previous = index > 0 ? entries[index - 1] : null;
@@ -140,6 +145,11 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
   const skillText = (s: Pick<Skill, 'description' | 'description_it'>) => (language === 'it' ? s.description_it || s.description : s.description || s.description_it) ?? '';
   const findSkill = (name: string) => allSkills?.find(s => skillBaseName(s.name).toLowerCase() === skillBaseName(name).toLowerCase()) ?? null;
   const outLabel = (e: RosterEntry) => (e.unavailable === 'mng' ? L('Salta la partita (MNG)', 'Misses this game (MNG)') : 'Temporarily Retiring');
+  const jersey = (e: RosterEntry) => (e.star ? '★' : e.jersey_number ?? '·');
+  // Le skill delle star sono già scritte come sulla carta ("Loner (4+)"), quelle della scheda squadra in maiuscolo
+  const skillNames = (e: RosterEntry) =>
+    e.star ? e.star.skills : [...e.skills.map(s => skillLabel(s.name)), ...e.effects.flatMap(x => (x.skill ? [`+ ${x.skill}`] : []))];
+  const roleLine = (e: RosterEntry) => (e.star ? `${e.role} · ${e.star.keywords.join(', ')}` : e.role);
 
   const tags = (e: RosterEntry) => (
       <>
@@ -168,11 +178,11 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
   const card = (e: RosterEntry) => (
       <li key={e.id}>
         <button type="button" className={`${styles.card} ${e.unavailable ? styles.cardOut : ''}`} onClick={() => openPlayer(e.id)}>
-          <span className={styles.jersey}>{e.jersey_number ?? '·'}</span>
+          <span className={styles.jersey}>{jersey(e)}</span>
           <span className={styles.who}>
             <strong className={styles.name}>{e.name}</strong>
             <span className={styles.role}>
-              {e.role}
+              {roleLine(e)}
               {e.advancements > 0 && <span className={styles.stars} aria-label={L(`${e.advancements} avanzamenti`, `${e.advancements} advancements`)}> {'★'.repeat(e.advancements)}</span>}
             </span>
           </span>
@@ -185,8 +195,7 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
           )}
           {statStrip(e)}
           <span className={styles.skillLine}>
-            {[...e.skills.map(s => skillLabel(s.name)), ...e.effects.flatMap(x => (x.skill ? [`+ ${x.skill}`] : []))].join(', ')
-              || (e.full ? L('Nessuna skill', 'No skills') : '…')}
+            {skillNames(e).join(', ') || (e.full ? L('Nessuna skill', 'No skills') : '…')}
           </span>
         </button>
       </li>
@@ -201,7 +210,7 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
           </button>
           <div className={styles.barText}>
             <span>{showPlayer ? L('Scheda giocatore', 'Player card') : title}</span>
-            <strong>{showPlayer || !entries.length ? teamName : `${teamName} · ${playing.length} ${L('giocatori', 'players')}`}</strong>
+            <strong>{showPlayer || !entries.length ? teamName : `${teamName} · ${playing.length + stars.length} ${L('giocatori', 'players')}`}</strong>
           </div>
         </header>
 
@@ -244,6 +253,12 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
                 )}
                 <p className={styles.hint}>{L('Tocca un giocatore per leggere le sue skill per esteso.', 'Tap a player to read their skills in full.')}</p>
                 <ul className={styles.list}>{playing.map(card)}</ul>
+                {stars.length > 0 && (
+                    <>
+                      <h2 className={styles.section}>{L('Star Player ingaggiati', 'Star Players hired')}</h2>
+                      <ul className={styles.list}>{stars.map(card)}</ul>
+                    </>
+                )}
                 {out.length > 0 && (
                     <>
                       <h2 className={styles.section}>{L('Non giocano oggi', 'Not playing today')}</h2>
@@ -256,11 +271,11 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
           {showPlayer && (
               <article className={styles.sheet} key={player.id}>
                 <header className={styles.hero}>
-                  <span className={`${styles.jersey} ${styles.jerseyBig}`}>{player.jersey_number ?? '·'}</span>
+                  <span className={`${styles.jersey} ${styles.jerseyBig}`}>{jersey(player)}</span>
                   <div className={styles.who}>
                     <h1 className={styles.heroName}>{player.name}</h1>
                     <span className={styles.role}>
-                      {player.role}
+                      {roleLine(player)}
                       {player.advancements > 0 && <span className={styles.stars}> {'★'.repeat(player.advancements)}</span>}
                     </span>
                   </div>
@@ -290,12 +305,28 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
                     </section>
                 )}
 
+                {player.star && (
+                    <section className={`${styles.prayers} ${styles.special}`}>
+                      <h2>{player.star.special.name} · {t.stars.frequency[player.star.special.frequency]}</h2>
+                      <p>{player.star.special.text[language]}</p>
+                    </section>
+                )}
+
                 <section>
                   <h2 className={styles.section}>Skill</h2>
-                  {player.skills.length === 0 && !player.effects.some(x => x.skill) && (
+                  {player.skills.length === 0 && !player.star && !player.effects.some(x => x.skill) && (
                       <p className={styles.empty}>{player.full ? L('Nessuna skill.', 'No skills.') : L('Skill non disponibili senza rete.', 'Skills unavailable offline.')}</p>
                   )}
                   <ul className={styles.skills}>
+                    {player.star?.skills.map(name => {
+                      const known = findSkill(name);
+                      return (
+                          <li key={name}>
+                            <h3>{name} {known && <small>{known.type}</small>}</h3>
+                            <p>{(known && skillText(known)) || (allSkills ? '—' : '…')}</p>
+                          </li>
+                      );
+                    })}
                     {player.skills.map(s => (
                         <li key={s.id}>
                           <h3>{skillLabel(s.name)} <small>{s.type}</small></h3>
@@ -313,6 +344,17 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
                     })}
                   </ul>
                 </section>
+
+                {player.star && (
+                    <section>
+                      <h2 className={styles.section}>{L('Scheda', 'Record')}</h2>
+                      <dl className={styles.facts}>
+                        <div><dt>{L('Ingaggio', 'Hiring fee')}</dt><dd>{gp(player.star.cost)}</dd></div>
+                        <div><dt>{L('Fonte', 'Source')}</dt><dd>{player.star.page ? `Rulebook p. ${player.star.page}` : 'Star Players PDF'}</dd></div>
+                        <div className={styles.factWide}><dt>Plays For</dt><dd>{playsForText(player.star.playsFor, language)}</dd></div>
+                      </dl>
+                    </section>
+                )}
 
                 {player.full && (
                     <section>
@@ -353,10 +395,10 @@ export default function RosterSlide({ view, teams, match, prayers, onOpenPlayer,
             <nav className={styles.pager} aria-label={L('Altri giocatori', 'Other players')}>
               <button type="button" disabled={!previous} onClick={() => previous && onSwap(previous.id)}>
                 <ChevronLeft size={22} aria-hidden="true" />
-                <span>{previous ? `${previous.jersey_number ?? '·'} ${previous.name}` : '—'}</span>
+                <span>{previous ? `${jersey(previous)} ${previous.name}` : '—'}</span>
               </button>
               <button type="button" disabled={!next} onClick={() => next && onSwap(next.id)}>
-                <span>{next ? `${next.jersey_number ?? '·'} ${next.name}` : '—'}</span>
+                <span>{next ? `${jersey(next)} ${next.name}` : '—'}</span>
                 <ChevronRight size={22} aria-hidden="true" />
               </button>
             </nav>

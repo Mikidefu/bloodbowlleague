@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { toMatchPlayer, toPlayer } from '@/lib/players';
 import { prayerEffects } from '@/lib/prayers';
-import { rosterEntries } from './roster';
+import { parseInducements, rosterEntries, starEntries } from './roster';
 
 const row = (id: string, jersey: number | null, extra: Record<string, unknown> = {}) =>
   ({ id, team_id: 't1', jersey_number: jersey, name: `Player ${id}`, role: 'Lineman', value: 50000, ma: 6, st: 3, ag: '3+', pa: '4+', av: '8+', ...extra });
@@ -45,5 +45,26 @@ describe('rosa della companion', () => {
     assert.deepEqual([a.ma, a.av], [5, '9+']);
     assert.deepEqual(a.base, { ma: 6, av: '8+' });
     assert.deepEqual(a.effects.map(e => e.prayer), ['Iron Man', 'Greasy Cleats']);
+  });
+
+  test('gli Star Player ingaggiati negli incentivi entrano in rosa, le coppie come due giocatori', () => {
+    const inducements = parseInducements(JSON.stringify([
+      { key: 'bribes', qty: 1 },
+      { key: 'star_player', qty: 1, star: 'griff-oberwald' },
+      { key: 'star_player', qty: 1, star: 'grak-crumbleberry' },
+      { key: 'star_player', qty: 1, name: 'Vecchia star senza catalogo' },
+    ]));
+    const list = starEntries('t1', inducements);
+    assert.deepEqual(list.map(p => p.name), ['Griff Oberwald', 'Crumbleberry', 'Grak']);
+    assert.equal(list[0].id, 'star-t1-griff-oberwald');
+    assert.deepEqual([list[0].ma, list[0].st, list[0].av], [7, 4, '9+']);
+    assert.ok(list[0].star?.skills.includes('Loner (3+)'));
+    assert.equal(list[0].unavailable, null);
+  });
+
+  test('incentivi mancanti o rovinati: nessuna star', () => {
+    assert.deepEqual(parseInducements(null), []);
+    assert.deepEqual(parseInducements('{rotto'), []);
+    assert.deepEqual(parseInducements('{"key":"star_player"}'), []);
   });
 });

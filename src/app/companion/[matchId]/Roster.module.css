@@ -510,6 +510,12 @@
   list-style: none;
 }
 
+/* Regola speciale di uno Star Player: stesso riquadro dei Prayers */
+.special p {
+  margin: 0;
+  line-height: 1.35;
+}
+
 .empty {
   margin: 0;
   color: var(--bb-ink-soft);
