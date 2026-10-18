@@ -188,6 +188,11 @@
   text-shadow: 2px 3px 0 rgba(20, 8, 4, 0.55);
 }
 
+/* Scheda del Meteo: sempre sullo schermo, il nome grida meno di quello del kick-off */
+.name.nameSmall {
+  font-size: clamp(1.5rem, 7vw, 1.9rem);
+}
+
 .headline {
   font-size: 1.08rem;
   font-weight: 700;

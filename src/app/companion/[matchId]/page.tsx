@@ -25,6 +25,7 @@ import { useWakeLock } from '../useWakeLock';
 import { KickoffCard, KickoffEntry } from './Kickoff';
 import PlayerPicker, { type StatInfo } from './PlayerPicker';
 import RosterSlide, { useRosterView } from './Roster';
+import WeatherCard from './Weather';
 import { useMatchDetails } from './useMatchDetails';
 import board from '../Board.module.css';
 import styles from '../Companion.module.css';
@@ -293,6 +294,7 @@ function Board({ session }: { session: CompanionSession }) {
         {state.last_kickoff && inDrive && (
             <KickoffCard key={state.last_kickoff.event_id} kickoff={state.last_kickoff} myTeam={myTeam} teamName={teamName} language={language} open={!state.active_team_id} />
         )}
+        {!ended && weatherRoll && <WeatherCard roll={weatherRoll} changed={state.weather_roll !== null} language={language} />}
 
         {me && !ended && (
             <>
