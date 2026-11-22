@@ -51,6 +51,23 @@ node --env-file=.env.local scripts/migrate-season-status.mjs --apply
 node --env-file=.env.local scripts/migrate-league-rules.mjs --apply
 ```
 
+### Database di prova per lo sviluppo
+
+`npm run dev` non deve toccare i dati veri della lega. Per lavorare su una copia:
+
+```bash
+npm run db:dev   # copia schema e dati dalla produzione in dev.db (sola lettura sull'origine)
+npm run dev      # usa dev.db
+```
+
+Lo script ([`scripts/copy-db-to-dev.mjs`](scripts/copy-db-to-dev.mjs)) legge `.env.local`, ricrea `dev.db` da capo e
+scrive `TURSO_DATABASE_URL=file:dev.db` in `.env.development.local`. Next.js legge quel file solo con `next dev` e gli
+dà la precedenza su `.env.local`, quindi build e deploy restano sul database vero. Le iscrizioni alle notifiche push non
+vengono copiate: dal locale nessuna notifica arriva ai telefoni. Rilanciarlo riporta la copia ai dati di adesso
+(le prove locali si perdono). Per tornare al database vero anche in sviluppo basta cancellare `.env.development.local`.
+
+I loghi caricati in sviluppo finiscono comunque su Vercel Blob (`BLOB_READ_WRITE_TOKEN` è lo stesso).
+
 ### Regole di League Play (Rulebook 2025)
 
 - **Team Roster:** i 29 roster del libro (pp. 160-188) sono in [`src/lib/rosters.ts`](src/lib/rosters.ts). Il draft di una squadra nuova ([`src/lib/draft.ts`](src/lib/draft.ts)) controlla budget, 11-16 giocatori, limiti di posizione, Big Guy, staff, Dedicated Fans, League, Favoured of e Team Captain.

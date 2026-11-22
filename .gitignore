@@ -46,6 +46,9 @@ yarn-error.log*
 # local database
 # Escludiamo il file sqlite locale e la cartella data
 /data/*.db
+*.db-wal
+*.db-shm
+*.db-journal
 /data/*.sqlite
 /data/*.sqlite3
 *.db
