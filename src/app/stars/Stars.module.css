@@ -316,6 +316,6 @@
 }
 
 @media (max-width: 760px) {
-  .filters { grid-template-columns: 1fr; }
+  .filters { grid-template-columns: minmax(0, 1fr); }
   .toolbar { padding: 1rem 1rem 1.2rem; }
 }

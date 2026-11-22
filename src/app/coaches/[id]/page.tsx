@@ -13,6 +13,7 @@ import type { CoachCareer } from '@/lib/coaches';
 import type { PlayoffFinish } from '@/lib/standings';
 import type { SeasonStatus } from '@/lib/types';
 import styles from '../Coaches.module.css';
+import FitName from '@/components/FitName';
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
@@ -179,7 +180,7 @@ export default function CoachDetailsPage({ params }: { params: Promise<{ id: str
                 <i className={styles.microSquares} aria-hidden="true" />
                 {`${t.coachPicker.label} // ${t.coaches.career}`}
               </span>
-              <h2 id="coach-profile-name" className={styles.dossierName}>{career.name}</h2>
+              <h2 id="coach-profile-name" className={styles.dossierName}><FitName comfy={10}>{career.name}</FitName></h2>
 
               <dl className={styles.labelRows}>
                 <div className={styles.labelRow}>

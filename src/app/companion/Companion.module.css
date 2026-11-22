@@ -125,12 +125,14 @@
 .brandText {
   display: grid;
   flex: 1;
+  min-width: 0;
   gap: 0.15rem;
   line-height: 1;
 }
 
+/* Si stringe con lo schermo: a 320 px il titolo pieno spingeva fuori il selettore della lingua */
 .brandText :global(.title-spike) {
-  font-size: 2.1rem;
+  font-size: clamp(1.2rem, 7.6vw, 2.1rem);
 }
 
 .brandText span {
@@ -369,22 +371,6 @@
   text-shadow: 2px 3px 0 rgba(20, 8, 4, 0.55);
 }
 
-.kickLine {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0 0.2rem;
-  font-size: 0.92rem;
-  color: rgba(239, 229, 210, 0.9);
-}
-
-.kickLine :global(svg) {
-  flex: none;
-  margin-top: 0.15rem;
-  color: var(--bb-mustard);
-}
-
 .diceRow {
   display: flex;
   justify-content: center;
@@ -579,90 +565,4 @@
 .footer :global(.btn) {
   font-size: 1rem;
   padding: 0.5rem 0.9rem;
-}
-
-/* Scelta del giocatore: pannello di pergamena che sale dal basso */
-.sheet {
-  position: fixed;
-  inset: auto 0 0 0;
-  z-index: 20;
-  display: grid;
-  gap: 0.75rem;
-  max-height: 80dvh;
-  overflow-y: auto;
-  padding: 1rem calc(1rem + env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left));
-  color: var(--bb-ink);
-  background:
-    var(--tex-grain),
-    linear-gradient(180deg, #f5eddd, var(--bb-parchment-2));
-  background-size: 240px, cover;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 5px 0 0;
-  border-image: var(--bb-brass) 1;
-  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.65);
-  animation: rise 0.3s var(--ease-out);
-}
-
-@keyframes rise {
-  from { transform: translateY(24px); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sheet { animation: none; }
-}
-
-.sheetHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.3rem;
-  text-transform: uppercase;
-}
-
-.playerGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-
-.playerGrid :global(.btn) {
-  justify-content: flex-start;
-  gap: 0.55rem;
-  min-height: 54px;
-  padding: 0.35rem 0.55rem;
-  font-size: 1rem;
-  text-align: left;
-}
-
-/* Numero di maglia sulla linguetta di cuoio (.page-tab) */
-.jersey {
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-  min-width: 2.1rem;
-  padding: 0.25rem 0.3rem;
-  font-family: var(--font-slab);
-  font-weight: 900;
-  font-size: 1.15rem;
-  line-height: 1;
-  color: var(--bb-parchment);
-  background: var(--bb-tan-dark);
-  background-image: var(--tex-grain);
-  text-shadow: none;
-}
-
-.playerName {
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  text-transform: none;
-  white-space: nowrap;
 }

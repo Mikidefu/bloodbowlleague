@@ -237,6 +237,12 @@
     padding-top: 2.25rem;
   }
 
+  .submit {
+    white-space: normal;
+    text-align: left;
+    line-height: 1.05;
+  }
+
   .tape {
     right: 0;
     left: 0;

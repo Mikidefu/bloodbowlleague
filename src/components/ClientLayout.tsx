@@ -29,9 +29,12 @@ function NavBar() {
   const { isAdmin } = useAuth();
   const pathname = usePathname();
 
-  // Blocca lo scroll del body quando il menu mobile è aperto
+  // Blocca lo scroll della pagina quando il menu mobile è aperto. Su <html> (è lui a scorrere) e solo
+  // in verticale: scrivere "overflow" sul body gli toglieva overflow-x: clip (globals.css), e su
+  // telefono bastava un elemento più largo dello schermo per allargare tutta la pagina.
   useEffect(() => {
-    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset';
+    document.documentElement.style.overflowY = isMobileMenuOpen ? 'hidden' : '';
+    return () => { document.documentElement.style.overflowY = ''; };
   }, [isMobileMenuOpen]);
 
   const closeMenu = () => setIsMobileMenuOpen(false);

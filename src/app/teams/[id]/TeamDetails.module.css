@@ -329,6 +329,7 @@
   text-decoration-color: rgba(234, 178, 42, 0.45);
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
+  overflow-wrap: anywhere;
 }
 
 .coachLink:hover,
@@ -1010,6 +1011,7 @@
   min-width: 180px;
   max-width: 280px;
   line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .playerRole {

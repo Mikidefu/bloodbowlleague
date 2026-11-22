@@ -199,6 +199,9 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--bb-mustard);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .rankTeam:hover {
@@ -630,6 +633,7 @@
   text-decoration-color: rgba(234, 178, 42, 0.45);
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
+  overflow-wrap: anywhere;
 }
 
 .profileLink:hover {
@@ -950,6 +954,7 @@
 
 .teamName {
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .teamLogo {

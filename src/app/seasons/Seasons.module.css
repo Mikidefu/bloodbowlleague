@@ -801,6 +801,7 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--bb-ink);
+  overflow-wrap: anywhere;
 }
 
 .muted {

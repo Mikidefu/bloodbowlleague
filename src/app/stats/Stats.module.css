@@ -363,6 +363,9 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--bb-slate-300);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .bandDark .featureTeam {

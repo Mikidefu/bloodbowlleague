@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styles from './Deco.module.css';
+import FitName from '@/components/FitName';
 
 type SectionTitleProps = {
   index?: string;
@@ -22,7 +23,7 @@ export default function SectionTitle({ index, title, micro, on = 'dark', align =
             {micro}
           </span>
         )}
-        <h2 className={styles.sectionHeading}>{title}</h2>
+        <h2 className={styles.sectionHeading}><FitName comfy={12}>{title}</FitName></h2>
       </div>
       {action && <div className={styles.sectionAction}>{action}</div>}
     </div>

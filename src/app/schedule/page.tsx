@@ -14,6 +14,7 @@ import Shards from '@/components/brand/Shards';
 import TapeStrip from '@/components/brand/TapeStrip';
 import SectionTitle from '@/components/brand/SectionTitle';
 import styles from './Schedule.module.css';
+import FitName from '@/components/FitName';
 
 // Messaggio d'errore restituito dall'API, se presente
 const errorMessage = async (res: Response, fallback: string) => {
@@ -281,7 +282,7 @@ export default function SchedulePage() {
               ? <img src={logo} alt="" />
               : <ShieldAlert size={28} color={color ?? undefined} />}
         </div>
-        <span className={styles.teamName} data-side={side}>{name}</span>
+        <span className={styles.teamName} data-side={side}><FitName comfy={8} min={0.75} lines={3}>{name}</FitName></span>
       </div>
   );
 

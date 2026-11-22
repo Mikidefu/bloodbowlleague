@@ -28,6 +28,7 @@ import {
   CASUALTY_RESULTS, CONCEDE_QUIT_MIN_ADVANCEMENTS, LASTING_INJURIES, MATCH_OUTCOMES, casualtyInfo, concededScore, rollDie, winnings,
   type CasualtyResult, type InjuryStat, type MatchOutcome,
 } from '@/lib/leagueRules';
+import FitName from '@/components/FitName';
 
 
 // Il colore squadra arriva dal DB: lo passiamo come variabile CSS e lo usiamo solo come accento
@@ -599,7 +600,7 @@ export default function MatchDetailsPage({ params }: { params: Promise<{ id: str
               <ShieldAlert size={56} />
           )}
         </div>
-        <div className={styles.teamName}>{name}</div>
+        <div className={styles.teamName}><FitName comfy={9} min={0.7} lines={3}>{name}</FitName></div>
 
         <div className={styles.scoreItem}>
           <label htmlFor={`${side}-td`} className={styles.scoreLabel}>TD</label>

@@ -572,3 +572,9 @@
 @media (max-width: 380px) {
   .wordmark { --wm-size: 1.05rem; }
 }
+
+/* Schermi molto stretti (o zoom di pagina alto): il logo non deve spingere fuori il tasto del menu */
+@media (max-width: 330px) {
+  .wordmark { --wm-size: 0.85rem; }
+  .logoLink { gap: 0.5rem; padding-right: 2rem; }
+}

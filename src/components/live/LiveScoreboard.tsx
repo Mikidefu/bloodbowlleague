@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react';
 import { Shield } from 'lucide-react';
 import styles from './LiveScoreboard.module.css';
+import FitName from '@/components/FitName';
 
 export type ScoreboardSide = {
   name: string;
@@ -36,7 +37,7 @@ function Side({ side, align, activeLabel }: { side: ScoreboardSide; align: 'home
           {side.logo ? <img src={side.logo} alt="" /> : <Shield size={22} aria-hidden="true" />}
         </span>
         <span className={styles.nameWrap}>
-          <span className={styles.name}>{side.name}</span>
+          <span className={styles.name}><FitName comfy={10} min={0.7} lines={3}>{side.name}</FitName></span>
           {side.active && <span className={`tag ${styles.turnTag}`}>{activeLabel}</span>}
         </span>
       </div>

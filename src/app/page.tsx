@@ -15,6 +15,7 @@ import SectionTitle from '@/components/brand/SectionTitle';
 import Hotspot from '@/components/brand/Hotspot';
 import PillOfTheDay from '@/components/tutorial/PillOfTheDay';
 import styles from './Home.module.css';
+import FitName from '@/components/FitName';
 
 type Standing = {
     id: string;
@@ -210,7 +211,7 @@ export default function Home() {
                                             <Link href={`/teams/${team.id}`} className={styles.podiumTeam}>
                                                 {place === 1 && hasTrophy && <img src={ART.trophy} alt="" className={styles.trophyArt} />}
                                                 <TeamBadge logo={team.logo_url} color={team.primary_color} name={team.name} size={place === 1 ? 92 : 70} />
-                                                <span className={styles.podiumName}>{team.name}</span>
+                                                <span className={styles.podiumName}><FitName comfy={10} min={0.7} lines={3}>{team.name}</FitName></span>
                                                 <span className={styles.podiumPts}>{team.points} {t.home.points}</span>
                                             </Link>
                                             <span className={styles.podiumBlock}>
@@ -259,7 +260,7 @@ export default function Home() {
                                     <span className={styles.starTeam} style={{ ['--team' as string]: star.primary_color || 'var(--bb-mustard)' }}>
                                         {star.team_name}
                                     </span>
-                                    <span className={styles.starName}>{star.name}</span>
+                                    <span className={styles.starName}><FitName comfy={9}>{star.name}</FitName></span>
                                     <span className={`plate ${styles.starStat}`}>
                                         <strong>{star.total_td}</strong>
                                         <span>{t.home.touchdowns}</span>
@@ -308,14 +309,14 @@ export default function Home() {
                                     <span className={styles.resultBody}>
                                         <span className={styles.resultTeam}>
                                             <TeamBadge logo={m.home_logo} color={m.home_color} name={m.home_name} size={62} />
-                                            <span>{m.home_name}</span>
+                                            <FitName comfy={10} min={0.75} lines={3}>{m.home_name}</FitName>
                                         </span>
                                         <span className={styles.resultScore}>
                                             {m.home_score}<i>–</i>{m.away_score}
                                         </span>
                                         <span className={styles.resultTeam}>
                                             <TeamBadge logo={m.away_logo} color={m.away_color} name={m.away_name} size={62} />
-                                            <span>{m.away_name}</span>
+                                            <FitName comfy={10} min={0.75} lines={3}>{m.away_name}</FitName>
                                         </span>
                                     </span>
                                     <span className={styles.resultFoot}>

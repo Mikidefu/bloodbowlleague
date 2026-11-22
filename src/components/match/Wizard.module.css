@@ -203,6 +203,8 @@ button.stepBtn:focus-visible {
   font-size: 1.35rem;
   text-transform: uppercase;
   line-height: 1.05;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .facts {

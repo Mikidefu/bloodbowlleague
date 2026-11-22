@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PageHeader from '@/components/brand/PageHeader';
 import SectionTitle from '@/components/brand/SectionTitle';
 import styles from './Coaches.module.css';
+import FitName from '@/components/FitName';
 
 type CoachRow = {
   id: string;
@@ -79,7 +80,7 @@ export default function CoachesPage() {
                                 {c.latest ? `${t.coaches.current} // ${c.latest.season_name}` : `${t.coachPicker.label} // —`}
                               </span>
                               <Link href={`/coaches/${c.id}`} className={styles.rankName}>
-                                <span className="visually-hidden">{rank}. </span>{c.name}
+                                <span className="visually-hidden">{rank}. </span><FitName comfy={9}>{c.name}</FitName>
                               </Link>
                               {c.latest ? (
                                   <Link href={`/teams/${c.latest.team_id}`} className={styles.rankTeam}>{c.latest.team_name}</Link>

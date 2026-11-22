@@ -8,6 +8,7 @@ import { useSeason } from '@/lib/SeasonContext';
 import PageHeader from '@/components/brand/PageHeader';
 import styles from './Teams.module.css';
 import type { Team } from '@/lib/types';
+import FitName from '@/components/FitName';
 
 type SeasonTeam = Team & { coach_id: string | null; coach_name: string | null };
 
@@ -104,7 +105,7 @@ export default function TeamsPage() {
                           </span>
 
                           <div className={styles.cardBody}>
-                            <h2 className={styles.teamName}>{team.name}</h2>
+                            <h2 className={styles.teamName}><FitName comfy={10}>{team.name}</FitName></h2>
                             <span className={styles.tags}>
                               <span className={styles.raceTag}>{team.race}</span>
                             </span>

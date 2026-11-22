@@ -777,6 +777,27 @@ main.container > *:nth-child(n + 5) { animation-delay: 300ms; }
   mask: linear-gradient(#000 0 0) top / 100% calc(100% - 14px) no-repeat, url('/brand/torn-edge.svg') bottom / 100% 16px no-repeat;
 }
 
+/* Nomi di squadre, giocatori e allenatori (components/FitName.tsx): --name-fit rimpicciolisce il font
+   dei nomi lunghi rispetto a quello del contenitore; quel che ancora non ci sta va a capo, anche a
+   metà parola, invece di uscire dal riquadro o dallo schermo. */
+.fit-name {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  font-size: calc(1em * var(--name-fit, 1));
+  overflow-wrap: anywhere;
+  vertical-align: bottom;
+}
+
+/* Al massimo --name-lines righe, poi i puntini */
+.fit-name-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--name-lines, 2);
+  line-clamp: var(--name-lines, 2);
+  overflow: hidden;
+}
+
 .muted {
   color: var(--bb-slate-300);
 }

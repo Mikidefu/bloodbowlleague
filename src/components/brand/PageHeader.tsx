@@ -6,6 +6,7 @@ import { useArt } from '@/lib/useArt';
 import { useSeason } from '@/lib/SeasonContext';
 import Emblem from './Emblem';
 import Shards from './Shards';
+import { nameFit } from '@/components/FitName';
 import TapeStrip from './TapeStrip';
 import styles from './PageHeader.module.css';
 
@@ -80,7 +81,7 @@ export default function PageHeader({ title, kicker, subtitle, icon, actions, ton
           {kicker && <span className={styles.kicker}>{kicker}</span>}
           <h1 className={styles.title}>
             {section && !isDetail && <span className={styles.index} aria-hidden="true">{section.index}</span>}
-            <span className={styles.titleText}>{title}</span>
+            <span className={`${styles.titleText} fit-name`} style={nameFit(title, 11).style}>{title}</span>
           </h1>
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>

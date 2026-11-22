@@ -11,6 +11,7 @@ import { ART } from '@/lib/art';
 import { useArt } from '@/lib/useArt';
 import styles from './Stats.module.css';
 import type { PlayerLeader } from '@/lib/types';
+import FitName from '@/components/FitName';
 
 type PlayerStatsBoard = {
     scorers: PlayerLeader[];
@@ -133,7 +134,7 @@ export default function StatsPage() {
                                                 <span className={styles.teamSwatch} aria-hidden="true" />
                                                 {leader.team_name}
                                             </span>
-                                            <h3 className={styles.featureName}>{leader.name}</h3>
+                                            <h3 className={styles.featureName}><FitName comfy={8} min={0.5}>{leader.name}</FitName></h3>
                                         </div>
 
                                         <div className={styles.featureValue}>

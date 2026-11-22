@@ -12,6 +12,7 @@ import { ART } from '@/lib/art';
 import { useArt } from '@/lib/useArt';
 import styles from './Standings.module.css';
 import type { TeamStanding } from '@/lib/standings';
+import FitName from '@/components/FitName';
 
 const diffClass = (value: number) =>
     value > 0 ? styles.diffPositive : value < 0 ? styles.diffNegative : '';
@@ -109,7 +110,7 @@ export default function StandingsPage() {
                                                             <ShieldAlert size={isLeader ? 56 : 44} />
                                                         )}
                                                     </span>
-                                                    <span className={styles.podiumName}>{team.name}</span>
+                                                    <span className={styles.podiumName}><FitName comfy={10}>{team.name}</FitName></span>
                                                     {team.coach_name && (
                                                         <span className={styles.podiumCoach}>{team.coach_name}</span>
                                                     )}

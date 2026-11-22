@@ -19,6 +19,7 @@ import { ROSTERS, TIER_LIST_SOURCE, favouredOptions, getRoster, rosterTier, type
 import { LEAGUE_REROLL_MULTIPLIER, LIMITS, STAFF_COSTS } from '@/lib/leagueRules';
 import { mustAdvance } from '@/lib/players';
 import PostgamePanel from './PostgamePanel';
+import FitName from '@/components/FitName';
 
 const SORTED_ROSTERS = [...ROSTERS].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -666,7 +667,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 <i className={styles.microSquares} aria-hidden="true" />
                 {`Team profile // ${team.race}`}
               </span>
-              <h2 id="team-profile-name" className={styles.dossierName}>{team.name}</h2>
+              <h2 id="team-profile-name" className={styles.dossierName}><FitName comfy={10}>{team.name}</FitName></h2>
 
               <dl className={styles.labelRows}>
                 {profileRows.map(row => (

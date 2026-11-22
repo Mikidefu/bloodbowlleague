@@ -224,7 +224,9 @@
   transform: skewX(-20deg);
 }
 
+/* min-width: 0: senza, una parola lunga non va a capo e il titolo esce dallo schermo */
 .titleText {
+  min-width: 0;
   padding-right: 0.1em;
   overflow-wrap: break-word;
   hyphens: auto;
@@ -282,7 +284,7 @@
   }
   .withArt { margin-top: 3.5rem; padding-top: 6.5rem; }
   .watermark { width: 130px; height: 130px; right: 0.5rem; }
-  .title { font-size: clamp(2.1rem, 10vw, 2.9rem); }
+  .title { font-size: clamp(1.5rem, 8vw, 2.9rem); }
   .index { -webkit-text-stroke-width: 1.5px; }
   .micro { font-size: 0.68rem; letter-spacing: 0.14em; }
   .actions { width: 100%; }
